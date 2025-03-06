@@ -6,4 +6,5 @@ Membros:
   Alan Ono Osanai Pan
   André Fabian Calle Huanca
   Jonatas Machado Cabral
+  Riquelme Borges Meira
   Vítor Pires da Silva Oliveira
