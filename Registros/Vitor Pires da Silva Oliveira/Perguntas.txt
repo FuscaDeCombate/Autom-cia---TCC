@@ -1,0 +1,51 @@
+Perguntas - Sistema Farmacêutico 
+
+Qual sua faixa etária?
+  -17
+  18-25
+  26-40
+  40-59
+  60+
+
+Quando seu gênero?
+  Masculino 
+  Feminino 
+  Prefiro não informar 
+
+Você trabalha ou já trabalhou na área de saúde?
+  Sim.
+  Não.
+
+Você já teve problemas com um cliente/paciente por causa da letra do médico ou sobre a veracidade da receita?
+  Sim
+  Não 
+
+Você já teve que escrever/verificar a receita de um paciente/cliente uma segunda vez?
+  Sim.
+  Não.
+
+Você já teve problemas com receitas em hospitais e/ou farmácias? Se sim, qual?
+  Não.
+  Sim [...].
+
+Em viagens, você já teve problemas para traduzir receitas?
+  Sim.
+  Não.
+
+Você já fez consultas on-line diretamente com médicos em hospitais? Se sim, você precisou ir lá para ter uma receita?
+  Sim
+    Sim.
+    Não.
+  Não.
+
+Quanto tempo você já passou doente até decidir ir ao hospital ou farmácia?
+  Imediatamente 
+  Algumas horas
+  Alguns dias
+  Algumas semanas 
+  Nem fui
+
+Você gostaria de ter todos os problemas ditos facilitados em um único aplicativo?
+  Sim, com certeza.
+  Não sei.
+  Não muito.
