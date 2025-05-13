@@ -1,2 +1,0 @@
-*25/03/2025
-Modelo inicial: baseado na análise de requisitos básica, sem as aplicações mais detalhadas que seriam histórico e chat.
