@@ -2,6 +2,7 @@
 <androidx.coordinatorlayout.widget.CoordinatorLayout
     xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:id="@+id/main"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:background="@drawable/main_background">
@@ -28,6 +29,7 @@
             android:layout_height="wrap_content"
             android:background="@android:color/transparent"
             app:labelVisibilityMode="labeled"
+            app:itemIconSize="35dp"
             app:menu="@menu/bottom_menu">
 
         </com.google.android.material.bottomnavigation.BottomNavigationView>
@@ -41,6 +43,6 @@
         app:backgroundTint="@color/white"
         app:layout_anchor="@+id/bottomMenuBar"
         app:layout_anchorGravity="center"
-        app:maxImageSize="40sp" />
+        app:maxImageSize="45sp" />
 
 </androidx.coordinatorlayout.widget.CoordinatorLayout>
