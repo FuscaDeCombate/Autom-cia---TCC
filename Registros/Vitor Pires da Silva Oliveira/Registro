@@ -1,0 +1,21 @@
+Dia ??.04.2025
+
+* Primeira solicitação de mudança no BD feita pelo coordenador
+  > Remoção da tabela "Administrador".
+  > Remoção das tabelas "Farmacia", "Hospital/Clinica", "Profissional_da_Saude" e "Farmaceutico".
+  > Criação da tabela "Contratante" para substituir as tabelas "Hospital/Clinica" e "Farmacia".
+  > Criação da tabela "Funcionario" para substituir as tabelas "Profissional_da_Saude" e "Farmaceutico".
+  > Criação da tabela "Tipo_Funcionario" para diferenciar os tipos de usuários da tabela "Funcionario".
+
+* ?Alteração da tabela Mensagem para ser conectada a "Funcionario" e "Usuario" ao mesmo tempo ou uma variavel a ser verificada?
+
+Dia 07.05.2025
+
+* Troca do nome da tabela "Usuario" por "Paciente".
+* Adição da tabela "Chat", mas há um problema com sua única conexão ("Mensagens") que está sem conexões claras.
+
+Dia 14.05.2025
+
+* Coordenador solicitou algumas mudanças no modelo de MER e DER, é a segunda alteração solicidada e a menor até o momento
+  > Assimilação da tabela "Chat" pela tabela "Mensagens".
+  > Alteração de como é chamado algumas relações.
