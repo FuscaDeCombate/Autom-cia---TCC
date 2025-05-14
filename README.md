@@ -1,6 +1,6 @@
-# Sistema-De-Saude---TCC
+# Automácia---TCC
 
-TCC Sistema de Saúde (Nome provisório)
+Automácia
 
 Membros:
   Alan Ono Osanai Pan
