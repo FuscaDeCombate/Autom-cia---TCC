@@ -33,25 +33,21 @@ public class MainActivity extends AppCompatActivity {
         binding.bottomNavigationBar.setBackground(null);
 
         binding.bottomNavigationBar.setOnItemSelectedListener(item -> {
-            switch (item.getItemId()) {
-                case R.id.mnHome:
-                    replaceFragment(new HomeFragment());
-                    break;
-                case R.id.mnChat:
-                    replaceFragment(new ChatFragment());
-                    break;
-                case R.id.mnPref:
-                    replaceFragment(new PreferencesFragment());
-                    break;
-                case R.id.mnUser:
-                    replaceFragment(new UserFragment());
-                    break;
-                case R.id.mnNotif:
-                    replaceFragment(new NotificationFragment());
-                    break;
-                default:
-                    throw new IllegalStateException("Unexpected value: " + item.getItemId());
+            int itemid = item.getItemId();
+
+            if (itemid == R.id.mnHome) {
+                replaceFragment(new HomeFragment());
+            } else if (itemid == R.id.mnChat) {
+                replaceFragment(new ChatFragment());
+            } else if (itemid == R.id.mnNotif) {
+                replaceFragment(new NotificationFragment());
+            } else if (itemid == R.id.mnPref) {
+                replaceFragment(new PreferencesFragment());
+            } else if (itemid == R.id.mnUser) {
+                replaceFragment(new UserFragment());
             }
+
+            return true;
         });
     }
 
