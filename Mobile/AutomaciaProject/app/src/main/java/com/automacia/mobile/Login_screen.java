@@ -72,6 +72,8 @@ public class Login_screen extends AppCompatActivity {
         txtEsqueciSenha = findViewById(R.id.txtEsqueciSenha);
         txtCadastro = findViewById(R.id.txtCadastro);
 
+        editCpf.addTextChangedListener(new CpfMaskWatcher(editCpf));
+
         editCpf.addTextChangedListener(new TextWatcher() {
             @Override
             public void beforeTextChanged(CharSequence s, int start, int count, int after) {
@@ -109,6 +111,9 @@ public class Login_screen extends AppCompatActivity {
                     Toast.makeText(getBaseContext(), "Preencha todos os campos", Toast.LENGTH_SHORT).show();
                 } else {
                     Toast.makeText(getBaseContext(), "Login realizaod (mock)", Toast.LENGTH_SHORT).show();
+                    Intent i = new Intent(getBaseContext(), MainActivity.class);
+                    startActivity(i);
+                    finish();
                 }
             }
         });
@@ -118,8 +123,6 @@ public class Login_screen extends AppCompatActivity {
         });
 
         txtCadastro.setOnClickListener(v -> {
-            Intent i = new Intent(getBaseContext(), MainActivity.class);
-            startActivity(i);
         });
     }
 

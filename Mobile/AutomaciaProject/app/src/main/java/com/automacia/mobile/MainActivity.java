@@ -1,6 +1,7 @@
 package com.automacia.mobile;
 
 import android.os.Bundle;
+import android.view.View;
 
 import androidx.activity.EdgeToEdge;
 import androidx.appcompat.app.AppCompatActivity;
@@ -12,10 +13,12 @@ import androidx.fragment.app.FragmentManager;
 import androidx.fragment.app.FragmentTransaction;
 
 import com.automacia.mobile.databinding.ActivityMainBinding;
+import com.google.android.material.floatingactionbutton.FloatingActionButton;
 
 public class MainActivity extends AppCompatActivity {
 
     ActivityMainBinding binding;
+    FloatingActionButton btnHome;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -29,15 +32,22 @@ public class MainActivity extends AppCompatActivity {
             return insets;
         });
 
+        btnHome = findViewById(R.id.fab);
+
+        btnHome.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                replaceFragment(new HomeFragment());
+            }
+        });
+
         replaceFragment(new HomeFragment());
         binding.bottomNavigationBar.setBackground(null);
 
         binding.bottomNavigationBar.setOnItemSelectedListener(item -> {
             int itemid = item.getItemId();
 
-            if (itemid == R.id.mnHome) {
-                replaceFragment(new HomeFragment());
-            } else if (itemid == R.id.mnChat) {
+            if (itemid == R.id.mnChat) {
                 replaceFragment(new ChatFragment());
             } else if (itemid == R.id.mnNotif) {
                 replaceFragment(new NotificationFragment());

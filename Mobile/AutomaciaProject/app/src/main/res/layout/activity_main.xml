@@ -20,19 +20,17 @@
         app:backgroundTint="@color/white"
         app:fabAlignmentMode="center"
         app:fabAnchorMode="cradle"
-        app:fabCradleMargin="15dp"
-        app:fabCradleRoundedCornerRadius="40dp">
+        app:fabCradleMargin="10dp"
+        app:fabCradleRoundedCornerRadius="50dp">
 
         <com.google.android.material.bottomnavigation.BottomNavigationView
             android:id="@+id/bottomNavigationBar"
-            android:layout_width="match_parent"
+            android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:background="@android:color/transparent"
             app:labelVisibilityMode="labeled"
-            app:itemIconSize="35dp"
-            app:menu="@menu/bottom_menu">
-
-        </com.google.android.material.bottomnavigation.BottomNavigationView>
+            app:itemIconSize="40dp"
+            app:menu="@menu/bottom_menu" />
     </com.google.android.material.bottomappbar.BottomAppBar>
 
     <com.google.android.material.floatingactionbutton.FloatingActionButton
