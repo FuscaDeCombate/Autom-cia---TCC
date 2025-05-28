@@ -35,15 +35,14 @@ public class SplashActivity extends AppCompatActivity {
                 return new LinearGradient(
                         0, height, width, 0,
                         new int[]{
-                            0xFF001A6E,
-                            0xFF00906A,
-                            0xFF00DB00,
-                            0xFF009B00,
-                            0xFF009B00
+                                0xFF001A6E,
+                                0xFF001A6E,
+                                0xFF009061,
+                                0xFF00DB00,
+                                0xFF009B00,
+                                0xFF009B00
                         },
-                        new float[] {
-                                0.0f, 0.37f, 0.71f, 0.91f, 1.0f
-                        },
+                        new float[]{0.0f, 0.10f, 0.40f, 0.70f, 0.90f, 1.0f},
                         Shader.TileMode.CLAMP
                 );
             }
@@ -62,7 +61,7 @@ public class SplashActivity extends AppCompatActivity {
                     .alpha(0f)
                     .setDuration(800)
                     .withEndAction(() -> {
-                        startActivity(new Intent(getBaseContext(), Login_screen.class));
+                        startActivity(new Intent(getBaseContext(), LoginActivity.class));
                         finish();
                     });
         }, 2000);

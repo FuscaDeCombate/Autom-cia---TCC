@@ -22,7 +22,7 @@ import androidx.core.graphics.Insets;
 import androidx.core.view.ViewCompat;
 import androidx.core.view.WindowInsetsCompat;
 
-public class Login_screen extends AppCompatActivity {
+public class LoginActivity extends AppCompatActivity {
     EditText editCpf, editSenha;
     Button btnLogin;
     Switch swLembrar;
@@ -32,7 +32,7 @@ public class Login_screen extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         EdgeToEdge.enable(this);
-        setContentView(R.layout.activity_login_screen);
+        setContentView(R.layout.activity_login);
         ViewCompat.setOnApplyWindowInsetsListener(findViewById(R.id.main), (v, insets) -> {
             Insets systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars());
             v.setPadding(systemBars.left, systemBars.top, systemBars.right, systemBars.bottom);
@@ -43,15 +43,16 @@ public class Login_screen extends AppCompatActivity {
             @Override
             public Shader resize(int width, int height) {
                 LinearGradient linearGradient = new LinearGradient(
-                        0,0, width, 0,
+                        0, 0, 0, height,
                         new int[] {
+                                0xFF001A6E,
                                 0xFF001A6E,
                                 0xFF009061,
                                 0xFF00DB00,
                                 0xFF009B00,
                                 0xFF009B00
                         },
-                        new float[] {0.09f, 0.37f, 0.7f, 0.91f, 1.0f},
+                        new float[]{0.0f, 0.10f, 0.40f, 0.70f, 0.90f, 1.0f},
                         Shader.TileMode.CLAMP
                 );
                 return linearGradient;
@@ -110,7 +111,7 @@ public class Login_screen extends AppCompatActivity {
                 if (cpf.isEmpty() || senha.isEmpty()) {
                     Toast.makeText(getBaseContext(), "Preencha todos os campos", Toast.LENGTH_SHORT).show();
                 } else {
-                    Toast.makeText(getBaseContext(), "Login realizaod (mock)", Toast.LENGTH_SHORT).show();
+                    Toast.makeText(getBaseContext(), "Login realizado (mock)", Toast.LENGTH_SHORT).show();
                     Intent i = new Intent(getBaseContext(), MainActivity.class);
                     startActivity(i);
                     finish();
