@@ -7,6 +7,7 @@ import android.widget.EditText;
 public class CpfMaskWatcher implements TextWatcher {
     private boolean isUpdating;
     private final EditText editText;
+    private String oldText = "";
 
     public CpfMaskWatcher(EditText editText) {
         this.editText = editText;
@@ -14,64 +15,39 @@ public class CpfMaskWatcher implements TextWatcher {
 
     @Override
     public void beforeTextChanged(CharSequence s, int start, int count, int after) {
-
+        oldText = s.toString();
     }
 
     @Override
     public void onTextChanged(CharSequence s, int start, int before, int count) {
-        if (isUpdating) {
-            isUpdating = false;
-            return;
-        }
+        if (isUpdating) return;
 
-        String str = s.toString().replaceAll("[^\\d]", "");
+        String clean = s.toString().replaceAll("[^\\d]", "");
+
+        if (clean.length() > 11) clean = clean.substring(0, 11);
+
         StringBuilder formatted = new StringBuilder();
-        int len = str.length();
 
-        if (len > 0) {
-            formatted.append(str.charAt(0));
-        }
-        if (len > 1) {
-            formatted.append(str.charAt(1));
-        }
-        if (len > 2) {
-            formatted.append(str.charAt(2));
-            formatted.append(".");
-        }
-        if (len > 3) {
-            formatted.append(str.charAt(3));
-        }
-        if (len > 4) {
-            formatted.append(str.charAt(4));
-        }
-        if (len > 5) {
-            formatted.append(str.charAt(5));
-            formatted.append(".");
-        }
-        if (len > 6) {
-            formatted.append(str.charAt(6));
-        }
-        if (len > 7) {
-            formatted.append(str.charAt(7));
-        }
-        if (len > 8) {
-            formatted.append(str.charAt(8));
-            formatted.append("-");
-        }
-        if (len > 9) {
-            formatted.append(str.charAt(9));
-        }
-        if (len > 10) {
-            formatted.append(str.charAt(10));
+        int i = 0;
+        while (i < clean.length()) {
+            if (i == 3 || i == 6) {
+                formatted.append('.');
+            } else if (i == 9) {
+                formatted.append('-');
+            }
+            formatted.append(clean.charAt(i));
+            i++;
         }
 
         isUpdating = true;
         editText.setText(formatted.toString());
-        editText.setSelection(editText.getText().length());
+
+        editText.setSelection(Math.min(formatted.length(), formatted.length()));
+        isUpdating = false;
     }
 
     @Override
     public void afterTextChanged(Editable s) {
-
+        // nada aqui
     }
 }
