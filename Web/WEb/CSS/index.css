@@ -1,0 +1,71 @@
+main {
+    height: auto;
+    flex: 1;
+    display: flex;
+    padding: 10%;
+
+}
+
+.abag {
+    height: 20vw;
+    background-color: #f0f0f013;
+    width: 40%;
+    text-align: center;
+    border-radius: 1.25vw;
+    display: flex;
+    align-items: center;
+    transition: 0.75s;
+}
+.abag a {
+    display: flex;
+    align-items: center;
+    transition: 0.75s;
+}
+.abag a h1 {
+    margin: 2%;
+    text-align: center;
+    color: white;
+    font-size: 2.75vh;
+    text-decoration: none;
+    font-family: sans-serif; 
+}
+
+.abag a img {
+    height: 30vh;
+    border-radius: 1.5vw;
+}
+
+a {
+    color: white;
+    font-size: 1.5vh;
+    text-decoration: none;
+    font-family: sans-serif;
+}
+
+p {
+    margin: 2%;
+    text-align: center;
+    color: white;
+    font-size: 2.75vh;
+    text-decoration: none;
+    font-family: sans-serif; 
+}
+
+.abag h1 {
+    margin: 2%;
+    text-align: center;
+    color: white;
+    font-size: 2.75vh;
+    text-decoration: none;
+    font-family: sans-serif; 
+}
+
+.abag:hover {
+    transform: scale(1.2);
+    border-color: #db0606;
+    cursor:default;
+}
+
+.abag a:hover {
+    cursor:default;
+}

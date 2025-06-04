@@ -1,0 +1,91 @@
+<mxfile host="app.diagrams.net" agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/135.0.0.0 Safari/537.36" version="26.3.0">
+  <diagram name="Página-1" id="Dms0LPx_rnLLgecIuM7L">
+    <mxGraphModel dx="1106" dy="553" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="827" pageHeight="1169" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="F-FzzxZ4_IFSB5RZSTM2-1" value="" style="rounded=0;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="70" y="40" width="680" height="480" as="geometry" />
+        </mxCell>
+        <mxCell id="F-FzzxZ4_IFSB5RZSTM2-23" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" edge="1" parent="1" source="F-FzzxZ4_IFSB5RZSTM2-2" target="F-FzzxZ4_IFSB5RZSTM2-7">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="F-FzzxZ4_IFSB5RZSTM2-24" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" edge="1" parent="1" source="F-FzzxZ4_IFSB5RZSTM2-2" target="F-FzzxZ4_IFSB5RZSTM2-9">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="F-FzzxZ4_IFSB5RZSTM2-26" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" edge="1" parent="1" source="F-FzzxZ4_IFSB5RZSTM2-2" target="F-FzzxZ4_IFSB5RZSTM2-11">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="F-FzzxZ4_IFSB5RZSTM2-2" value="Funcionario" style="shape=umlActor;verticalLabelPosition=bottom;verticalAlign=top;html=1;outlineConnect=0;" vertex="1" parent="1">
+          <mxGeometry x="20" y="110" width="30" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="F-FzzxZ4_IFSB5RZSTM2-21" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" edge="1" parent="1" source="F-FzzxZ4_IFSB5RZSTM2-3" target="F-FzzxZ4_IFSB5RZSTM2-6">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="F-FzzxZ4_IFSB5RZSTM2-22" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;" edge="1" parent="1" source="F-FzzxZ4_IFSB5RZSTM2-3" target="F-FzzxZ4_IFSB5RZSTM2-5">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="F-FzzxZ4_IFSB5RZSTM2-3" value="Contratante" style="shape=umlActor;verticalLabelPosition=bottom;verticalAlign=top;html=1;outlineConnect=0;" vertex="1" parent="1">
+          <mxGeometry x="20" y="380" width="30" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="F-FzzxZ4_IFSB5RZSTM2-27" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;entryX=1;entryY=0.5;entryDx=0;entryDy=0;" edge="1" parent="1" source="F-FzzxZ4_IFSB5RZSTM2-4" target="F-FzzxZ4_IFSB5RZSTM2-16">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="F-FzzxZ4_IFSB5RZSTM2-28" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;entryX=1;entryY=0.5;entryDx=0;entryDy=0;" edge="1" parent="1" source="F-FzzxZ4_IFSB5RZSTM2-4" target="F-FzzxZ4_IFSB5RZSTM2-17">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="F-FzzxZ4_IFSB5RZSTM2-29" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;entryX=1;entryY=0.5;entryDx=0;entryDy=0;" edge="1" parent="1" source="F-FzzxZ4_IFSB5RZSTM2-4" target="F-FzzxZ4_IFSB5RZSTM2-18">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="F-FzzxZ4_IFSB5RZSTM2-30" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;entryX=1;entryY=0.5;entryDx=0;entryDy=0;" edge="1" parent="1" source="F-FzzxZ4_IFSB5RZSTM2-4" target="F-FzzxZ4_IFSB5RZSTM2-19">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="F-FzzxZ4_IFSB5RZSTM2-31" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;entryX=1;entryY=0.5;entryDx=0;entryDy=0;" edge="1" parent="1" source="F-FzzxZ4_IFSB5RZSTM2-4" target="F-FzzxZ4_IFSB5RZSTM2-11">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="F-FzzxZ4_IFSB5RZSTM2-4" value="Paciente" style="shape=umlActor;verticalLabelPosition=bottom;verticalAlign=top;html=1;outlineConnect=0;" vertex="1" parent="1">
+          <mxGeometry x="770" y="110" width="30" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="F-FzzxZ4_IFSB5RZSTM2-5" value="Registro" style="ellipse;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="160" y="430" width="130" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="F-FzzxZ4_IFSB5RZSTM2-20" value="extends" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;dashed=1;" edge="1" parent="1" source="F-FzzxZ4_IFSB5RZSTM2-6" target="F-FzzxZ4_IFSB5RZSTM2-12">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="F-FzzxZ4_IFSB5RZSTM2-6" value="Cadastra Funcionario" style="ellipse;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="160" y="360" width="130" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="F-FzzxZ4_IFSB5RZSTM2-7" value="Cria Receitas" style="ellipse;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="160" y="60" width="130" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="F-FzzxZ4_IFSB5RZSTM2-9" value="Vê Receitas de Pacientes" style="ellipse;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="160" y="180" width="130" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="F-FzzxZ4_IFSB5RZSTM2-10" value="Vê Histórico do Paciente" style="ellipse;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="160" y="250" width="130" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="F-FzzxZ4_IFSB5RZSTM2-11" value="Envia Mensagem" style="ellipse;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="349" y="110" width="130" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="F-FzzxZ4_IFSB5RZSTM2-12" value="Especifica Tipo Funcionário" style="ellipse;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="380" y="360" width="130" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="F-FzzxZ4_IFSB5RZSTM2-16" value="Se Registra" style="ellipse;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="560" y="60" width="130" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="F-FzzxZ4_IFSB5RZSTM2-17" value="Adiciona Histórico Médico" style="ellipse;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="560" y="180" width="130" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="F-FzzxZ4_IFSB5RZSTM2-18" value="Altera Dados" style="ellipse;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="560" y="250" width="130" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="F-FzzxZ4_IFSB5RZSTM2-19" value="Vê Suas Receitas" style="ellipse;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="560" y="320" width="130" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="F-FzzxZ4_IFSB5RZSTM2-25" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;entryX=0;entryY=0.617;entryDx=0;entryDy=0;entryPerimeter=0;" edge="1" parent="1" source="F-FzzxZ4_IFSB5RZSTM2-2" target="F-FzzxZ4_IFSB5RZSTM2-10">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>
