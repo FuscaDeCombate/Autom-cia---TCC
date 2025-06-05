@@ -1,5 +1,6 @@
 package com.automacia.mobile;
 
+import android.content.Intent;
 import android.os.Bundle;
 import android.text.Editable;
 import android.text.TextWatcher;
@@ -7,6 +8,7 @@ import android.util.Patterns;
 import android.view.View;
 import android.widget.Button;
 import android.widget.EditText;
+import android.widget.TextView;
 import android.widget.Toast;
 
 import androidx.activity.EdgeToEdge;
@@ -17,6 +19,7 @@ import androidx.core.view.WindowInsetsCompat;
 
 public class RegisterActivity extends AppCompatActivity {
     private EditText editNomeC, editCPF, editEmail, editTelefone, editSenha, editConSenha;
+    TextView txtLogin;
     private Button btnCadastrar;
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -39,6 +42,7 @@ public class RegisterActivity extends AppCompatActivity {
         editSenha = findViewById(R.id.editSenha);
         editConSenha = findViewById(R.id.editConSenha);
         btnCadastrar = findViewById(R.id.btnRegistrar);
+        txtLogin = findViewById(R.id.txtLogin);
 
         editCPF.addTextChangedListener(new CpfMaskWatcher(editCPF));
         editCPF.addTextChangedListener(new TextWatcher() {
@@ -74,6 +78,15 @@ public class RegisterActivity extends AppCompatActivity {
                 if (validarCampos()) {
                     Toast.makeText(getBaseContext(), "Cadastro relalizado com sucesso!", Toast.LENGTH_SHORT).show();
                 }
+            }
+        });
+
+        txtLogin.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                Intent i = new Intent(getBaseContext(), LoginActivity.class);
+                startActivity(i);
+                finish();
             }
         });
     }
