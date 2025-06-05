@@ -94,7 +94,13 @@ public class LoginActivity extends AppCompatActivity {
             Toast.makeText(getBaseContext(), "Recuperção de senha", Toast.LENGTH_SHORT).show();
         });
 
-        txtCadastro.setOnClickListener(v -> {
+        txtCadastro.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                Intent i = new Intent(getBaseContext(), RegisterActivity.class);
+                startActivity(i);
+                finish();
+            }
         });
     }
 }

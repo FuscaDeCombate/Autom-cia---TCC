@@ -9,6 +9,7 @@
     android:orientation="vertical"
     android:gravity="center"
     android:padding="24dp"
+    android:layout_marginBottom="20dp"
     tools:context=".LoginActivity">
 
     <ImageView
@@ -25,6 +26,7 @@
         android:background="@drawable/white_card"
         android:elevation="12dp"
         android:padding="24dp"
+        android:layout_margin="20dp"
         android:gravity="center_horizontal">
 
         <ImageView
@@ -46,6 +48,7 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:hint="CPF"
+                android:textColorHint="#787878"
                 android:inputType="number"
                 android:textColor="#1F1F1F"
                 android:padding="12dp"
@@ -57,6 +60,7 @@
                 android:layout_height="wrap_content"
                 android:hint="Senha"
                 android:textColor="#1F1F1F"
+                android:textColorHint="#787878"
                 android:inputType="textPassword"
                 android:padding="12dp"
                 android:layout_marginTop="12dp"
@@ -73,8 +77,9 @@
                 <Switch
                     android:id="@+id/switchLembrar"
                     android:layout_width="0dp"
-                    android:layout_weight="0.5"
                     android:layout_height="wrap_content"
+                    android:layout_weight="0.5"
+                    android:textColor="#1F1F1F"
                     android:text="Lembrar CPF" />
 
                 <TextView

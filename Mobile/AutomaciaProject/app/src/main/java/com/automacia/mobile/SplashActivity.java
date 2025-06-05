@@ -33,20 +33,20 @@ public class SplashActivity extends AppCompatActivity {
             @Override
             public Shader resize(int width, int height) {
                 return new LinearGradient(
-                        0, height, width, 0,
+                        0, 0, width * 0.7f, height * 0.7f,
                         new int[]{
-                                0xFF001A6E,
-                                0xFF001A6E,
-                                0xFF009061,
-                                0xFF00DB00,
-                                0xFF009B00,
-                                0xFF009B00
+                                0xFF00FF00, // Verde limão
+                                0xFF009933, // Verde escuro intermediário
+                                0xFF000080  // Azul escuro
                         },
-                        new float[]{0.0f, 0.10f, 0.40f, 0.70f, 0.90f, 1.0f},
+                        new float[]{
+                                0.0f, 0.4f, 1.0f // Azul aparece a partir de ~40%
+                        },
                         Shader.TileMode.CLAMP
                 );
             }
         };
+
 
         PaintDrawable paint = new PaintDrawable();
         paint.setShape(new RectShape());
