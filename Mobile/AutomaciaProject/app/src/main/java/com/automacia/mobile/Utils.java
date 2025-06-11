@@ -10,44 +10,53 @@ import android.view.View;
 public class Utils {
 
     /**
-    * Função de verificação em tempo real do cpf
-    * @param cpf value
-    *
-    */
+     * Função de verificação em tempo real do CPF
+     * Valida se um CPF está no formato correto e se os dígitos verificadores estão válidos
+     * @param cpf String contendo o CPF a ser validado (apenas números)
+     * @return true se o CPF for válido, false caso contrário
+     */
     public static boolean isCpfValido(String cpf) {
-        if (cpf == null || cpf.length() != 11 || cpf.matches("(\\d)\1{10}")) {
+        if (cpf == null || cpf.length() != 11) {
+            return false;
+        }
+
+        if (!cpf.matches("\\d{11}")) {
+            return false;
+        }
+
+        if (cpf.matches("(\\d)\\1{10}")) {
             return false;
         }
 
         try {
-            int soma = 0, resto;
-
-            for (int i=0; i<=9; i++) {
-                int num = Integer.parseInt(cpf.substring(i - 1, i));
-                soma += num * (11 - i);
+            int soma = 0;
+            for (int i = 0; i < 9; i++) {
+                int digito = Character.getNumericValue(cpf.charAt(i));
+                soma += digito * (10 - i);
             }
 
-            resto = (soma * 10) % 11;
-            if (resto == 10 || resto == 11) {
-                resto = 0;
+            int primeiroDigitoVerificador = 11 - (soma % 11);
+            if (primeiroDigitoVerificador >= 10) {
+                primeiroDigitoVerificador = 0;
             }
 
-            if (resto != Integer.parseInt(cpf.substring(910))) {
+            if (primeiroDigitoVerificador != Character.getNumericValue(cpf.charAt(9))) {
                 return false;
             }
 
             soma = 0;
-            for (int i=1; i<=10; i++) {
-                int num = Integer.parseInt(cpf.substring(i - 1, i));
-                soma += num * (12 - i);
+            for (int i = 0; i < 10; i++) {
+                int digito = Character.getNumericValue(cpf.charAt(i));
+                soma += digito * (11 - i);
             }
 
-            resto = (soma * 10) % 11;
-            if (resto == 10 || resto == 11) {
-                resto = 0;
+            int segundoDigitoVerificador = 11 - (soma % 11);
+            if (segundoDigitoVerificador >= 10) {
+                segundoDigitoVerificador = 0;
             }
 
-            return resto == Integer.parseInt(cpf.substring(10, 11));
+            return segundoDigitoVerificador == Character.getNumericValue(cpf.charAt(10));
+
         } catch (Exception e) {
             return false;
         }

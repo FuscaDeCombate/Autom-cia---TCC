@@ -2,4 +2,18 @@
     <string name="app_name">Automacia+</string>
     <!-- TODO: Remove or change this placeholder text -->
     <string name="hello_blank_fragment">Hello blank fragment</string>
+    <string name="app_logo_description">Logo do Aplicativo</string>
+    <string name="criar_conta">Criar Conta</string>
+    <string name="preencha_dados">Preencha seus dados para continuar</string>
+    <string name="nome_completo">Nome Completo</string>
+    <string name="cpf">CPF</string>
+    <string name="email">E-mail</string>
+    <string name="telefone">Telefone</string>
+    <string name="senha">Senha</string>
+    <string name="confirmar_senha">Confirmar Senha</string>
+    <string name="cadastrar">Cadastrar</string>
+    <string name="ou">OU</string>
+    <string name="google">Google</string>
+    <string name="facebook">Facebook</string>
+    <string name="ja_tem_conta">Já tem conta? Faça login</string>
 </resources>
