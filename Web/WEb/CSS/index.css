@@ -6,6 +6,43 @@ main {
 
 }
 
+@media only screen and (max-width: 600px) {
+    main .abag {
+        margin-top: 20%;
+        flex-direction: column;
+        margin-bottom: 10%;
+        width: 80%;
+        height: 200px; 
+    }
+
+    main .abag a {
+        flex-direction: column;
+
+    }
+
+    main .abag a div {
+        display: block; 
+        margin-top: 20px;
+        align-items: center;
+    }
+
+    main .abag h1 {
+        color: white;
+        font-size: 20px;
+    }
+
+    main .abag p {
+        color: white;
+        font-size: 20px;
+    }
+
+    main .abag a img {
+        height: 50px;
+        border-radius: 1.5vw;
+    }
+
+}
+
 .abag {
     height: 20vw;
     background-color: #f0f0f013;
@@ -67,5 +104,9 @@ p {
 }
 
 .abag a:hover {
-    cursor:default;
+    cursor:pointer;
+}
+
+#bubulgue {
+    visibility: hidden;
 }

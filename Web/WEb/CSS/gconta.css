@@ -2,6 +2,22 @@
     margin: 0 auto;
 }
 
+@media only screen and (max-width: 600px) {
+    main {
+       display: block;
+       height: 53.7vw;
+       width: 100%;
+    }
+
+    header {
+        display: block;
+        flex: 1;
+        height: 10vh;
+    }
+
+
+}
+
 body {
     background-image: linear-gradient(#004c9e, #000000);
     background-repeat: no-repeat;
@@ -23,7 +39,6 @@ main {
     flex-direction: column;
     width: 60%;
     height: auto;
-
 }
 
 main div div {
@@ -111,3 +126,4 @@ main div a {
 #caixas a:hover {
     transform: scale(1.10);
 }
+

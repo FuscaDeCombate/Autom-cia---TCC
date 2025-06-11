@@ -1,0 +1,134 @@
+* {
+    margin: 0 auto;
+}
+
+@media only screen and (max-width: 600px) {
+    body main {
+        flex-direction: column;
+        height: 70vh;
+        width: 80%;
+    }
+
+    header {
+        width: 20vw;
+    }
+
+    header {
+        visibility: hidden;
+    }
+
+    footer div p {
+        font-size: 10px;
+    }
+
+    footer div a {
+        font-size: 10px;
+    }
+
+    header .headerdiv #bubulgue {
+        visibility: visible;
+    }
+
+    footer {
+        width: 80%;
+    }
+
+    footer div p, a {
+        font-size: 15px;
+    }
+
+    footer div a {
+        font-size: 15px;
+        margin: 2%;
+    }
+
+    footer div {  
+        margin: 2%;
+    }
+}
+
+
+body {
+    background-image: linear-gradient(#004c9e, #000000);
+    background-repeat: no-repeat;
+    background-size: cover;
+}
+
+header {
+    display: flex;
+    flex: 1;
+    height: 10vh;
+}
+
+header img {
+    height: 8vh;
+}
+
+#headerimg {
+    display: flex;
+    align-items: center;
+    width: 15%; 
+    transition: 1s;
+}
+
+.headerdiv {
+    border-left: solid;
+    border-left-color: #012852;
+    display: flex;
+    align-items: center;
+    text-align: center;
+    width: 25%;
+}
+
+.headerdiv a {
+    font-size: 2.5vh;
+    text-decoration: none;
+    color: white;
+    font-family: sans-serif; 
+}
+
+footer {
+    height: auto;
+    display: flex;
+    flex-direction: row;
+}
+
+footer p {
+    font-size: 1vw;
+    font-family: sans-serif; 
+    text-decoration: none;
+    color: white;
+}
+
+footer a {
+    font-size: 1vw;
+    font-family: sans-serif; 
+    text-decoration: none;
+    color: white;
+}
+
+footer div {
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+}
+
+#abas {
+    display: flex;
+    flex-direction: row;
+}
+
+#abas div a {
+    padding: 5%;
+    color: white;
+    text-decoration: none;
+}
+
+
+footer img {
+    height: 8vh;
+}
+
+#headerimg:hover {
+    transform: scale(1.08);
+}

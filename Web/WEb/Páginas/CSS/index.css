@@ -1,0 +1,112 @@
+main {
+    height: auto;
+    flex: 1;
+    display: flex;
+    padding: 10%;
+
+}
+
+@media only screen and (max-width: 600px) {
+    main .abag {
+        margin-top: 20%;
+        flex-direction: column;
+        margin-bottom: 10%;
+        width: 80%;
+        height: 200px; 
+    }
+
+    main .abag a {
+        flex-direction: column;
+
+    }
+
+    main .abag a div {
+        display: block; 
+        margin-top: 20px;
+        align-items: center;
+    }
+
+    main .abag h1 {
+        color: white;
+        font-size: 20px;
+    }
+
+    main .abag p {
+        color: white;
+        font-size: 20px;
+    }
+
+    main .abag a img {
+        height: 50px;
+        border-radius: 1.5vw;
+    }
+
+}
+
+.abag {
+    height: 20vw;
+    background-color: #f0f0f013;
+    width: 40%;
+    text-align: center;
+    border-radius: 1.25vw;
+    display: flex;
+    align-items: center;
+    transition: 0.75s;
+}
+.abag a {
+    display: flex;
+    align-items: center;
+    transition: 0.75s;
+}
+.abag a h1 {
+    margin: 2%;
+    text-align: center;
+    color: white;
+    font-size: 2.75vh;
+    text-decoration: none;
+    font-family: sans-serif; 
+}
+
+.abag a img {
+    height: 30vh;
+    border-radius: 1.5vw;
+}
+
+a {
+    color: white;
+    font-size: 1.5vh;
+    text-decoration: none;
+    font-family: sans-serif;
+}
+
+p {
+    margin: 2%;
+    text-align: center;
+    color: white;
+    font-size: 2.75vh;
+    text-decoration: none;
+    font-family: sans-serif; 
+}
+
+.abag h1 {
+    margin: 2%;
+    text-align: center;
+    color: white;
+    font-size: 2.75vh;
+    text-decoration: none;
+    font-family: sans-serif; 
+}
+
+.abag:hover {
+    transform: scale(1.2);
+    border-color: #db0606;
+    cursor:default;
+}
+
+.abag a:hover {
+    cursor:pointer;
+}
+
+#bubulgue {
+    visibility: hidden;
+}

@@ -1,0 +1,129 @@
+* {
+    margin: 0 auto;
+}
+
+@media only screen and (max-width: 600px) {
+    main {
+       display: block;
+       height: 53.7vw;
+       width: 100%;
+    }
+
+    header {
+        display: block;
+        flex: 1;
+        height: 10vh;
+    }
+
+
+}
+
+body {
+    background-image: linear-gradient(#004c9e, #000000);
+    background-repeat: no-repeat;
+    background-size: cover;
+}
+
+main {
+    height: 53.7vw;
+    display: flex;
+    align-items: center;
+}
+
+#divg {
+    background-color: #012852;
+    display: flex;
+    border-radius: 1.5vw;
+    background-color: #f0f0f013;
+    text-align: center;
+    flex-direction: column;
+    width: 60%;
+    height: auto;
+}
+
+main div div {
+    width: 100%;
+    margin-bottom: 3%;
+    transition: 1.5s;
+}
+
+#caixas {
+    display: flex;
+}
+
+main #caixas div {
+    flex-direction: column;
+}
+
+main div img {
+    margin-top: 3%;
+    height: 5vw;
+}
+
+main div p {
+    color: white;
+    font-family: sans-serif; 
+}
+
+main div h1 {
+    color: white;
+    font-family: sans-serif; 
+}
+
+
+main div a {
+    color: white;
+    font-family: sans-serif; 
+    font-size: 0.6vw;
+    text-decoration: none;
+    margin-right: 18vw;
+
+}
+
+.explica {
+    justify-content: right;
+    font-family: sans-serif; 
+}
+
+#botoes {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+}
+
+.txt {
+    border-radius: 1.15vw;
+    background-color: grey;
+    border: solid 2px;
+    border-color: black;
+    color: white;
+    width: 65%;
+    font-family: sans-serif; 
+    height: 2.5vw;
+    margin-bottom: 2%;
+    font-size: 1.5vw;
+}                                               
+
+.botao {
+    border-radius: 2.5vw;
+    font-size: 1.5vw;
+    width: 30%;
+    justify-content: center;
+    color: white;
+    padding: 2%;
+    border: solid 2px;
+    border-color: black;
+    background-color: grey;
+    margin-bottom: 2%;
+    transition: 1.5s;
+}
+
+.botao:hover {
+    transform: scale(1.15);
+    cursor: pointer;
+}
+
+#caixas a:hover {
+    transform: scale(1.10);
+}
+
