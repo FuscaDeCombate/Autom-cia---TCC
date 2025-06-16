@@ -69,7 +69,7 @@ public class RegisterActivity extends AppCompatActivity {
      */
     private void setupGradientBackground() {
         View mainView = findViewById(R.id.main);
-        Utils.aplyGradientBackground(mainView);
+        Utils.applyGradientBackground(mainView);
     }
 
     /**

@@ -80,7 +80,9 @@
                     app:startIconTint="@color/primary"
                     app:boxStrokeColor="@color/primary"
                     app:hintTextColor="@color/primary"
-                    app:errorEnabled="true">
+                    app:errorEnabled="true"
+                    app:startIconContentDescription="@string/cpf_icon_description"
+                    app:expandedHintEnabled="true">
 
                     <com.google.android.material.textfield.TextInputEditText
                         android:id="@+id/editCpf"
@@ -91,7 +93,9 @@
                         android:autofillHints="username"
                         android:textColor="@color/text_primary"
                         android:maxLength="14"
-                        android:maxLines="1" />
+                        android:maxLines="1"
+                        android:paddingStart="35dp"
+                        android:paddingEnd="12dp" />
                 </com.google.android.material.textfield.TextInputLayout>
 
                 <com.google.android.material.textfield.TextInputLayout
@@ -106,7 +110,9 @@
                     app:endIconMode="password_toggle"
                     app:boxStrokeColor="@color/primary"
                     app:hintTextColor="@color/primary"
-                    app:errorEnabled="true">
+                    app:errorEnabled="true"
+                    app:startIconContentDescription="@string/senha_icon_description"
+                    app:expandedHintEnabled="true">
 
                     <com.google.android.material.textfield.TextInputEditText
                         android:id="@+id/editSenha"
@@ -116,7 +122,9 @@
                         android:importantForAutofill="yes"
                         android:autofillHints="password"
                         android:textColor="@color/text_primary"
-                        android:maxLines="1" />
+                        android:maxLines="1"
+                        android:paddingStart="35dp"
+                        android:paddingEnd="12dp" />
                 </com.google.android.material.textfield.TextInputLayout>
 
                 <!-- Linha com Switch e Link -->

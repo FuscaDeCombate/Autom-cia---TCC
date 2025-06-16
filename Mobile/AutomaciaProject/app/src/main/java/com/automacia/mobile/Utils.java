@@ -67,7 +67,7 @@ public class Utils {
      *
      * @param view A view onde o fundo será aplicado.
      */
-    public static void aplyGradientBackground(View view) {
+    public static void applyGradientBackground(View view) {
         ShapeDrawable.ShaderFactory shaderFactory = new ShapeDrawable.ShaderFactory() {
             @Override
             public Shader resize(int width, int height) {
