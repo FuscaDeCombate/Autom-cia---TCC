@@ -16,4 +16,10 @@
     <string name="google">Google</string>
     <string name="facebook">Facebook</string>
     <string name="ja_tem_conta">Já tem conta? Faça login</string>
+    <string name="bem_vindo">Bem-vindo</string>
+    <string name="acesse_sua_conta">Acesse sua conta</string>
+    <string name="lembrar_cpf">Lembrar CPF</string>
+    <string name="esqueci_senha">Esqueci a senha</string>
+    <string name="entrar">Entrar</string>
+    <string name="nao_tem_conta">Não tem conta? Cadastre-se</string>
 </resources>
