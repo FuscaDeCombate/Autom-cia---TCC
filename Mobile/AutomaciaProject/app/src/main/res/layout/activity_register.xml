@@ -183,7 +183,9 @@
                         android:importantForAutofill="yes"
                         android:autofillHints="password"
                         android:textColor="@color/text_primary"
-                        android:maxLines="1" />
+                        android:maxLines="1"
+                        android:paddingStart="40dp"
+                        android:paddingEnd="12dp" />
                 </com.google.android.material.textfield.TextInputLayout>
 
                 <com.google.android.material.textfield.TextInputLayout
@@ -208,7 +210,9 @@
                         android:importantForAutofill="yes"
                         android:autofillHints="password"
                         android:textColor="@color/text_primary"
-                        android:maxLines="1" />
+                        android:maxLines="1"
+                        android:paddingStart="40dp"
+                        android:paddingEnd="12dp" />
                 </com.google.android.material.textfield.TextInputLayout>
 
                 <com.google.android.material.button.MaterialButton
@@ -221,7 +225,7 @@
                     android:textSize="16sp"
                     android:textStyle="bold"
                     app:backgroundTint="@color/primary"
-                    app:cornerRadius="28dp"
+                    app:cornerRadius="15dp"
                     app:elevation="4dp"
                     app:icon="@drawable/ic_person_add"
                     app:iconGravity="textStart"

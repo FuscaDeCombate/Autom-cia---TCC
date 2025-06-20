@@ -1,18 +1,259 @@
 <?xml version="1.0" encoding="utf-8"?>
-<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="#78C7FF"
+    android:background="@drawable/main_background"
     tools:context=".UserFragment">
 
-    <!-- TODO: Update blank fragment layout -->
-    <TextView
+    <LinearLayout
         android:layout_width="match_parent"
-        android:layout_height="match_parent"
-        android:text="USER"
-        android:textSize="30sp"
-        android:gravity="center"
-        android:textColor="@color/white"/>
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:padding="24dp">
 
-</FrameLayout>
+        <!-- Header com foto do perfil -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:gravity="center"
+            android:layout_marginBottom="32dp">
+
+            <!-- Botão voltar -->
+            <ImageButton
+                android:id="@+id/btn_back"
+                android:layout_width="40dp"
+                android:layout_height="40dp"
+                android:layout_gravity="start"
+                android:background="?android:attr/selectableItemBackgroundBorderless"
+                android:src="@drawable/ic_arrow_back"
+                android:backgroundTint="@color/white"
+                android:layout_marginBottom="16dp"
+                android:contentDescription="@string/back_icon_description" />
+
+            <!-- Foto do perfil -->
+            <androidx.cardview.widget.CardView
+                android:layout_width="120dp"
+                android:layout_height="120dp"
+                app:cardCornerRadius="60dp"
+                app:cardElevation="8dp"
+                android:layout_marginBottom="16dp">
+
+                <ImageView
+                    android:id="@+id/iv_profile_photo"
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:scaleType="centerCrop"
+                    android:src="@drawable/ic_person"
+                    android:background="@color/gray_light"
+                    android:contentDescription="@string/user_icon_description" />
+
+            </androidx.cardview.widget.CardView>
+
+            <!-- Botão para alterar foto -->
+            <TextView
+                android:id="@+id/tv_change_photo"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="@string/alterar_foto"
+                android:textColor="@color/white"
+                android:textSize="14sp"
+                android:background="?android:attr/selectableItemBackground"
+                android:padding="8dp"
+                android:drawableStart="@drawable/ic_camera"
+                android:drawablePadding="8dp"
+                android:drawableTint="@color/white" />
+
+        </LinearLayout>
+
+        <!-- Card com informações do usuário -->
+        <androidx.cardview.widget.CardView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            app:cardCornerRadius="16dp"
+            app:cardElevation="4dp"
+            android:layout_marginBottom="24dp">
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:padding="24dp">
+
+                <!-- Campo Nome -->
+                <com.google.android.material.textfield.TextInputLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginBottom="16dp"
+                    app:boxStrokeColor="@color/primary"
+                    app:hintTextColor="@color/primary"
+                    style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox">
+
+                    <com.google.android.material.textfield.TextInputEditText
+                        android:id="@+id/et_nome"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:hint="@string/nome_completo"
+                        android:inputType="textPersonName"
+                        android:enabled="false"
+                        android:drawablePadding="12dp"
+                        android:drawableTint="@color/gray" />
+
+                </com.google.android.material.textfield.TextInputLayout>
+
+                <!-- Campo CPF -->
+                <com.google.android.material.textfield.TextInputLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginBottom="16dp"
+                    app:boxStrokeColor="@color/primary"
+                    app:hintTextColor="@color/primary"
+                    style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox">
+
+                    <com.google.android.material.textfield.TextInputEditText
+                        android:id="@+id/et_cpf"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:hint="@string/cpf"
+                        android:inputType="number"
+                        android:enabled="false"
+                        android:drawablePadding="12dp"
+                        android:drawableTint="@color/gray" />
+
+                </com.google.android.material.textfield.TextInputLayout>
+
+                <!-- Campo Email -->
+                <com.google.android.material.textfield.TextInputLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginBottom="16dp"
+                    app:boxStrokeColor="@color/primary"
+                    app:hintTextColor="@color/primary"
+                    style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox">
+
+                    <com.google.android.material.textfield.TextInputEditText
+                        android:id="@+id/et_email"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:hint="@string/email"
+                        android:inputType="textEmailAddress"
+                        android:enabled="false"
+                        android:drawablePadding="10dp"
+                        android:drawableTint="@color/gray" />
+
+                </com.google.android.material.textfield.TextInputLayout>
+
+                <!-- Campo Telefone -->
+                <com.google.android.material.textfield.TextInputLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginBottom="16dp"
+                    app:boxStrokeColor="@color/primary"
+                    app:hintTextColor="@color/primary"
+                    style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox">
+
+                    <com.google.android.material.textfield.TextInputEditText
+                        android:id="@+id/et_telefone"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:hint="@string/telefone"
+                        android:inputType="phone"
+                        android:enabled="false"
+                        android:drawablePadding="12dp"
+                        android:drawableTint="@color/gray" />
+
+                </com.google.android.material.textfield.TextInputLayout>
+
+                <!-- Campo Nome Social -->
+                <com.google.android.material.textfield.TextInputLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    app:boxStrokeColor="@color/primary"
+                    app:hintTextColor="@color/primary"
+                    style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox">
+
+                    <com.google.android.material.textfield.TextInputEditText
+                        android:id="@+id/et_nome_social"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:hint="@string/nome_social"
+                        android:inputType="textPersonName"
+                        android:enabled="false"
+                        android:drawablePadding="12dp"
+                        android:drawableTint="@color/gray" />
+
+                </com.google.android.material.textfield.TextInputLayout>
+
+            </LinearLayout>
+
+        </androidx.cardview.widget.CardView>
+
+        <LinearLayout
+            android:id="@+id/layout_buttons_gradient"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:gravity="center"
+            android:layout_marginTop="16dp">
+
+            <!-- Botão Editar com gradiente -->
+            <Button
+                android:id="@+id/btn_editar_gradient"
+                android:layout_width="0dp"
+                android:layout_height="56dp"
+                android:layout_weight="1"
+                android:layout_marginEnd="8dp"
+                android:text="@string/editar"
+                android:textSize="16sp"
+                android:textColor="@color/white"
+                android:textStyle="bold"
+                android:background="@drawable/btn_gradient_primary"
+                android:drawableStart="@drawable/ic_edit"
+                android:drawablePadding="8dp"
+                android:drawableTint="@color/white"
+                android:elevation="4dp"
+                android:stateListAnimator="@null" />
+
+            <!-- Botão Excluir com gradiente -->
+            <Button
+                android:id="@+id/btn_excluir_gradient"
+                android:layout_width="0dp"
+                android:layout_height="56dp"
+                android:layout_weight="1"
+                android:layout_marginStart="8dp"
+                android:text="@string/excluir"
+                android:textSize="16sp"
+                android:textColor="@color/white"
+                android:textStyle="bold"
+                android:background="@drawable/btn_gradient_danger"
+                android:drawableStart="@drawable/ic_delete"
+                android:drawablePadding="8dp"
+                android:drawableTint="@color/white"
+                android:elevation="4dp"
+                android:stateListAnimator="@null" />
+
+        </LinearLayout>
+
+        <!-- Botão Salvar com gradiente (inicialmente oculto) -->
+        <Button
+            android:id="@+id/btn_salvar_gradient"
+            android:layout_width="match_parent"
+            android:layout_height="56dp"
+            android:layout_marginTop="16dp"
+            android:text="@string/salvar_alteracoes"
+            android:textSize="16sp"
+            android:textColor="@color/white"
+            android:textStyle="bold"
+            android:visibility="gone"
+            android:background="@drawable/btn_gradient_success"
+            android:drawableStart="@drawable/ic_save"
+            android:drawablePadding="8dp"
+            android:drawableTint="@color/white"
+            android:elevation="4dp"
+            android:stateListAnimator="@null" />
+
+    </LinearLayout>
+
+</ScrollView>

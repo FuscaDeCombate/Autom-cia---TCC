@@ -4,6 +4,7 @@
     <string name="criar_conta">Criar Conta</string>
     <string name="preencha_dados">Preencha seus dados para continuar</string>
     <string name="nome_completo">Nome Completo</string>
+    <string name="nome_social">Nome Social (Opcional)</string>
     <string name="cpf">CPF</string>
     <string name="email">E-mail</string>
     <string name="telefone">Telefone</string>
@@ -19,7 +20,13 @@
     <string name="lembrar_cpf">Lembrar CPF</string>
     <string name="esqueci_senha">Esqueci a senha</string>
     <string name="entrar">Entrar</string>
+    <string name="alterar_foto">Alterar foto</string>
     <string name="nao_tem_conta">Não tem conta? Cadastre-se</string>
     <string name="cpf_icon_description">Ícone de usuário</string>
     <string name="senha_icon_description">Ícone de senha</string>
+    <string name="user_icon_description">Foto do perfil</string>
+    <string name="back_icon_description">Voltar</string>
+    <string name="salvar_alteracoes">Salvar alterações</string>
+    <string name="excluir">Excluir</string>
+    <string name="editar">Editar</string>
 </resources>

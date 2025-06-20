@@ -1,6 +1,7 @@
 package com.automacia.mobile;
 
 import android.os.Bundle;
+
 import androidx.activity.EdgeToEdge;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.graphics.Insets;
@@ -97,7 +98,7 @@ public class MainActivity extends AppCompatActivity {
         transaction.replace(R.id.flFragment, targetFragment, tag);
 
         // Não adiciona ao backstack para navigation tabs
-        // transaction.addToBackStack(null); // Descomente se quiser backstack
+        // transaction.addToBackStack(null);
 
         transaction.commit();
     }
