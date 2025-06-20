@@ -45,6 +45,8 @@ dependencies {
     implementation(libs.lifecycle.livedata.ktx)
     implementation(libs.lifecycle.viewmodel.ktx)
     implementation(libs.coordinatorlayout)
+    implementation(libs.kotlin.stdlib.jdk7)
+    implementation(libs.meow.bottom.navigation)
     testImplementation(libs.junit)
     androidTestImplementation(libs.ext.junit)
     androidTestImplementation(libs.espresso.core)

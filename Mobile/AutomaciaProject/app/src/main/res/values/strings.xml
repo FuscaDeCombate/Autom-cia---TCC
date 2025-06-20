@@ -29,4 +29,5 @@
     <string name="salvar_alteracoes">Salvar alterações</string>
     <string name="excluir">Excluir</string>
     <string name="editar">Editar</string>
+    <string name="voltar_pagina_principal">Voltar para a pagina Principal</string>
 </resources>

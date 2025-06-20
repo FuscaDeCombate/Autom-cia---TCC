@@ -136,7 +136,7 @@
 
                     <com.google.android.material.checkbox.MaterialCheckBox
                         android:id="@+id/checkboxLembrar"
-                        android:layout_width="wrap_content"
+                        android:layout_width="0dp"
                         android:layout_height="wrap_content"
                         android:text="@string/lembrar_cpf"
                         android:textColor="@color/text_primary"
