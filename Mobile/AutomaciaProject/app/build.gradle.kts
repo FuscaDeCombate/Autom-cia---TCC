@@ -32,6 +32,7 @@ android {
 
     buildFeatures {
         viewBinding = true
+        dataBinding = true
     }
 }
 
@@ -45,8 +46,8 @@ dependencies {
     implementation(libs.lifecycle.livedata.ktx)
     implementation(libs.lifecycle.viewmodel.ktx)
     implementation(libs.coordinatorlayout)
+    implementation (libs.nafisbottomnav)
     implementation(libs.kotlin.stdlib.jdk7)
-    implementation(libs.meow.bottom.navigation)
     testImplementation(libs.junit)
     androidTestImplementation(libs.ext.junit)
     androidTestImplementation(libs.espresso.core)
