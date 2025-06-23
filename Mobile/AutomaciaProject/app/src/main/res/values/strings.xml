@@ -30,4 +30,30 @@
     <string name="excluir">Excluir</string>
     <string name="editar">Editar</string>
     <string name="voltar_pagina_principal">Voltar para a pagina Principal</string>
+    <string name="recuperar_senha">Recuperar Senha</string>
+    <string name="digite_email_telefone">Digite seu email ou telefone para receber o código de recuperação</string>
+    <string name="enviaremos_codigo_recuperacao">Enviaremos um código de 6 dígitos para você redefinir sua senha</string>
+    <string name="email_ou_telefone">Email ou Telefone</string>
+    <string name="enviar_codigo">Enviar Código</string>
+    <string name="outras_opcoes_recuperacao">Não consegue acessar?</string>
+    <string name="contatar_suporte">Contatar Suporte</string>
+    <string name="helper_email_telefone">Ex: usuario@email.com ou (11) 99999-9999</string>
+    <string name="recovery_icon_description">Ícone de recuperação de senha</string>
+    <string name="reset_icon_description">Ícone de redefinição de senha</string>
+    <string name="email_telefone_icon_description">Ícone de email ou telefone</string>
+    <string name="codigo_icon_description">Ícone de código de segurança</string>
+    <string name="confirmar_senha_icon_description">Ícone de confirmação de senha</string>
+    <string name="voltar">Voltar</string>
+    <string name="redefinir_senha">Redefinir Senha</string>
+    <string name="digite_codigo_nova_senha">Digite o código recebido e sua nova senha</string>
+    <string name="codigo_enviado_para">Código enviado para: %1$s</string>
+    <string name="codigo_recuperacao">Código de Recuperação</string>
+    <string name="nova_senha">Nova Senha</string>
+    <string name="confirmar_nova_senha">Confirmar Nova Senha</string>
+    <string name="helper_codigo_6_digitos">Código de 6 dígitos</string>
+    <string name="helper_senha_minimo_6_caracteres">Mínimo 6 caracteres</string>
+    <string name="nao_recebeu_codigo">Não recebeu o código?</string>
+    <string name="reenviar">Reenviar</string>
+    <string name="codigo_reenviado">Código reenviado com sucesso!</string>
+
 </resources>

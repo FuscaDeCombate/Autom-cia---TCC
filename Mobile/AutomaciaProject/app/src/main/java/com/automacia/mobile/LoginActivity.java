@@ -282,9 +282,7 @@ public class LoginActivity extends AppCompatActivity {
             return;
         }
 
-        // Navegar para tela de recuperação ou mostrar dialog
-        showToast("Instruções de recuperação enviadas para seu email");
-        // Intent para ForgotPasswordActivity se existir
+        
     }
 
     private void navigateToRegister() {
