@@ -55,5 +55,6 @@
     <string name="nao_recebeu_codigo">Não recebeu o código?</string>
     <string name="reenviar">Reenviar</string>
     <string name="codigo_reenviado">Código reenviado com sucesso!</string>
+    <string name="cancelar">Cancelar</string>
 
 </resources>
