@@ -50,8 +50,15 @@ public class UserFragment extends Fragment {
         View view = inflater.inflate(R.layout.fragment_user, container, false);
 
         initViews(view);
-        setupClickListeners();
-        loadUserData();
+
+        // Só chama os métodos depois que as views estão inicializadas
+        if (areViewsInitialized()) {
+            setupClickListeners();
+            loadUserData();
+        } else {
+            // Log para debug
+            android.util.Log.e("UserFragment", "Views não foram inicializadas corretamente");
+        }
 
         return view;
     }
@@ -69,42 +76,85 @@ public class UserFragment extends Fragment {
         btnSalvar = view.findViewById(R.id.btn_salvar);
         viewSpacing = view.findViewById(R.id.view_spacing);
         llButtonsContainer = view.findViewById(R.id.ll_buttons_container);
+
+        // Log para debug - verificar quais views estão null
+        logNullViews();
+    }
+
+    private void logNullViews() {
+        android.util.Log.d("UserFragment", "=== Verificação de Views ===");
+        if (etNome == null) android.util.Log.e("UserFragment", "etNome é null");
+        if (etCpf == null) android.util.Log.e("UserFragment", "etCpf é null");
+        if (etEmail == null) android.util.Log.e("UserFragment", "etEmail é null");
+        if (etTelefone == null) android.util.Log.e("UserFragment", "etTelefone é null");
+        if (etNomeSocial == null) android.util.Log.e("UserFragment", "etNomeSocial é null");
+        if (btnEditar == null) android.util.Log.e("UserFragment", "btnEditar é null");
+        if (btnSalvar == null) android.util.Log.e("UserFragment", "btnSalvar é null");
+    }
+
+    private boolean areViewsInitialized() {
+        return etNome != null && etCpf != null && etEmail != null &&
+                etTelefone != null && etNomeSocial != null &&
+                btnEditar != null && btnSalvar != null;
     }
 
     private void setupClickListeners() {
-        btnBack.setOnClickListener(v -> {
-            if (getActivity() != null) {
-                getActivity().getOnBackPressedDispatcher().onBackPressed();
-            }
-        });
+        if (btnBack != null) {
+            btnBack.setOnClickListener(v -> {
+                if (getActivity() != null) {
+                    getActivity().getOnBackPressedDispatcher().onBackPressed();
+                }
+            });
+        }
 
-        tvChangePhoto.setOnClickListener(v -> {
-            // TODO: Implementar seleção de foto
-            Toast.makeText(getContext(), "Selecionar foto", Toast.LENGTH_SHORT).show();
-        });
+        if (tvChangePhoto != null) {
+            tvChangePhoto.setOnClickListener(v -> {
+                // TODO: Implementar seleção de foto
+                Toast.makeText(getContext(), "Selecionar foto", Toast.LENGTH_SHORT).show();
+            });
+        }
 
-        btnEditar.setOnClickListener(v -> {
-            if (isEditing) {
-                cancelEdit();
-            } else {
-                toggleEditMode();
-            }
-        });
+        if (btnEditar != null) {
+            btnEditar.setOnClickListener(v -> {
+                if (isEditing) {
+                    cancelEdit();
+                } else {
+                    toggleEditMode();
+                }
+            });
+        }
 
-        btnSalvar.setOnClickListener(v -> saveUserData());
+        if (btnSalvar != null) {
+            btnSalvar.setOnClickListener(v -> saveUserData());
+        }
     }
 
     private void loadUserData() {
+        // Verificar se as views estão inicializadas antes de usá-las
+        if (!areViewsInitialized()) {
+            android.util.Log.e("UserFragment", "Tentativa de carregar dados com views não inicializadas");
+            return;
+        }
+
         //TODO: carregamento de dados reais do Banco
         // Simulação
-        etNome.setText("João Silva");
-        etCpf.setText("123.456.789-00");
-        etEmail.setText("joao@email.com");
-        etTelefone.setText("(11) 99999-9999");
-        etNomeSocial.setText("");
+        try {
+            etNome.setText("João Silva");
+            etCpf.setText("123.456.789-00");
+            etEmail.setText("joao@email.com");
+            etTelefone.setText("(11) 99999-9999");
+            etNomeSocial.setText("");
+        } catch (Exception e) {
+            android.util.Log.e("UserFragment", "Erro ao carregar dados do usuário: " + e.getMessage());
+        }
     }
 
     private void toggleEditMode() {
+        if (!areViewsInitialized()) {
+            android.util.Log.e("UserFragment", "Tentativa de alternar modo de edição com views não inicializadas");
+            return;
+        }
+
         if (isEditing) {
             // Se já está editando, cancelar
             cancelEdit();
@@ -112,21 +162,30 @@ public class UserFragment extends Fragment {
             // Entrar no modo de edição
             isEditing = true;
 
-            //Alterar estados dos campos
-            etNome.setEnabled(true);
-            etEmail.setEnabled(true);
-            etTelefone.setEnabled(true);
-            etNomeSocial.setEnabled(true);
+            try {
+                //Alterar estados dos campos
+                etNome.setEnabled(true);
+                etEmail.setEnabled(true);
+                etTelefone.setEnabled(true);
+                etNomeSocial.setEnabled(true);
 
-            // CPF sempre desabilitado (não pode ser alterado)
-            etCpf.setEnabled(false);
+                // CPF sempre desabilitado (não pode ser alterado)
+                etCpf.setEnabled(false);
 
-            // Animar para modo de edição
-            animateToEditMode();
+                // Animar para modo de edição
+                animateToEditMode();
+            } catch (Exception e) {
+                android.util.Log.e("UserFragment", "Erro ao entrar no modo de edição: " + e.getMessage());
+            }
         }
     }
 
     private void animateToEditMode() {
+        if (btnSalvar == null || btnEditar == null || viewSpacing == null) {
+            android.util.Log.e("UserFragment", "Botões não inicializados para animação");
+            return;
+        }
+
         // Tornar o botão salvar visível mas ainda sem largura
         btnSalvar.setVisibility(View.VISIBLE);
         btnSalvar.setAlpha(0f);
@@ -174,6 +233,11 @@ public class UserFragment extends Fragment {
     }
 
     private void animateToViewMode() {
+        if (btnSalvar == null || btnEditar == null || viewSpacing == null) {
+            android.util.Log.e("UserFragment", "Botões não inicializados para animação de volta");
+            return;
+        }
+
         // Obter os LayoutParams atuais
         LinearLayout.LayoutParams editarParams = (LinearLayout.LayoutParams) btnEditar.getLayoutParams();
         LinearLayout.LayoutParams salvarParams = (LinearLayout.LayoutParams) btnSalvar.getLayoutParams();
@@ -224,6 +288,11 @@ public class UserFragment extends Fragment {
      * Anima a mudança de background, texto e ícone do MaterialButton com transição direta suave
      */
     private void animateButtonBackgroundTextAndIcon(MaterialButton button, String newText, int newBackgroundRes, int newIconRes) {
+        if (button == null || getContext() == null) {
+            android.util.Log.e("UserFragment", "Button ou Context null na animação");
+            return;
+        }
+
         // Criar drawable do novo background e ícone
         final var newDrawable = AppCompatResources.getDrawable(getContext(), newBackgroundRes);
         final var newIcon = AppCompatResources.getDrawable(getContext(), newIconRes);
@@ -240,7 +309,9 @@ public class UserFragment extends Fragment {
             if (progress <= 0.5f) {
                 // Primeira metade: fade out do background atual
                 int alpha = (int) (255 * (1f - progress * 2f));
-                button.getBackground().setAlpha(Math.max(alpha, 50)); // Mínimo de 50 para não ficar totalmente transparente
+                if (button.getBackground() != null) {
+                    button.getBackground().setAlpha(Math.max(alpha, 50)); // Mínimo de 50 para não ficar totalmente transparente
+                }
             } else {
                 // Segunda metade: fade in do novo background + mudança de texto e ícone
                 if (progress >= 0.5f && !button.getText().toString().equals(newText)) {
@@ -249,7 +320,9 @@ public class UserFragment extends Fragment {
                     button.setIcon(newIcon);
                 }
                 int alpha = (int) (255 * ((progress - 0.5f) * 2f));
-                button.getBackground().setAlpha(Math.min(alpha, 255));
+                if (button.getBackground() != null) {
+                    button.getBackground().setAlpha(Math.min(alpha, 255));
+                }
             }
         });
 
@@ -257,7 +330,9 @@ public class UserFragment extends Fragment {
             @Override
             public void onAnimationEnd(android.animation.Animator animation) {
                 // Garantir que o alpha final seja 255 (totalmente opaco)
-                button.getBackground().setAlpha(255);
+                if (button.getBackground() != null) {
+                    button.getBackground().setAlpha(255);
+                }
             }
         });
 
@@ -270,64 +345,93 @@ public class UserFragment extends Fragment {
     }
 
     private void saveUserData() {
+        if (!areViewsInitialized()) {
+            android.util.Log.e("UserFragment", "Tentativa de salvar dados com views não inicializadas");
+            return;
+        }
+
         //TODO: Salvar os dados do usuario pelo banco
         // Validar dados
         if (validateFields()) {
-            // Aqui você salvaria os dados no banco/API
-            String nome = etNome.getText().toString().trim();
-            String email = etEmail.getText().toString().trim();
-            String telefone = etTelefone.getText().toString().trim();
-            String nomeSocial = etNomeSocial.getText().toString().trim();
+            try {
+                // Aqui você salvaria os dados no banco/API
+                String nome = etNome.getText().toString().trim();
+                String email = etEmail.getText().toString().trim();
+                String telefone = etTelefone.getText().toString().trim();
+                String nomeSocial = etNomeSocial.getText().toString().trim();
 
-            // Simular salvamento
-            Toast.makeText(getContext(), "Dados salvos com sucesso!", Toast.LENGTH_SHORT).show();
+                // Simular salvamento
+                Toast.makeText(getContext(), "Dados salvos com sucesso!", Toast.LENGTH_SHORT).show();
 
-            exitEditMode(); // Sair do modo de edição
+                exitEditMode(); // Sair do modo de edição
+            } catch (Exception e) {
+                android.util.Log.e("UserFragment", "Erro ao salvar dados: " + e.getMessage());
+                Toast.makeText(getContext(), "Erro ao salvar dados", Toast.LENGTH_SHORT).show();
+            }
         }
     }
 
     private void exitEditMode() {
         if (!isEditing) return; // Já está no modo view
 
+        if (!areViewsInitialized()) {
+            android.util.Log.e("UserFragment", "Tentativa de sair do modo de edição com views não inicializadas");
+            return;
+        }
+
         isEditing = false;
 
-        // Desabilitar campos
-        etNome.setEnabled(false);
-        etEmail.setEnabled(false);
-        etTelefone.setEnabled(false);
-        etNomeSocial.setEnabled(false);
-        etCpf.setEnabled(false);
+        try {
+            // Desabilitar campos
+            etNome.setEnabled(false);
+            etEmail.setEnabled(false);
+            etTelefone.setEnabled(false);
+            etNomeSocial.setEnabled(false);
+            etCpf.setEnabled(false);
 
-        // Animar volta ao modo view
-        animateToViewMode();
+            // Animar volta ao modo view
+            animateToViewMode();
+        } catch (Exception e) {
+            android.util.Log.e("UserFragment", "Erro ao sair do modo de edição: " + e.getMessage());
+        }
     }
 
     private boolean validateFields() {
-        // TODO: Implementar validação dos campos
-        String nome = etNome.getText().toString().trim();
-        String email = etEmail.getText().toString().trim();
-        String telefone = etTelefone.getText().toString().trim();
-
-        if (nome.isEmpty()) {
-            etNome.setError("Nome é obrigatório");
+        if (!areViewsInitialized()) {
+            android.util.Log.e("UserFragment", "Tentativa de validar campos com views não inicializadas");
             return false;
         }
 
-        if (email.isEmpty()) {
-            etEmail.setError("Email é obrigatório");
+        try {
+            // TODO: Implementar validação dos campos
+            String nome = etNome.getText().toString().trim();
+            String email = etEmail.getText().toString().trim();
+            String telefone = etTelefone.getText().toString().trim();
+
+            if (nome.isEmpty()) {
+                etNome.setError("Nome é obrigatório");
+                return false;
+            }
+
+            if (email.isEmpty()) {
+                etEmail.setError("Email é obrigatório");
+                return false;
+            }
+
+            if (!android.util.Patterns.EMAIL_ADDRESS.matcher(email).matches()) {
+                etEmail.setError("Email inválido");
+                return false;
+            }
+
+            if (telefone.isEmpty()) {
+                etTelefone.setError("Telefone é obrigatório");
+                return false;
+            }
+
+            return true;
+        } catch (Exception e) {
+            android.util.Log.e("UserFragment", "Erro na validação: " + e.getMessage());
             return false;
         }
-
-        if (!android.util.Patterns.EMAIL_ADDRESS.matcher(email).matches()) {
-            etEmail.setError("Email inválido");
-            return false;
-        }
-
-        if (telefone.isEmpty()) {
-            etTelefone.setError("Telefone é obrigatório");
-            return false;
-        }
-
-        return true;
     }
 }
