@@ -84,6 +84,7 @@
 
                 <!-- Campo Nome -->
                 <com.google.android.material.textfield.TextInputLayout
+                    android:id="@+id/lay_nome_com"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:layout_marginBottom="16dp"
@@ -105,6 +106,7 @@
 
                 <!-- Campo CPF -->
                 <com.google.android.material.textfield.TextInputLayout
+                    android:id="@+id/lay_cpf"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:layout_marginBottom="16dp"
@@ -126,6 +128,7 @@
 
                 <!-- Campo Email -->
                 <com.google.android.material.textfield.TextInputLayout
+                    android:id="@+id/lay_email"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:layout_marginBottom="16dp"
@@ -147,6 +150,7 @@
 
                 <!-- Campo Telefone -->
                 <com.google.android.material.textfield.TextInputLayout
+                    android:id="@+id/lay_telefone"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:layout_marginBottom="16dp"
@@ -168,6 +172,7 @@
 
                 <!-- Campo Nome Social -->
                 <com.google.android.material.textfield.TextInputLayout
+                    android:id="@+id/lay_nome_soc"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     app:boxStrokeColor="@color/primary"

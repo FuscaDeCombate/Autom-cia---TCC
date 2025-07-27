@@ -1,11 +1,9 @@
 package com.automacia.mobile;
 
-import static com.automacia.mobile.R.*;
 import static com.automacia.mobile.R.drawable.btn_gradient_danger;
 import static com.automacia.mobile.R.drawable.btn_gradient_primary;
 
 import android.animation.ValueAnimator;
-import android.graphics.drawable.DrawableContainer;
 import android.os.Bundle;
 import android.view.animation.AccelerateDecelerateInterpolator;
 
@@ -23,15 +21,16 @@ import android.widget.TextView;
 import android.widget.Toast;
 
 import com.google.android.material.textfield.TextInputEditText;
+import com.google.android.material.textfield.TextInputLayout;
 
-import java.util.Objects;
-
+// TODO: Incluir validação dos dados alterados
 public class UserFragment extends Fragment {
 
     // Views
     private ImageButton btnBack;
     private ImageView icProfilePhoto;
     private TextView tvChangePhoto;
+    private TextInputLayout layoutNomeCon, layoutCpf, layoutEmail, layoutTel, layoutNomeSoc;
     private TextInputEditText etNome, etCpf, etEmail, etTelefone, etNomeSocial;
     private MaterialButton btnEditar, btnSalvar;
     private View viewSpacing;
@@ -76,6 +75,11 @@ public class UserFragment extends Fragment {
         btnSalvar = view.findViewById(R.id.btn_salvar);
         viewSpacing = view.findViewById(R.id.view_spacing);
         llButtonsContainer = view.findViewById(R.id.ll_buttons_container);
+        layoutNomeCon = view.findViewById(R.id.lay_nome_com);
+        layoutCpf = view.findViewById(R.id.lay_cpf);
+        layoutTel = view.findViewById(R.id.lay_telefone);
+        layoutEmail = view.findViewById(R.id.lay_email);
+        layoutNomeSoc = view.findViewById(R.id.lay_nome_soc);
 
         // Log para debug - verificar quais views estão null
         logNullViews();

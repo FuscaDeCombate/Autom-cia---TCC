@@ -21,6 +21,10 @@ import com.google.android.material.checkbox.MaterialCheckBox;
 import com.google.android.material.textfield.TextInputEditText;
 import com.google.android.material.textfield.TextInputLayout;
 
+/**
+ * Activity responsável pelo login de usuários
+ * Implementa validações em tempo real usando Utils e formatação automática
+ */
 public class LoginActivity extends AppCompatActivity {
 
     // Views
@@ -48,10 +52,14 @@ public class LoginActivity extends AppCompatActivity {
 
         setupWindowInsets();
         initializeViews();
-        setupListeners();
+        setupValidators();
+        setupClickListeners();
         loadSavedPreferences();
     }
 
+    /**
+     * Configura as margens para telas edge-to-edge
+     */
     private void setupWindowInsets() {
         ViewCompat.setOnApplyWindowInsetsListener(findViewById(R.id.main), (v, insets) -> {
             Insets systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars());
@@ -63,6 +71,9 @@ public class LoginActivity extends AppCompatActivity {
         Utils.applyGradientBackground(mainView);
     }
 
+    /**
+     * Inicializa todas as views
+     */
     private void initializeViews() {
         // TextInputLayouts e EditTexts
         layoutCpf = findViewById(R.id.layoutCPF);
@@ -87,24 +98,35 @@ public class LoginActivity extends AppCompatActivity {
         updateLoginButtonState();
     }
 
-    private void setupListeners() {
-        setupCpfValidation();
-        setupSenhaValidation();
-        setupClickListeners();
+    /**
+     * Configura os validadores em tempo real para todos os campos
+     */
+    private void setupValidators() {
+        setupCpfValidator();
+        setupSenhaValidator();
     }
 
-    private void setupCpfValidation() {
-        // Máscara de CPF
+    /**
+     * Validador para o campo CPF com máscara e validação usando Utils
+     */
+    private void setupCpfValidator() {
+        // Aplica máscara de CPF
         editCpf.addTextChangedListener(new CpfMaskWatcher(editCpf));
 
-        // Validação de CPF
+        // Validação do CPF usando Utils
         editCpf.addTextChangedListener(new TextWatcher() {
             @Override
             public void beforeTextChanged(CharSequence s, int start, int count, int after) {}
 
             @Override
             public void onTextChanged(CharSequence s, int start, int before, int count) {
-                validateCpf(s.toString());
+                String erro = Utils.validarCpf(s.toString());
+                layoutCpf.setError(erro);
+
+                // Considera válido apenas se não há erro E tem 11 dígitos
+                String cpfNumeros = Utils.extrairNumeros(s.toString());
+                isCpfValid = (erro == null && cpfNumeros.length() == 11);
+
                 updateLoginButtonState();
             }
 
@@ -113,14 +135,19 @@ public class LoginActivity extends AppCompatActivity {
         });
     }
 
-    private void setupSenhaValidation() {
+    /**
+     * Validador para o campo Senha usando Utils
+     */
+    private void setupSenhaValidator() {
         editSenha.addTextChangedListener(new TextWatcher() {
             @Override
             public void beforeTextChanged(CharSequence s, int start, int count, int after) {}
 
             @Override
             public void onTextChanged(CharSequence s, int start, int before, int count) {
-                validateSenha(s.toString());
+                String erro = Utils.validarSenha(s.toString());
+                layoutSenha.setError(erro);
+                isSenhaValid = (erro == null);
                 updateLoginButtonState();
             }
 
@@ -129,6 +156,9 @@ public class LoginActivity extends AppCompatActivity {
         });
     }
 
+    /**
+     * Configura os listeners dos botões
+     */
     private void setupClickListeners() {
         btnLogin.setOnClickListener(v -> performLogin());
 
@@ -145,65 +175,31 @@ public class LoginActivity extends AppCompatActivity {
         });
     }
 
-    private void validateCpf(String cpf) {
-        // Remove formatação para validação
-        String cleanCpf = cpf.replaceAll("[^0-9]", "");
-
-        if (cleanCpf.length() == 0) {
-            layoutCpf.setError(null);
-            isCpfValid = false;
-        } else if (cleanCpf.length() < 11) {
-            layoutCpf.setError("CPF deve ter 11 dígitos");
-            isCpfValid = false;
-        } else if (cleanCpf.length() == 11) {
-            if (Utils.isCpfValido(cleanCpf)) {
-                layoutCpf.setError(null);
-                isCpfValid = true;
-            } else {
-                layoutCpf.setError("CPF inválido");
-                isCpfValid = false;
-            }
-        } else {
-            layoutCpf.setError("CPF inválido");
-            isCpfValid = false;
-        }
-    }
-
-    private void validateSenha(String senha) {
-        if (senha.length() == 0) {
-            layoutSenha.setError(null);
-            isSenhaValid = false;
-        } else if (senha.length() < 6) {
-            layoutSenha.setError("Senha deve ter pelo menos 6 caracteres");
-            isSenhaValid = false;
-        } else {
-            layoutSenha.setError(null);
-            isSenhaValid = true;
-        }
-    }
-
+    /**
+     * Atualiza o estado do botão de login baseado nas validações
+     */
     private void updateLoginButtonState() {
         boolean isEnabled = isCpfValid && isSenhaValid;
         btnLogin.setEnabled(isEnabled);
 
-        // Opcional: alterar aparência visual
-        if (isEnabled) {
-            btnLogin.setAlpha(1.0f);
-        } else {
-            btnLogin.setAlpha(0.6f);
-        }
+        // Altera aparência visual
+        btnLogin.setAlpha(isEnabled ? 1.0f : 0.6f);
     }
 
+    /**
+     * Realiza o login do usuário
+     */
     private void performLogin() {
-        if (!isCpfValid || !isSenhaValid) {
+        // Validação final usando Utils
+        if (!validarTodosOsCampos()) {
             showToast("Por favor, corrija os erros antes de continuar");
             return;
         }
 
-        String cpf = editCpf.getText().toString().replaceAll("[^0-9]", "");
+        String cpf = Utils.extrairNumeros(editCpf.getText().toString());
         String senha = editSenha.getText().toString();
 
-        // Mostrar loading (opcional)
+        // Mostrar loading
         btnLogin.setEnabled(false);
         btnLogin.setText("Entrando...");
 
@@ -211,6 +207,36 @@ public class LoginActivity extends AppCompatActivity {
         simulateApiCall(cpf, senha);
     }
 
+    /**
+     * Validação final de todos os campos usando Utils
+     */
+    private boolean validarTodosOsCampos() {
+        // Utiliza a função de validação múltipla do Utils
+        String primeiroErro = Utils.validarCampo(
+                Utils.validarCpf(editCpf.getText().toString()),
+                Utils.validarSenha(editSenha.getText().toString())
+        );
+
+        if (primeiroErro != null) {
+            // Aplica os erros individualmente para exibição
+            layoutCpf.setError(Utils.validarCpf(editCpf.getText().toString()));
+            layoutSenha.setError(Utils.validarSenha(editSenha.getText().toString()));
+            return false;
+        }
+
+        // Validação adicional específica para CPF
+        String cpfNumeros = Utils.extrairNumeros(editCpf.getText().toString());
+        if (cpfNumeros.length() != 11) {
+            layoutCpf.setError("CPF deve ter 11 dígitos");
+            return false;
+        }
+
+        return true;
+    }
+
+    /**
+     * Simula chamada de API
+     */
     private void simulateApiCall(String cpf, String senha) {
         // Simular delay de rede
         new android.os.Handler().postDelayed(() -> {
@@ -227,12 +253,18 @@ public class LoginActivity extends AppCompatActivity {
         }, 1500);
     }
 
+    /**
+     * Verifica se as credenciais são válidas
+     */
     private boolean isValidCredentials(String cpf, String senha) {
         // Implementar sua lógica de validação aqui
         // Por enquanto, aceita qualquer CPF válido com senha >= 6 chars
-        return isCpfValid && senha.length() >= 6;
+        return Utils.isCpfValido(cpf) && senha.length() >= 6;
     }
 
+    /**
+     * Manipula o sucesso do login
+     */
     private void handleLoginSuccess(String cpf) {
         showToast("Login realizado com sucesso!");
 
@@ -250,6 +282,9 @@ public class LoginActivity extends AppCompatActivity {
         finish();
     }
 
+    /**
+     * Manipula erro no login
+     */
     private void handleLoginError(String message) {
         showToast(message);
 
@@ -258,51 +293,72 @@ public class LoginActivity extends AppCompatActivity {
         editSenha.requestFocus();
     }
 
+    /**
+     * Realizar login com Google
+     */
     private void performGoogleLogin() {
         showToast("Login com Google em desenvolvimento");
-        // Implementar Google Sign-In aqui
+        // TODO: Implementar Google Sign-In aqui
     }
 
+    /**
+     * Realizar login com Facebook
+     */
     private void performFacebookLogin() {
         showToast("Login com Facebook em desenvolvimento");
-        // Implementar Facebook Login aqui
+        // TODO: Implementar Facebook Login aqui
     }
 
+    /**
+     * Manipula esqueci senha
+     */
     private void handleForgotPassword() {
-        String cpf = editCpf.getText().toString().replaceAll("[^0-9]", "");
+        String cpfFormatado = editCpf.getText().toString();
+        String cpfNumeros = Utils.extrairNumeros(cpfFormatado);
 
-        if (cpf.isEmpty()) {
+        if (Utils.isCampoVazio(cpfFormatado)) {
             showToast("Digite seu CPF para recuperar a senha");
             editCpf.requestFocus();
             return;
         }
 
-        if (!isCpfValid) {
+        String erroCpf = Utils.validarCpf(cpfFormatado);
+        if (erroCpf != null) {
             showToast("Digite um CPF válido para recuperar a senha");
             return;
         }
 
-        
+        // TODO: Implementar recuperação de senha
+        showToast("Instruções enviadas para o email cadastrado");
     }
 
+    /**
+     * Navega para tela de cadastro
+     */
     private void navigateToRegister() {
         Intent intent = new Intent(this, RegisterActivity.class);
         startActivity(intent);
         // Não fazer finish() aqui para permitir voltar
     }
 
+    /**
+     * Carrega preferências salvas
+     */
     private void loadSavedPreferences() {
         boolean rememberCpf = preferences.getBoolean(KEY_REMEMBER_CPF, false);
         checkboxLembrar.setChecked(rememberCpf);
 
         if (rememberCpf) {
             String savedCpf = preferences.getString(KEY_SAVED_CPF, "");
-            if (!savedCpf.isEmpty()) {
+            if (!Utils.isCampoVazio(savedCpf)) {
                 editCpf.setText(savedCpf);
             }
         }
     }
 
+    /**
+     * Salva preferência de lembrar CPF
+     */
     private void saveRememberPreference(boolean remember) {
         preferences.edit()
                 .putBoolean(KEY_REMEMBER_CPF, remember)
@@ -313,18 +369,27 @@ public class LoginActivity extends AppCompatActivity {
         }
     }
 
+    /**
+     * Salva CPF nas preferências
+     */
     private void saveCpfPreference(String cpf) {
         preferences.edit()
                 .putString(KEY_SAVED_CPF, cpf)
                 .apply();
     }
 
+    /**
+     * Limpa CPF salvo
+     */
     private void clearSavedCpf() {
         preferences.edit()
                 .remove(KEY_SAVED_CPF)
                 .apply();
     }
 
+    /**
+     * Mostra toast
+     */
     private void showToast(String message) {
         Toast.makeText(this, message, Toast.LENGTH_SHORT).show();
     }
@@ -332,8 +397,16 @@ public class LoginActivity extends AppCompatActivity {
     @Override
     protected void onResume() {
         super.onResume();
-        // Revalidar campos quando voltar para a tela
-        validateCpf(editCpf.getText().toString());
-        validateSenha(editSenha.getText().toString());
+        // Revalidar campos quando voltar para a tela usando Utils
+        String erroCpf = Utils.validarCpf(editCpf.getText().toString());
+        layoutCpf.setError(erroCpf);
+        String cpfNumeros = Utils.extrairNumeros(editCpf.getText().toString());
+        isCpfValid = (erroCpf == null && cpfNumeros.length() == 11);
+
+        String erroSenha = Utils.validarSenha(editSenha.getText().toString());
+        layoutSenha.setError(erroSenha);
+        isSenhaValid = (erroSenha == null);
+
+        updateLoginButtonState();
     }
 }

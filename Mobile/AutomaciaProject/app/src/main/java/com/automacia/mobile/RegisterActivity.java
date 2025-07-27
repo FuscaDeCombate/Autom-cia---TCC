@@ -121,21 +121,9 @@ public class RegisterActivity extends AppCompatActivity {
 
             @Override
             public void onTextChanged(CharSequence s, int start, int before, int count) {
-                String nome = s.toString().trim();
-
-                if (nome.isEmpty()) {
-                    layoutNome.setError("Nome é obrigatório");
-                    isNomeValido = false;
-                } else if (nome.length() < 2) {
-                    layoutNome.setError("Nome muito curto");
-                    isNomeValido = false;
-                } else if (!nome.matches("^[a-zA-ZÀ-ÿ\\s]+$")) {
-                    layoutNome.setError("Nome deve conter apenas letras");
-                    isNomeValido = false;
-                } else {
-                    layoutNome.setError(null);
-                    isNomeValido = true;
-                }
+                String erro = Utils.validarNome(s.toString());
+                layoutNome.setError(erro);
+                isNomeValido = (erro == null);
                 updateButtonState();
             }
 
@@ -158,27 +146,9 @@ public class RegisterActivity extends AppCompatActivity {
 
             @Override
             public void onTextChanged(CharSequence s, int start, int before, int count) {
-                String cpfFormatado = s.toString();
-                String cpfNumeros = cpfFormatado.replaceAll("[^\\d]", "");
-
-                if (cpfNumeros.isEmpty()) {
-                    layoutCPF.setError("CPF é obrigatório");
-                    isCpfValido = false;
-                } else if (cpfNumeros.length() < 11) {
-                    layoutCPF.setError(null); // Não mostra erro enquanto digita
-                    isCpfValido = false;
-                } else if (cpfNumeros.length() == 11) {
-                    if (Utils.isCpfValido(cpfNumeros)) {
-                        layoutCPF.setError(null);
-                        isCpfValido = true;
-                    } else {
-                        layoutCPF.setError("CPF inválido");
-                        isCpfValido = false;
-                    }
-                } else {
-                    layoutCPF.setError("CPF inválido");
-                    isCpfValido = false;
-                }
+                String erro = Utils.validarCpf(s.toString());
+                layoutCPF.setError(erro);
+                isCpfValido = (erro == null && Utils.extrairNumeros(s.toString()).length() == 11);
                 updateButtonState();
             }
 
@@ -197,18 +167,9 @@ public class RegisterActivity extends AppCompatActivity {
 
             @Override
             public void onTextChanged(CharSequence s, int start, int before, int count) {
-                String email = s.toString().trim();
-
-                if (email.isEmpty()) {
-                    layoutEmail.setError("E-mail é obrigatório");
-                    isEmailValido = false;
-                } else if (!Patterns.EMAIL_ADDRESS.matcher(email).matches()) {
-                    layoutEmail.setError("E-mail inválido");
-                    isEmailValido = false;
-                } else {
-                    layoutEmail.setError(null);
-                    isEmailValido = true;
-                }
+                String erro = Utils.validarEmail(s.toString());
+                layoutEmail.setError(erro);
+                isEmailValido = (erro == null);
                 updateButtonState();
             }
 
@@ -230,21 +191,11 @@ public class RegisterActivity extends AppCompatActivity {
 
             @Override
             public void onTextChanged(CharSequence s, int start, int before, int count) {
-                String telefone = s.toString().replaceAll("[^\\d]", "");
+                String erro = Utils.validarTelefone(s.toString());
+                layoutTelefone.setError(erro);
 
-                if (telefone.isEmpty()) {
-                    layoutTelefone.setError("Telefone é obrigatório");
-                    isTelefoneValido = false;
-                } else if (telefone.length() < 10) {
-                    layoutTelefone.setError(null); // Não mostra erro enquanto digita
-                    isTelefoneValido = false;
-                } else if (telefone.length() >= 10 && telefone.length() <= 11) {
-                    layoutTelefone.setError(null);
-                    isTelefoneValido = true;
-                } else {
-                    layoutTelefone.setError("Telefone inválido");
-                    isTelefoneValido = false;
-                }
+                String telefoneNumeros = Utils.extrairNumeros(s.toString());
+                isTelefoneValido = (erro == null && telefoneNumeros.length() >= 10 && telefoneNumeros.length() <= 11);
                 updateButtonState();
             }
 
@@ -263,24 +214,12 @@ public class RegisterActivity extends AppCompatActivity {
 
             @Override
             public void onTextChanged(CharSequence s, int start, int before, int count) {
-                String senha = s.toString();
+                String erro = Utils.validarSenha(s.toString());
+                layoutSenha.setError(erro);
+                isSenhaValida = (erro == null);
 
-                if (senha.isEmpty()) {
-                    layoutSenha.setError("Senha é obrigatória");
-                    isSenhaValida = false;
-                } else if (senha.length() < 6) {
-                    layoutSenha.setError("Senha deve ter pelo menos 6 caracteres");
-                    isSenhaValida = false;
-                } else if (!senha.matches(".*[a-zA-Z].*")) {
-                    layoutSenha.setError("Senha deve conter pelo menos uma letra");
-                    isSenhaValida = false;
-                } else {
-                    layoutSenha.setError(null);
-                    isSenhaValida = true;
-                }
-
-                // Revalida confirmação de senha
-                if (!editConSenha.getText().toString().isEmpty()) {
+                //Revalida confirmação de senha
+                if (!Utils.isCampoVazio(editConSenha.getText().toString())) {
                     validarConfirmacaoSenha();
                 }
 
@@ -318,16 +257,9 @@ public class RegisterActivity extends AppCompatActivity {
         String senha = editSenha.getText().toString();
         String confirmacao = editConSenha.getText().toString();
 
-        if (confirmacao.isEmpty()) {
-            layoutConSenha.setError("Confirmação de senha é obrigatória");
-            isConfirmacaoValida = false;
-        } else if (!senha.equals(confirmacao)) {
-            layoutConSenha.setError("As senhas não coincidem");
-            isConfirmacaoValida = false;
-        } else {
-            layoutConSenha.setError(null);
-            isConfirmacaoValida = true;
-        }
+        String erro = Utils.validarConfirmacaoSenha(senha, confirmacao);
+        layoutConSenha.setError(erro);
+        isConfirmacaoValida = (erro == null);
     }
 
     /**
@@ -417,44 +349,41 @@ public class RegisterActivity extends AppCompatActivity {
      * Validação final de todos os campos
      */
     private boolean validarTodosOsCampos() {
-        boolean valido = true;
+        // Utiliza a função de validação mútipla do Utils
+        String primeiroErro = Utils.validarCampo(
+                Utils.validarNome(editNomeC.getText().toString()),
+                Utils.validarNome(editCPF.getText().toString()),
+                Utils.validarEmail(editEmail.getText().toString()),
+                Utils.validarTelefone(editTelefone.getText().toString()),
+                Utils.validarSenha(editSenha.getText().toString()),
+                Utils.validarConfirmacaoSenha(editSenha.getText().toString(), editConSenha.getText().toString())
+        );
 
-        // Força validação de todos os campos
-        if (editNomeC.getText().toString().trim().isEmpty()) {
-            layoutNome.setError("Nome é obrigatório");
-            valido = false;
+        if (primeiroErro != null) {
+            // Aplica os erros individualmente para exibição
+            layoutNome.setError(Utils.validarNome(editNomeC.getText().toString()));
+            layoutCPF.setError(Utils.validarCpf(editCPF.getText().toString()));
+            layoutEmail.setError(Utils.validarEmail(editEmail.getText().toString()));
+            layoutTelefone.setError(Utils.validarTelefone(editTelefone.getText().toString()));
+            layoutSenha.setError(Utils.validarSenha(editSenha.getText().toString()));
+            layoutConSenha.setError(Utils.validarConfirmacaoSenha(editSenha.getText().toString(), editConSenha.getText().toString()));
+            return false;
         }
 
-        String cpf = editCPF.getText().toString().replaceAll("[^\\d]", "");
-        if (cpf.isEmpty() || cpf.length() != 11 || !Utils.isCpfValido(cpf)) {
-            layoutCPF.setError("CPF inválido");
-            valido = false;
+        // Validações adicionais específicas
+        String cpfNumeros = Utils.extrairNumeros(editCPF.getText().toString());
+        if (cpfNumeros.length() != 11) {
+            layoutCPF.setError("CPF deve ter 11 dígitos");
+            return false;
         }
 
-        String email = editEmail.getText().toString().trim();
-        if (email.isEmpty() || !Patterns.EMAIL_ADDRESS.matcher(email).matches()) {
-            layoutEmail.setError("E-mail inválido");
-            valido = false;
+        String telefonesNumeros = Utils.extrairNumeros(editTelefone.getText().toString());
+        if (telefonesNumeros.length() < 10 || telefonesNumeros.length() > 11) {
+            layoutTelefone.setError("Telefone deve ter entre 10 a 11 dígitos");
+            return false;
         }
 
-        String telefone = editTelefone.getText().toString().replaceAll("[^\\d]", "");
-        if (telefone.isEmpty() || telefone.length() < 10) {
-            layoutTelefone.setError("Telefone inválido");
-            valido = false;
-        }
-
-        String senha = editSenha.getText().toString();
-        if (senha.isEmpty() || senha.length() < 6) {
-            layoutSenha.setError("Senha deve ter pelo menos 6 caracteres");
-            valido = false;
-        }
-
-        if (!senha.equals(editConSenha.getText().toString())) {
-            layoutConSenha.setError("As senhas não coincidem");
-            valido = false;
-        }
-
-        return valido;
+        return true;
     }
 
     @Override
