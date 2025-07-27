@@ -1,266 +1,397 @@
-Use master
-Go
+USE master;
+GO
 
+-- Verificar e remover banco existente
 IF EXISTS (SELECT name FROM master.dbo.sysdatabases WHERE name = 'Automacia')
-	DROP DATABASE Automacia;
+    DROP DATABASE Automacia;
 
 CREATE DATABASE Automacia;
-Go
+GO
 
-Use Automacia;
+USE Automacia;
+GO
 
-Go
+SET DATEFORMAT DMY;
+GO
 
-Set dateformat DMY;
+-- =====================================================
+-- TABELAS PRINCIPAIS
+-- =====================================================
 
-Go
-
---Farmácia/Hospital/Clínica
-Create Table Contratante (
-	CNPJ Varchar Not null,
-	Documentacao VarBinary(max) Not null,
-	Nome_Contratante Varchar(50) Not null,
-	Senha_Contratante Varchar(12) Not null,
-	Primary Key (CNPJ)
+-- Farmácia/Hospital/Clínica
+CREATE TABLE Contratante (
+    CNPJ VARCHAR(14) NOT NULL,
+    Documentacao VARBINARY(MAX) NOT NULL,
+    Nome_Contratante VARCHAR(100) NOT NULL,
+    Razao_Social VARCHAR(100) NOT NULL,
+    Email_Contratante VARCHAR(100),
+    Telefone VARCHAR(15),
+    Endereco VARCHAR(200),
+    Cidade VARCHAR(50),
+    Estado VARCHAR(2),
+    CEP VARCHAR(8),
+    Senha_Hash VARCHAR(255) NOT NULL,
+    Salt VARCHAR(50) NOT NULL,
+    Data_Cadastro DATETIME2 DEFAULT GETDATE(),
+    Data_Atualizacao DATETIME2 DEFAULT GETDATE(),
+    Ativo BIT DEFAULT 1,
+    PRIMARY KEY (CNPJ)
 );
 
---Tipo de Funcionário
-Create Table Tipo_Funcionario (
-	ID_Tipo_Funcionario INT,
-	--Tipo_Funcionario Varchar(15),
-	Primary Key (ID_Tipo_Funcionario)
+-- Tipo de Funcionário
+CREATE TABLE Tipo_Funcionario (
+    ID_Tipo_Funcionario INT IDENTITY(1,1),
+    Descricao_Tipo VARCHAR(50) NOT NULL,
+    Nivel_Acesso INT NOT NULL DEFAULT 1, -- 1=Básico, 2=Intermediário, 3=Admin
+    Data_Cadastro DATETIME2 DEFAULT GETDATE(),
+    Ativo BIT DEFAULT 1,
+    PRIMARY KEY (ID_Tipo_Funcionario)
 );
 
---Funcionário de Farmácia/Hospital/Clínica
-Create Table Funcionario (
-	ID_Funcionario INT Not null,
-	ID_Tipo_Funcionario INT Not null,
-	CNPJ Varchar Not null,
-	Senha_Funcionario Varchar(12) Not null,
-	Nome_Funcionario Varchar(50) Not null,
-	Primary Key (ID_Funcionario),
-	Foreign Key (ID_Tipo_Funcionario) References Tipo_Funcionario(ID_Tipo_Funcionario),
-	Foreign Key (CNPJ) References Contratante(CNPJ)
+-- Funcionário de Farmácia/Hospital/Clínica
+CREATE TABLE Funcionario (
+    ID_Funcionario INT IDENTITY(1,1) NOT NULL,
+    ID_Tipo_Funcionario INT NOT NULL,
+    CNPJ VARCHAR(14) NOT NULL,
+    CPF VARCHAR(11) NOT NULL UNIQUE,
+    CRM VARCHAR(20), -- Para médicos
+    Nome_Funcionario VARCHAR(100) NOT NULL,
+    Email VARCHAR(100),
+    Telefone VARCHAR(15),
+    Senha_Hash VARCHAR(255) NOT NULL,
+    Salt VARCHAR(50) NOT NULL,
+    Data_Nascimento DATE,
+    Data_Admissao DATE DEFAULT GETDATE(),
+    Data_Cadastro DATETIME2 DEFAULT GETDATE(),
+    Data_Atualizacao DATETIME2 DEFAULT GETDATE(),
+    Ativo BIT DEFAULT 1,
+    PRIMARY KEY (ID_Funcionario),
+    FOREIGN KEY (ID_Tipo_Funcionario) REFERENCES Tipo_Funcionario(ID_Tipo_Funcionario),
+    FOREIGN KEY (CNPJ) REFERENCES Contratante(CNPJ)
 );
 
---Paciente
-Create Table Paciente (
-	CPF Varchar(11) Not null,
-	Senha_Paciente Varchar(12) Not null,
-	Email Varchar(45),
-	Nome_Paciente Varchar(50) Not null,
-	Nome_Social Varchar(50) Not null,
-	Primary Key (CPF)
+-- Paciente
+CREATE TABLE Paciente (
+    CPF VARCHAR(11) NOT NULL,
+    Nome_Paciente VARCHAR(100) NOT NULL,
+    Nome_Social VARCHAR(100),
+    Data_Nascimento DATE NOT NULL,
+    Sexo CHAR(1) CHECK (Sexo IN ('M', 'F', 'O')),
+    Email VARCHAR(100),
+    Telefone VARCHAR(15),
+    Endereco VARCHAR(200),
+    Cidade VARCHAR(50),
+    Estado VARCHAR(2),
+    CEP VARCHAR(8),
+    Senha_Hash VARCHAR(255) NOT NULL,
+    Salt VARCHAR(50) NOT NULL,
+    Data_Cadastro DATETIME2 DEFAULT GETDATE(),
+    Data_Atualizacao DATETIME2 DEFAULT GETDATE(),
+    Ativo BIT DEFAULT 1,
+    PRIMARY KEY (CPF)
 );
 
---Receita
-Create Table Receita (
-	ID_Receita INT Identity Not null,
-	Data_Receita Date Not null,
-	Data_Validade Date Not null,
-	ID_Funcionario INT Not null,
-	CPF Varchar(11) Not null,
-	Medicamento Varchar(100) Not null,
-	Baixas INT,
-	Primary Key (ID_Receita),
-	Foreign Key (ID_Funcionario) References Funcionario(ID_Funcionario),
-	Foreign Key (CPF) References Paciente(CPF)
+-- Status da Receita
+CREATE TABLE Status_Receita (
+    ID_Status INT IDENTITY(1,1),
+    Descricao_Status VARCHAR(30) NOT NULL,
+    PRIMARY KEY (ID_Status)
 );
 
---Historico Medico
-Create Table Historico_Medico (
-	ID_Historico INT Identity Not null,
-	CPF Varchar(11) Not null,
-	Registro_Medico VarBinary(max) Not null,
-	Primary Key (ID_Historico),
-	Foreign Key (CPF) References Paciente(CPF)
+-- Receita Médica
+CREATE TABLE Receita (
+    ID_Receita INT IDENTITY(1,1) NOT NULL,
+    Data_Receita DATETIME2 NOT NULL DEFAULT GETDATE(),
+    Data_Validade DATE NOT NULL,
+    ID_Funcionario INT NOT NULL,
+    CPF VARCHAR(11) NOT NULL,
+    Medicamento VARCHAR(200) NOT NULL,
+    Dosagem VARCHAR(100),
+    Quantidade INT,
+    Instrucoes_Uso TEXT,
+    Observacoes TEXT,
+    ID_Status INT DEFAULT 1,
+    Baixas INT DEFAULT 0,
+    Data_Cadastro DATETIME2 DEFAULT GETDATE(),
+    Data_Atualizacao DATETIME2 DEFAULT GETDATE(),
+    PRIMARY KEY (ID_Receita),
+    FOREIGN KEY (ID_Funcionario) REFERENCES Funcionario(ID_Funcionario),
+    FOREIGN KEY (CPF) REFERENCES Paciente(CPF),
+    FOREIGN KEY (ID_Status) REFERENCES Status_Receita(ID_Status)
 );
 
---Mensagem
-Create Table Mensagem (
-	ID_Chat INT Not null,
-	CPF Varchar(11),
-	ID_Funcionario INT,
-	Primary Key (ID_Chat),
-	Foreign Key (CPF) References Paciente(CPF),
-	Foreign Key (ID_Funcionario) References Funcionario(ID_Funcionario)
+-- Histórico Médico
+CREATE TABLE Historico_Medico (
+    ID_Historico INT IDENTITY(1,1) NOT NULL,
+    CPF VARCHAR(11) NOT NULL,
+    ID_Funcionario INT NOT NULL,
+    Tipo_Registro VARCHAR(50) NOT NULL, -- Consulta, Exame, Internação, etc.
+    Descricao TEXT NOT NULL,
+    Arquivo_Anexo VARBINARY(MAX),
+    Nome_Arquivo VARCHAR(255),
+    Tipo_Arquivo VARCHAR(10),
+    Data_Registro DATETIME2 DEFAULT GETDATE(),
+    Data_Cadastro DATETIME2 DEFAULT GETDATE(),
+    PRIMARY KEY (ID_Historico),
+    FOREIGN KEY (CPF) REFERENCES Paciente(CPF),
+    FOREIGN KEY (ID_Funcionario) REFERENCES Funcionario(ID_Funcionario)
 );
 
-/*
-Como Monitorar o identificador o tornando algo que pode ser CPF e ID_Funcionario?
-*/
+-- Chat/Mensagens
+CREATE TABLE Chat (
+    ID_Chat INT IDENTITY(1,1) NOT NULL,
+    CPF VARCHAR(11) NOT NULL,
+    ID_Funcionario INT NOT NULL,
+    Titulo VARCHAR(100),
+    Data_Criacao DATETIME2 DEFAULT GETDATE(),
+    Ativo BIT DEFAULT 1,
+    PRIMARY KEY (ID_Chat),
+    FOREIGN KEY (CPF) REFERENCES Paciente(CPF),
+    FOREIGN KEY (ID_Funcionario) REFERENCES Funcionario(ID_Funcionario)
+);
 
-Go
+CREATE TABLE Mensagem (
+    ID_Mensagem INT IDENTITY(1,1) NOT NULL,
+    ID_Chat INT NOT NULL,
+    Remetente_Tipo VARCHAR(10) NOT NULL CHECK (Remetente_Tipo IN ('PACIENTE', 'FUNCIONARIO')),
+    Conteudo TEXT NOT NULL,
+    Data_Envio DATETIME2 DEFAULT GETDATE(),
+    Lida BIT DEFAULT 0,
+    Data_Leitura DATETIME2,
+    PRIMARY KEY (ID_Mensagem),
+    FOREIGN KEY (ID_Chat) REFERENCES Chat(ID_Chat)
+);
 
-Create Index IDX_CNPJ On Contratante(CNPJ);
-Create Index IDX_CPF On Paciente(CPF);
-Create Index IDX_ID_Funcionario On Funcionario(ID_Funcionario);
-Create Index IDX_ID_Receita On Receita(ID_Receita);
-Create Index IDX_ID_Historico On Historico_Medico(ID_Historico);
-Create Index IDX_ID_Chat On Mensagem(ID_Chat);
 
-Go
+-- =====================================================
+-- ÍNDICES PARA PERFORMANCE
+-- =====================================================
 
---Função de validação para ser usado nos Procedures (Teste para o procedure)
-/*
+CREATE INDEX IDX_Contratante_CNPJ ON Contratante(CNPJ);
+CREATE INDEX IDX_Funcionario_CPF ON Funcionario(CPF);
+CREATE INDEX IDX_Funcionario_CNPJ ON Funcionario(CNPJ);
+CREATE INDEX IDX_Paciente_CPF ON Paciente(CPF);
+CREATE INDEX IDX_Receita_CPF ON Receita(CPF);
+CREATE INDEX IDX_Receita_Funcionario ON Receita(ID_Funcionario);
+CREATE INDEX IDX_Receita_Data ON Receita(Data_Receita);
+CREATE INDEX IDX_Historico_CPF ON Historico_Medico(CPF);
+CREATE INDEX IDX_Chat_CPF ON Chat(CPF);
+CREATE INDEX IDX_Mensagem_Chat ON Mensagem(ID_Chat);
+CREATE INDEX IDX_Mensagem_Data ON Mensagem(Data_Envio);
 
-CREATE FUNCTION CPF_VALIDACAO(@CPF VARCHAR(11)) RETURNS CHAR(1)
+-- =====================================================
+-- DADOS INICIAIS
+-- =====================================================
+
+-- Inserir tipos de funcionário
+INSERT INTO Tipo_Funcionario (Descricao_Tipo, Nivel_Acesso) VALUES
+('Médico', 3),
+('Farmacêutico', 2),
+('Enfermeiro', 2),
+('Atendente', 1),
+('Administrador', 3);
+
+-- Inserir status de receita
+INSERT INTO Status_Receita (Descricao_Status) VALUES
+('Ativa'),
+('Parcialmente Utilizada'),
+('Totalmente Utilizada'),
+('Vencida'),
+('Cancelada');
+
+-- =====================================================
+-- FUNÇÕES AUXILIARES
+-- =====================================================
+
+-- Função para validar CPF
+CREATE FUNCTION dbo.ValidarCPF(@CPF VARCHAR(11))
+RETURNS BIT
 AS
 BEGIN
-  DECLARE @INDICE INT,
-          @SOMA INT,
-          @DIG1 INT,
-          @DIG2 INT,
-          @CPF_TEMP VARCHAR(11),
-          @DIGITOS_IGUAIS CHAR(1),
-          @RESULTADO CHAR(1)
-          
-  SET @RESULTADO = 'N'
+    DECLARE @INDICE INT,
+            @SOMA INT,
+            @DIG1 INT,
+            @DIG2 INT,
+            @CPF_TEMP VARCHAR(11),
+            @DIGITOS_IGUAIS BIT = 1,
+            @RESULTADO BIT = 0;
 
-  /*
-      Verificando se os digitos são iguais
-      A Principio CPF com todos o números iguais são Inválidos
-      apesar de validar o Calculo do digito verificado
-      EX: O CPF 00000000000 é inválido, mas pelo calculo
-      Validaria
-  */
+    -- Verificar se todos os dígitos são iguais
+    SET @CPF_TEMP = SUBSTRING(@CPF, 1, 1);
+    SET @INDICE = 2;
 
-  SET @CPF_TEMP = SUBSTRING(@CPF,1,1)
-
-  SET @INDICE = 1
-  SET @DIGITOS_IGUAIS = 'S'
-
-  WHILE (@INDICE <= 11)
-  BEGIN
-    IF SUBSTRING(@CPF,@INDICE,1) <> @CPF_TEMP
-      SET @DIGITOS_IGUAIS = 'N'
-    SET @INDICE = @INDICE + 1
-  END;
-
-  --Caso os digitos não sejão todos iguais Começo o calculo do digitos
-  IF @DIGITOS_IGUAIS = 'N'
-  BEGIN
-    --Cálculo do 1º dígito
-    SET @SOMA = 0
-    SET @INDICE = 1
-    WHILE (@INDICE <= 9)
+    WHILE (@INDICE <= 11 AND @DIGITOS_IGUAIS = 1)
     BEGIN
-      SET @Soma = @Soma + CONVERT(INT,SUBSTRING(@CPF,@INDICE,1)) * (11 - @INDICE);
-      SET @INDICE = @INDICE + 1
-    END
+        IF SUBSTRING(@CPF, @INDICE, 1) <> @CPF_TEMP
+            SET @DIGITOS_IGUAIS = 0;
+        SET @INDICE = @INDICE + 1;
+    END;
 
-    SET @DIG1 = 11 - (@SOMA % 11)
-
-    IF @DIG1 > 9
-      SET @DIG1 = 0;
-
-    -- Cálculo do 2º dígito
-    SET @SOMA = 0
-    SET @INDICE = 1
-    WHILE (@INDICE <= 10)
+    -- Se os dígitos não são todos iguais, validar
+    IF @DIGITOS_IGUAIS = 0
     BEGIN
-      SET @Soma = @Soma + CONVERT(INT,SUBSTRING(@CPF,@INDICE,1)) * (12 - @INDICE);
-      SET @INDICE = @INDICE + 1
-    END
+        -- Cálculo do 1º dígito verificador
+        SET @SOMA = 0;
+        SET @INDICE = 1;
+        
+        WHILE (@INDICE <= 9)
+        BEGIN
+            SET @SOMA = @SOMA + CONVERT(INT, SUBSTRING(@CPF, @INDICE, 1)) * (11 - @INDICE);
+            SET @INDICE = @INDICE + 1;
+        END;
 
-    SET @DIG2 = 11 - (@SOMA % 11)
+        SET @DIG1 = 11 - (@SOMA % 11);
+        IF @DIG1 > 9 SET @DIG1 = 0;
 
-    IF @DIG2 > 9
-      SET @DIG2 = 0;
+        -- Cálculo do 2º dígito verificador
+        SET @SOMA = 0;
+        SET @INDICE = 1;
+        
+        WHILE (@INDICE <= 10)
+        BEGIN
+            SET @SOMA = @SOMA + CONVERT(INT, SUBSTRING(@CPF, @INDICE, 1)) * (12 - @INDICE);
+            SET @INDICE = @INDICE + 1;
+        END;
 
-    -- Validando
-    IF (@DIG1 = SUBSTRING(@CPF,LEN(@CPF)-1,1)) AND (@DIG2 = SUBSTRING(@CPF,LEN(@CPF),1))
-      SET @RESULTADO = 'S'
-    ELSE
-      SET @RESULTADO = 'N'
-  END
-  RETURN @RESULTADO
-END
-*/
+        SET @DIG2 = 11 - (@SOMA % 11);
+        IF @DIG2 > 9 SET @DIG2 = 0;
 
-Go
+        -- Verificar se os dígitos calculados conferem
+        IF (@DIG1 = CONVERT(INT, SUBSTRING(@CPF, 10, 1))) AND 
+           (@DIG2 = CONVERT(INT, SUBSTRING(@CPF, 11, 1)))
+            SET @RESULTADO = 1;
+    END;
 
---Procedure para registrar Paciente
-Create Procedure Registra_Paciente(
-	@CPF Varchar(11),
-	@Senha Varchar(12),
-	@Email Varchar(45),
-	@Nome Varchar(50),
-	@Nome_Social Varchar(50)
-	) As 
-		Declare
-			@Retorno Bit,
-			@INDICE INT,
-			@SOMA INT,
-			@DIG1 INT,
-			@DIG2 INT,
-			@CPF_TEMP VARCHAR(11),
-			@DIGITOS_IGUAIS CHAR(1);
-		
-		SET @Retorno = 0;
+    RETURN @RESULTADO;
+END;
+GO
 
-		--Verifica se o CPF é verdadeiro
-		SET @CPF_TEMP = SUBSTRING(@CPF,1,1);
+-- Função para validar CNPJ
+CREATE FUNCTION dbo.ValidarCNPJ(@CNPJ VARCHAR(14))
+RETURNS BIT
+AS
+BEGIN
+    DECLARE @INDICE INT,
+            @SOMA INT,
+            @DIG1 INT,
+            @DIG2 INT,
+            @SEQUENCIA VARCHAR(14) = '543298765432',
+            @RESULTADO BIT = 0;
 
-		SET @INDICE = 1
-		SET @DIGITOS_IGUAIS = 'S'
+    -- Verificar se todos os dígitos são iguais
+    IF LEN(@CNPJ) = 14 AND @CNPJ NOT LIKE REPLICATE(SUBSTRING(@CNPJ, 1, 1), 14)
+    BEGIN
+        -- Cálculo do 1º dígito verificador
+        SET @SOMA = 0;
+        SET @INDICE = 1;
+        
+        WHILE (@INDICE <= 12)
+        BEGIN
+            SET @SOMA = @SOMA + (CONVERT(INT, SUBSTRING(@CNPJ, @INDICE, 1)) * 
+                        CONVERT(INT, SUBSTRING(@SEQUENCIA, @INDICE, 1)));
+            SET @INDICE = @INDICE + 1;
+        END;
 
-		WHILE (@INDICE <= 11)
-			BEGIN
-				IF SUBSTRING(@CPF,@INDICE,1) <> @CPF_TEMP
-					SET @DIGITOS_IGUAIS = 'N'
-					SET @INDICE = @INDICE + 1
-			END;
+        SET @DIG1 = @SOMA % 11;
+        IF @DIG1 < 2 SET @DIG1 = 0; ELSE SET @DIG1 = 11 - @DIG1;
 
-		IF @DIGITOS_IGUAIS = 'N'
-			BEGIN
-				SET @SOMA = 0
-				SET @INDICE = 1
-				WHILE (@INDICE <= 9)
-					BEGIN
-						SET @Soma = @Soma + CONVERT(INT,SUBSTRING(@CPF,@INDICE,1)) * (11 - @INDICE);
-						SET @INDICE = @INDICE + 1
-					END
+        -- Cálculo do 2º dígito verificador
+        SET @SOMA = 0;
+        SET @INDICE = 1;
+        SET @SEQUENCIA = '6543298765432';
+        
+        WHILE (@INDICE <= 13)
+        BEGIN
+            SET @SOMA = @SOMA + (CONVERT(INT, SUBSTRING(@CNPJ, @INDICE, 1)) * 
+                        CONVERT(INT, SUBSTRING(@SEQUENCIA, @INDICE, 1)));
+            SET @INDICE = @INDICE + 1;
+        END;
 
-		SET @DIG1 = 11 - (@SOMA % 11)
+        SET @DIG2 = @SOMA % 11;
+        IF @DIG2 < 2 SET @DIG2 = 0; ELSE SET @DIG2 = 11 - @DIG2;
 
-		IF @DIG1 > 9
-			SET @DIG1 = 0;
-			SET @SOMA = 0
-			SET @INDICE = 1
-			WHILE (@INDICE <= 10)
-				BEGIN
-					SET @Soma = @Soma + CONVERT(INT,SUBSTRING(@CPF,@INDICE,1)) * (12 - @INDICE);
-					SET @INDICE = @INDICE + 1
-				END
+        -- Verificar se os dígitos calculados conferem
+        IF (@DIG1 = CONVERT(INT, SUBSTRING(@CNPJ, 13, 1))) AND 
+           (@DIG2 = CONVERT(INT, SUBSTRING(@CNPJ, 14, 1)))
+            SET @RESULTADO = 1;
+    END;
 
-		SET @DIG2 = 11 - (@SOMA % 11)
+    RETURN @RESULTADO;
+END;
+GO
 
-		IF @DIG2 > 9
-			SET @DIG2 = 0;
+-- Função para gerar hash de senha (simplificada)
+CREATE FUNCTION dbo.GerarHashSenha(@Senha VARCHAR(255), @Salt VARCHAR(50))
+RETURNS VARCHAR(255)
+AS
+BEGIN
+    RETURN CONVERT(VARCHAR(255), HASHBYTES('SHA2_256', @Senha + @Salt), 2);
+END;
+GO
 
-		IF (@DIG1 = SUBSTRING(@CPF,LEN(@CPF)-1,1)) AND (@DIG2 = SUBSTRING(@CPF,LEN(@CPF),1))
-			SET @Retorno = 1
-		ELSE
-			SET @Retorno = 0
+-- =====================================================
+-- STORED PROCEDURES
+-- =====================================================
 
-			END
+-- Procedure para registrar paciente
+CREATE PROCEDURE sp_RegistrarPaciente
+    @CPF VARCHAR(11),
+    @Nome VARCHAR(100),
+    @Nome_Social VARCHAR(100) = NULL,
+    @Data_Nascimento DATE,
+    @Sexo CHAR(1) = NULL,
+    @Email VARCHAR(100) = NULL,
+    @Telefone VARCHAR(15) = NULL,
+    @Endereco VARCHAR(200) = NULL,
+    @Cidade VARCHAR(50) = NULL,
+    @Estado VARCHAR(2) = NULL,
+    @CEP VARCHAR(8) = NULL,
+    @Senha VARCHAR(255)
+AS
+BEGIN
+    SET NOCOUNT ON;
+    
+    DECLARE @Salt VARCHAR(50) = CONVERT(VARCHAR(50), NEWID());
+    DECLARE @SenhaHash VARCHAR(255);
+    DECLARE @Resultado VARCHAR(100);
 
-		--Verifica se há nulos (removido temporariamente)
+    BEGIN TRY
+        -- Validar CPF
+        IF dbo.ValidarCPF(@CPF) = 0
+        BEGIN
+            SELECT 'ERRO: CPF inválido' AS Resultado;
+            RETURN;
+        END;
 
-		IF (@Retorno = 0)
-			Begin
-				Select 'Informações inválidas';
-			End
-		Else 
-			Begin
-			--Insere as informações caso passe por todas as verificações
-				Insert Into Paciente(CPF, Senha_Paciente, Email, Nome_Paciente, Nome_Social) 
-					Values (@CPF, @Senha, @Email, @Nome, @Nome_Social);
-				Select * From Paciente Where CPF = @CPF;
-			End
+        -- Verificar se CPF já existe
+        IF EXISTS (SELECT 1 FROM Paciente WHERE CPF = @CPF)
+        BEGIN
+            SELECT 'ERRO: CPF já cadastrado' AS Resultado;
+            RETURN;
+        END;
 
-Go
+        -- Gerar hash da senha
+        SET @SenhaHash = dbo.GerarHashSenha(@Senha, @Salt);
 
---Nota: a inserção no CPF NÃO está mais aceitando caracteres que não podem ser convertidos diretamente a INT
-Exec Registra_Paciente '54856098802', 'Alanz', 'Osanai@aaa', 'Alan', 'Talvez';
+        -- Inserir paciente
+        INSERT INTO Paciente (
+            CPF, Nome_Paciente, Nome_Social, Data_Nascimento, Sexo,
+            Email, Telefone, Endereco, Cidade, Estado, CEP,
+            Senha_Hash, Salt
+        ) VALUES (
+            @CPF, @Nome, @Nome_Social, @Data_Nascimento, @Sexo,
+            @Email, @Telefone, @Endereco, @Cidade, @Estado, @CEP,
+            @SenhaHash, @Salt
+        );
+
+        SELECT 'SUCESSO: Paciente cadastrado com sucesso' AS Resultado,
+               CPF, Nome_Paciente, Email, Data_Cadastro
+        FROM Paciente 
+        WHERE CPF = @CPF;
+
+    END TRY
+    BEGIN CATCH
+        SELECT 'ERRO: ' + ERROR_MESSAGE() AS Resultado;
+    END CATCH;
+END;
+GO
