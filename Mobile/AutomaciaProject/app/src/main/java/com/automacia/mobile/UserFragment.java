@@ -5,6 +5,8 @@ import static com.automacia.mobile.R.drawable.btn_gradient_primary;
 
 import android.animation.ValueAnimator;
 import android.os.Bundle;
+import android.text.Editable;
+import android.text.TextWatcher;
 import android.view.animation.AccelerateDecelerateInterpolator;
 
 import androidx.appcompat.content.res.AppCompatResources;
@@ -23,12 +25,13 @@ import android.widget.Toast;
 import com.google.android.material.textfield.TextInputEditText;
 import com.google.android.material.textfield.TextInputLayout;
 
-// TODO: Incluir validação dos dados alterados
+import de.hdodenhof.circleimageview.CircleImageView;
+
 public class UserFragment extends Fragment {
 
     // Views
     private ImageButton btnBack;
-    private ImageView icProfilePhoto;
+    private CircleImageView icProfilePhoto;
     private TextView tvChangePhoto;
     private TextInputLayout layoutNomeCon, layoutCpf, layoutEmail, layoutTel, layoutNomeSoc;
     private TextInputEditText etNome, etCpf, etEmail, etTelefone, etNomeSocial;
@@ -38,6 +41,12 @@ public class UserFragment extends Fragment {
 
     private boolean isEditing = false;
     private static final int ANIMATION_DURATION = 300;
+
+    // Flags de validação
+    private boolean isNomeValido = true; // Inicia como true pois já tem dados válidos
+    private boolean isEmailValido = true;
+    private boolean isTelefoneValido = true;
+    private boolean isNomeSocialValido = true; // Nome social é opcional, então sempre válido
 
     public UserFragment() {
         // Required empty public constructor
@@ -133,6 +142,124 @@ public class UserFragment extends Fragment {
         }
     }
 
+    /**
+     * Configura os validadores em tempo real para os campos editáveis
+     */
+    private void setupValidators() {
+        setupNomeValidator();
+        setupEmailValidator();
+        setupTelefoneValidator();
+        setupNomeSocialValidator();
+    }
+
+    /**
+     * Validador para o campo Nome
+     */
+    private void setupNomeValidator() {
+        etNome.addTextChangedListener(new TextWatcher() {
+            @Override
+            public void beforeTextChanged(CharSequence s, int start, int count, int after) {}
+
+            @Override
+            public void onTextChanged(CharSequence s, int start, int before, int count) {
+                String erro = Utils.validarNome(s.toString());
+                layoutNomeCon.setError(erro);
+                isNomeValido = (erro == null);
+                updateSaveButtonState();
+            }
+
+            @Override
+            public void afterTextChanged(Editable s) {}
+        });
+    }
+
+    /**
+     * Validador para o campo Email
+     */
+    private void setupEmailValidator() {
+        etEmail.addTextChangedListener(new TextWatcher() {
+            @Override
+            public void beforeTextChanged(CharSequence s, int start, int count, int after) {}
+
+            @Override
+            public void onTextChanged(CharSequence s, int start, int before, int count) {
+                String erro = Utils.validarEmail(s.toString());
+                layoutEmail.setError(erro);
+                isEmailValido = (erro == null);
+                updateSaveButtonState();
+            }
+
+            @Override
+            public void afterTextChanged(Editable s) {}
+        });
+    }
+
+    /**
+     * Validador para o campo Telefone com máscara
+     */
+    private void setupTelefoneValidator() {
+        // Aplica máscara de telefone
+        etTelefone.addTextChangedListener(new TelefoneMaskWatcher(etTelefone));
+
+        etTelefone.addTextChangedListener(new TextWatcher() {
+            @Override
+            public void beforeTextChanged(CharSequence s, int start, int count, int after) {}
+
+            @Override
+            public void onTextChanged(CharSequence s, int start, int before, int count) {
+                String erro = Utils.validarTelefone(s.toString());
+                layoutTel.setError(erro);
+
+                String telefoneNumeros = Utils.extrairNumeros(s.toString());
+                isTelefoneValido = (erro == null && telefoneNumeros.length() >= 10 && telefoneNumeros.length() <= 11);
+                updateSaveButtonState();
+            }
+
+            @Override
+            public void afterTextChanged(Editable s) {}
+        });
+    }
+
+    /**
+     * Validador para o campo Nome Social (opcional)
+     */
+    private void setupNomeSocialValidator() {
+        etNomeSocial.addTextChangedListener(new TextWatcher() {
+            @Override
+            public void beforeTextChanged(CharSequence s, int start, int count, int after) {}
+
+            @Override
+            public void onTextChanged(CharSequence s, int start, int before, int count) {
+                // Nome social é opcional, só valida se não estiver vazio
+                String texto = s.toString().trim();
+                if (!texto.isEmpty()) {
+                    String erro = Utils.validarNome(texto);
+                    layoutNomeSoc.setError(erro);
+                    isNomeSocialValido = (erro == null);
+                } else {
+                    layoutNomeSoc.setError(null);
+                    isNomeSocialValido = true; // Vazio é válido para nome social
+                }
+                updateSaveButtonState();
+            }
+
+            @Override
+            public void afterTextChanged(Editable s) {}
+        });
+    }
+
+    /**
+     * Atualiza o estado do botão salvar baseado nas validações
+     */
+    private void updateSaveButtonState() {
+        if (!isEditing || btnSalvar == null) return;
+
+        boolean todosValidos = isNomeValido && isEmailValido && isTelefoneValido && isNomeSocialValido;
+
+        btnSalvar.setEnabled(todosValidos);
+        btnSalvar.setAlpha(todosValidos ? 1.0f : 0.5f);
+    }
+
     private void loadUserData() {
         // Verificar se as views estão inicializadas antes de usá-las
         if (!areViewsInitialized()) {
@@ -148,6 +275,12 @@ public class UserFragment extends Fragment {
             etEmail.setText("joao@email.com");
             etTelefone.setText("(11) 99999-9999");
             etNomeSocial.setText("");
+
+            // Após carregar os dados, define todos como válidos
+            isNomeValido = true;
+            isEmailValido = true;
+            isTelefoneValido = true;
+            isNomeSocialValido = true;
         } catch (Exception e) {
             android.util.Log.e("UserFragment", "Erro ao carregar dados do usuário: " + e.getMessage());
         }
@@ -176,8 +309,14 @@ public class UserFragment extends Fragment {
                 // CPF sempre desabilitado (não pode ser alterado)
                 etCpf.setEnabled(false);
 
+                // Configurar validadores apenas quando entrar em modo de edição
+                setupValidators();
+
                 // Animar para modo de edição
                 animateToEditMode();
+
+                // Atualizar estado inicial do botão salvar
+                updateSaveButtonState();
             } catch (Exception e) {
                 android.util.Log.e("UserFragment", "Erro ao entrar no modo de edição: " + e.getMessage());
             }
@@ -344,8 +483,20 @@ public class UserFragment extends Fragment {
     }
 
     private void cancelEdit() {
+        // Limpar erros antes de recarregar dados
+        clearAllErrors();
         loadUserData(); // Recarregar dados originais
         exitEditMode(); // Sair do modo de edição sem toggle
+    }
+
+    /**
+     * Limpa todos os erros de validação
+     */
+    private void clearAllErrors() {
+        if (layoutNomeCon != null) layoutNomeCon.setError(null);
+        if (layoutEmail != null) layoutEmail.setError(null);
+        if (layoutTel != null) layoutTel.setError(null);
+        if (layoutNomeSoc != null) layoutNomeSoc.setError(null);
     }
 
     private void saveUserData() {
@@ -354,25 +505,82 @@ public class UserFragment extends Fragment {
             return;
         }
 
-        //TODO: Salvar os dados do usuario pelo banco
-        // Validar dados
-        if (validateFields()) {
-            try {
-                // Aqui você salvaria os dados no banco/API
-                String nome = etNome.getText().toString().trim();
-                String email = etEmail.getText().toString().trim();
-                String telefone = etTelefone.getText().toString().trim();
-                String nomeSocial = etNomeSocial.getText().toString().trim();
+        // Validar todos os campos antes de salvar
+        if (!validateAllFields()) {
+            Toast.makeText(getContext(), "Por favor, corrija os erros antes de salvar", Toast.LENGTH_SHORT).show();
+            return;
+        }
 
-                // Simular salvamento
+        // Desabilitar botão para evitar cliques duplos
+        btnSalvar.setEnabled(false);
+        btnSalvar.setText("Salvando...");
+
+        try {
+            // Coletar dados normalizados
+            String nome = Utils.normalizarNome(etNome.getText().toString());
+            String email = Utils.normalizarEmail(etEmail.getText().toString());
+            String telefone = Utils.extrairNumeros(etTelefone.getText().toString());
+            String nomeSocial = Utils.normalizarNome(etNomeSocial.getText().toString());
+
+            // TODO: Salvar os dados no banco/API
+            // Simular salvamento
+            btnSalvar.postDelayed(() -> {
                 Toast.makeText(getContext(), "Dados salvos com sucesso!", Toast.LENGTH_SHORT).show();
 
+                // Restaurar texto do botão
+                btnSalvar.setText("Salvar");
+                btnSalvar.setEnabled(true);
+
                 exitEditMode(); // Sair do modo de edição
-            } catch (Exception e) {
-                android.util.Log.e("UserFragment", "Erro ao salvar dados: " + e.getMessage());
-                Toast.makeText(getContext(), "Erro ao salvar dados", Toast.LENGTH_SHORT).show();
-            }
+            }, 1500);
+
+        } catch (Exception e) {
+            android.util.Log.e("UserFragment", "Erro ao salvar dados: " + e.getMessage());
+            Toast.makeText(getContext(), "Erro ao salvar dados", Toast.LENGTH_SHORT).show();
+
+            // Restaurar botão em caso de erro
+            btnSalvar.setText("Salvar");
+            btnSalvar.setEnabled(true);
         }
+    }
+
+    /**
+     * Validação final de todos os campos editáveis
+     */
+    private boolean validateAllFields() {
+        boolean isValid = true;
+
+        // Validar nome
+        String erroNome = Utils.validarNome(etNome.getText().toString());
+        layoutNomeCon.setError(erroNome);
+        if (erroNome != null) isValid = false;
+
+        // Validar email
+        String erroEmail = Utils.validarEmail(etEmail.getText().toString());
+        layoutEmail.setError(erroEmail);
+        if (erroEmail != null) isValid = false;
+
+        // Validar telefone
+        String erroTelefone = Utils.validarTelefone(etTelefone.getText().toString());
+        layoutTel.setError(erroTelefone);
+        if (erroTelefone != null) isValid = false;
+
+        // Verificar se telefone tem quantidade correta de dígitos
+        String telefoneNumeros = Utils.extrairNumeros(etTelefone.getText().toString());
+        if (telefoneNumeros.length() < 10 || telefoneNumeros.length() > 11) {
+            layoutTel.setError("Telefone deve ter entre 10 e 11 dígitos");
+            isValid = false;
+        }
+
+        // Validar nome social (se não estiver vazio)
+        String nomeSocial = etNomeSocial.getText().toString().trim();
+        if (!nomeSocial.isEmpty()) {
+            String erroNomeSocial = Utils.validarNome(nomeSocial);
+            layoutNomeSoc.setError(erroNomeSocial);
+            if (erroNomeSocial != null) isValid = false;
+        }
+
+        return isValid;
     }
 
     private void exitEditMode() {
@@ -393,49 +601,44 @@ public class UserFragment extends Fragment {
             etNomeSocial.setEnabled(false);
             etCpf.setEnabled(false);
 
+            // Limpar erros
+            clearAllErrors();
+
+            // Remover validadores (limpar listeners)
+            removeValidators();
+
             // Animar volta ao modo view
             animateToViewMode();
+
+            // Resetar flags de validação
+            isNomeValido = true;
+            isEmailValido = true;
+            isTelefoneValido = true;
+            isNomeSocialValido = true;
         } catch (Exception e) {
             android.util.Log.e("UserFragment", "Erro ao sair do modo de edição: " + e.getMessage());
         }
     }
 
-    private boolean validateFields() {
-        if (!areViewsInitialized()) {
-            android.util.Log.e("UserFragment", "Tentativa de validar campos com views não inicializadas");
-            return false;
-        }
-
+    /**
+     * Remove os validadores dos campos para evitar conflitos
+     */
+    private void removeValidators() {
         try {
-            // TODO: Implementar validação dos campos
-            String nome = etNome.getText().toString().trim();
-            String email = etEmail.getText().toString().trim();
-            String telefone = etTelefone.getText().toString().trim();
+            // Criar TextWatchers vazios para substituir os existentes
+            TextWatcher emptyWatcher = new TextWatcher() {
+                @Override
+                public void beforeTextChanged(CharSequence s, int start, int count, int after) {}
+                @Override
+                public void onTextChanged(CharSequence s, int start, int before, int count) {}
+                @Override
+                public void afterTextChanged(Editable s) {}
+            };
 
-            if (nome.isEmpty()) {
-                etNome.setError("Nome é obrigatório");
-                return false;
-            }
-
-            if (email.isEmpty()) {
-                etEmail.setError("Email é obrigatório");
-                return false;
-            }
-
-            if (!android.util.Patterns.EMAIL_ADDRESS.matcher(email).matches()) {
-                etEmail.setError("Email inválido");
-                return false;
-            }
-
-            if (telefone.isEmpty()) {
-                etTelefone.setError("Telefone é obrigatório");
-                return false;
-            }
-
-            return true;
+            // A maneira mais segura é recriar os EditTexts ou simplesmente não adicionar
+            // novos listeners até que seja necessário novamente
         } catch (Exception e) {
-            android.util.Log.e("UserFragment", "Erro na validação: " + e.getMessage());
-            return false;
+            android.util.Log.e("UserFragment", "Erro ao remover validadores: " + e.getMessage());
         }
     }
 }
