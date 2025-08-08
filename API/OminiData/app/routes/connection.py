@@ -1,8 +1,7 @@
-from datetime import datetime
-
 from fastapi import APIRouter, HTTPException, Depends
-from app.models.schemas import ConnectionRequest, ConnectionResponse
+from app.models.schemas import ConnectionRequest, ConnectionResponse, ProcedureListResponse
 from app.services.connection_service import ConnectionService
+from datetime import datetime
 
 router = APIRouter()
 connection_service = ConnectionService()
@@ -10,7 +9,7 @@ connection_service = ConnectionService()
 
 @router.post("/request", response_model=ConnectionResponse)
 async def request_connection(request: ConnectionRequest):
-    """Endpoint principal - solicita conexão temporária"""
+    """Endpoint principal - solicita conexão temporária com acesso apenas a stored procedures"""
 
     # Validar API Key
     api_validation = await connection_service.validate_api_key(request.api_key)
@@ -18,25 +17,45 @@ async def request_connection(request: ConnectionRequest):
     if not api_validation["is_valid"]:
         raise HTTPException(status_code=401, detail="API Key inválida")
 
-    # Verificar se a aplicação tem permissão solicitada
-    if request.permissions not in api_validation["permissions"]:
-        raise HTTPException(
-            status_code=403,
-            detail=f"Aplicação não tem permissão '{request.permissions}'"
-        )
-
     try:
-        # Criar conexão temporária
+        # Criar conexão temporária com acesso APENAS às procedures permitidas
         connection_data = await connection_service.create_connection(
             app_id=request.app_id,
             database_name=request.database_name or "DefaultDB",
-            permissions=request.permissions
+            allowed_procedures=api_validation["allowed_procedures"]
         )
 
         return connection_data
 
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Erro interno: {str(e)}")
+
+
+@router.get("/procedures/{database_name}", response_model=ProcedureListResponse)
+async def list_procedures(database_name: str):
+    """Lista todas as stored procedures disponíveis no database (apenas para admins)"""
+    try:
+        procedures = await connection_service.list_available_procedures(database_name)
+        return ProcedureListResponse(
+            database_name=database_name,
+            available_procedures=procedures
+        )
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Erro ao listar procedures: {str(e)}")
+
+
+@router.get("/my-procedures")
+async def get_my_procedures(api_key: str):
+    """Retorna as procedures que uma API key específica pode executar"""
+    api_validation = await connection_service.validate_api_key(api_key)
+
+    if not api_validation["is_valid"]:
+        raise HTTPException(status_code=401, detail="API Key inválida")
+
+    return {
+        "app_name": api_validation["app_name"],
+        "allowed_procedures": api_validation["allowed_procedures"]
+    }
 
 
 @router.get("/health")

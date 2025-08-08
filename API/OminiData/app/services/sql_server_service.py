@@ -7,22 +7,47 @@ from app.core.config import settings
 
 class SqlServerService:
     def __init__(self):
-        self.master_connection = self._get_master_connection()
+        self.master_connection = None
+        self._test_connection()
+
+    def _test_connection(self):
+        """Testa a conexão com o SQL Server"""
+        try:
+            self.master_connection = self._get_master_connection()
+            print("Conexão com SQL Server estabelecida com sucesso!")
+        except Exception as e:
+            print(f"Erro ao conectar com SQL Server: {str(e)}")
+            print(f"Servidor: {settings.MASTER_SQL_SERVER}")
+            print(f"Usuário: {settings.MASTER_SQL_USER}")
+            print("Verifique suas configurações no arquivo .env")
+            raise e
 
     def _get_master_connection(self):
         """Conexão master para gerenciar usuários temporários"""
-        connection_string = (
-            f"DRIVER={{ODBC Driver 17 for SQL Server}};"
-            f"SERVER={settings.MASTER_SQL_SERVER};"
-            f"DATABASE={settings.MASTER_SQL_DATABASE};"
-            f"UID={settings.MASTER_SQL_USER};"
-            f"PWD={settings.MASTER_SQL_PASSWORD};"
-            f"TrustServerCertificate=yes;"
-        )
+
+        # Tentar primeiro com Windows Authentication se user/password estão vazios
+        if not settings.MASTER_SQL_USER or not settings.MASTER_SQL_PASSWORD:
+            connection_string = (
+                f"DRIVER={{ODBC Driver 17 for SQL Server}};"
+                f"SERVER={settings.MASTER_SQL_SERVER};"
+                f"DATABASE={settings.MASTER_SQL_DATABASE};"
+                f"Trusted_Connection=yes;"
+                f"TrustServerCertificate=yes;"
+            )
+        else:
+            connection_string = (
+                f"DRIVER={{ODBC Driver 17 for SQL Server}};"
+                f"SERVER={settings.MASTER_SQL_SERVER};"
+                f"DATABASE={settings.MASTER_SQL_DATABASE};"
+                f"UID={settings.MASTER_SQL_USER};"
+                f"PWD={settings.MASTER_SQL_PASSWORD};"
+                f"TrustServerCertificate=yes;"
+            )
+
         return pyodbc.connect(connection_string)
 
-    def create_temporary_user(self, app_id: str, database_name: str, permissions: str = "read"):
-        """Cria usuário temporário no SQL Server"""
+    def create_temporary_user(self, app_id: str, database_name: str, allowed_procedures: list):
+        """Cria usuário temporário com acesso APENAS às stored procedures especificadas"""
 
         # Gerar credenciais temporárias
         temp_user = f"{settings.TEMP_USER_PREFIX}{app_id}_{secrets.token_hex(8)}"
@@ -50,24 +75,48 @@ class SqlServerService:
             """
             cursor.execute(create_user_sql)
 
-            # Aplicar permissões baseadas no parâmetro
-            if permissions == "read":
-                cursor.execute(f"ALTER ROLE db_datareader ADD MEMBER [{temp_user}]")
-            elif permissions == "write":
-                cursor.execute(f"ALTER ROLE db_datawriter ADD MEMBER [{temp_user}]")
-                cursor.execute(f"ALTER ROLE db_datareader ADD MEMBER [{temp_user}]")
-            elif permissions == "admin":
-                cursor.execute(f"ALTER ROLE db_owner ADD MEMBER [{temp_user}]")
+            # IMPORTANTE: NÃO dar nenhuma role padrão (db_datareader, etc.)
+            # Dar permissão APENAS para as stored procedures especificadas
+            for procedure_name in allowed_procedures:
+                grant_procedure_sql = f"""
+                IF EXISTS (SELECT * FROM sys.objects WHERE type = 'P' AND name = '{procedure_name}')
+                BEGIN
+                    GRANT EXECUTE ON [{procedure_name}] TO [{temp_user}]
+                    PRINT 'Permissão concedida para {procedure_name}'
+                END
+                ELSE
+                BEGIN
+                    PRINT 'AVISO: Procedure {procedure_name} não existe!'
+                END
+                """
+                cursor.execute(grant_procedure_sql)
+
+            # Negar explicitamente acesso a tabelas diretas
+            deny_table_access_sql = f"""
+            -- Negar SELECT, INSERT, UPDATE, DELETE em todas as tabelas
+            DECLARE @sql NVARCHAR(MAX) = ''
+            SELECT @sql = @sql + 'DENY SELECT, INSERT, UPDATE, DELETE ON [' + SCHEMA_NAME(schema_id) + '].[' + name + '] TO [{temp_user}];'
+            FROM sys.tables
+            WHERE type = 'U'  -- User tables only
+
+            IF @sql != ''
+                EXEC sp_executesql @sql
+            """
+            cursor.execute(deny_table_access_sql)
 
             self.master_connection.commit()
 
-            # Agendar remoção do usuário (você pode implementar com Celery ou similar)
+            # Log das procedures permitidas
+            print(f"Usuário {temp_user} criado com acesso às procedures: {', '.join(allowed_procedures)}")
+
+            # Agendar remoção do usuário
             self._schedule_user_cleanup(temp_user, settings.DEFAULT_CONNECTION_TTL)
 
             return {
                 "user": temp_user,
                 "password": temp_password,
-                "database": database_name
+                "database": database_name,
+                "allowed_procedures": allowed_procedures
             }
 
         except Exception as e:
@@ -117,3 +166,25 @@ class SqlServerService:
 
         except Exception as e:
             print(f"Erro na limpeza de usuários: {str(e)}")
+
+    def get_available_procedures(self, database_name: str):
+        """Lista todas as stored procedures disponíveis no database"""
+        try:
+            cursor = self.master_connection.cursor()
+            cursor.execute(f"USE [{database_name}]")
+
+            cursor.execute("""
+                SELECT DISTINCT name 
+                FROM sys.objects 
+                WHERE type = 'P' 
+                AND name NOT LIKE 'sp_%' 
+                AND name NOT LIKE 'dt_%'
+                ORDER BY name
+            """)
+
+            procedures = [row[0] for row in cursor.fetchall()]
+            return procedures
+
+        except Exception as e:
+            print(f"Erro ao listar procedures: {str(e)}")
+            return []
