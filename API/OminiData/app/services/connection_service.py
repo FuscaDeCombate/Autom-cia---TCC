@@ -15,7 +15,6 @@ class ConnectionService:
                 "allowed_procedures": [
                     "sp_GetUsuarios",
                     "sp_InsertUsuario",
-                    "sp_UpdateUsuario"
                 ]
             },
             "app-android-mobile-key-456": {
@@ -31,7 +30,7 @@ class ConnectionService:
                 "app_name": "C# Desktop App",
                 "allowed_procedures": [
                     "sp_BackupDatabase",
-                    "sp_GetUsuarios"
+                    "sp_GetUsuarios",
                 ]
             }
         }
@@ -55,22 +54,17 @@ class ConnectionService:
             allowed_procedures=allowed_procedures
         )
 
-        # Montar connection string
-        connection_string = (
-            f"DRIVER={{ODBC Driver 17 for SQL Server}};"
-            f"SERVER={settings.MASTER_SQL_SERVER};"
-            f"DATABASE={database_name};"
-            f"UID={temp_credentials['user']};"
-            f"PWD={temp_credentials['password']};"
-            f"TrustServerCertificate=yes;"
-        )
-
+        # Retornar dados separados para cada linguagem usar
         return ConnectionResponse(
-            connection_string=connection_string,
+            server=settings.MASTER_SQL_SERVER,
+            database=database_name,
+            username=temp_credentials['user'],
+            password=temp_credentials['password'],
+            port=1433,  # Porta padrão SQL Server
             expires_in=settings.DEFAULT_CONNECTION_TTL,
             timestamp=datetime.now(),
             temp_user_id=temp_credentials['user'],
-            allowed_procedures=allowed_procedures  # Novo campo
+            allowed_procedures=allowed_procedures
         )
 
     async def list_available_procedures(self, database_name: str) -> list:

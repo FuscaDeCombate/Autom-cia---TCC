@@ -3,6 +3,7 @@ import secrets
 import string
 from datetime import datetime, timedelta
 from app.core.config import settings
+from app.core.logger import log
 
 
 class SqlServerService:
@@ -14,12 +15,12 @@ class SqlServerService:
         """Testa a conexão com o SQL Server"""
         try:
             self.master_connection = self._get_master_connection()
-            print("Conexão com SQL Server estabelecida com sucesso!")
+            log("Conexão com SQL Server estabelecida com sucesso!", "SUCCESS")
         except Exception as e:
-            print(f"Erro ao conectar com SQL Server: {str(e)}")
-            print(f"Servidor: {settings.MASTER_SQL_SERVER}")
-            print(f"Usuário: {settings.MASTER_SQL_USER}")
-            print("Verifique suas configurações no arquivo .env")
+            log(f"Erro ao conectar com SQL Server: {str(e)}", "ERROR")
+            log(f"Servidor: {settings.MASTER_SQL_SERVER}", "DEBUG")
+            log(f"Usuário: {settings.MASTER_SQL_USER}", "DEBUG")
+            log("Verifique suas configurações no arquivo .env", "WARNING")
             raise e
 
     def _get_master_connection(self):
@@ -107,7 +108,7 @@ class SqlServerService:
             self.master_connection.commit()
 
             # Log das procedures permitidas
-            print(f"Usuário {temp_user} criado com acesso às procedures: {', '.join(allowed_procedures)}")
+            log(f"Usuário {temp_user} criado com acesso às procedures: {', '.join(allowed_procedures)}", "INFO")
 
             # Agendar remoção do usuário
             self._schedule_user_cleanup(temp_user, settings.DEFAULT_CONNECTION_TTL)
@@ -133,7 +134,7 @@ class SqlServerService:
         # Implementar com Celery, APScheduler ou similar
         # Por agora, apenas log
         cleanup_time = datetime.now() + timedelta(seconds=ttl_seconds)
-        print(f"Usuário {username} agendado para remoção em {cleanup_time}")
+        log(f"Usuário {username} agendado para remoção em {cleanup_time}", "WARNING")
 
     def cleanup_expired_users(self):
         """Remove usuários temporários expirados"""
@@ -158,14 +159,14 @@ class SqlServerService:
                     cursor.execute(f"DROP USER IF EXISTS [{username}]")
                     # Remover login
                     cursor.execute(f"DROP LOGIN IF EXISTS [{username}]")
-                    print(f"Usuário temporário {username} removido com sucesso")
+                    log(f"Usuário temporário {username} removido com sucesso", "SUCCESS")
                 except Exception as e:
-                    print(f"Erro ao remover usuário {username}: {str(e)}")
+                    log(f"Erro ao remover usuário {username}: {str(e)}", "ERROR")
 
             self.master_connection.commit()
 
         except Exception as e:
-            print(f"Erro na limpeza de usuários: {str(e)}")
+            log(f"Erro na limpeza de usuários: {str(e)}", "ERROR")
 
     def get_available_procedures(self, database_name: str):
         """Lista todas as stored procedures disponíveis no database"""
@@ -186,5 +187,5 @@ class SqlServerService:
             return procedures
 
         except Exception as e:
-            print(f"Erro ao listar procedures: {str(e)}")
+            log(f"Erro ao listar procedures: {str(e)}", "ERROR")
             return []
