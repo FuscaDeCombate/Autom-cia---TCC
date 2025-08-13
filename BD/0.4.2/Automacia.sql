@@ -17,10 +17,10 @@ Go
 
 --Farmácia/Hospital/Clínica
 Create Table Contratante (
-	CNPJ Varchar Not null,
+	CNPJ Varchar Unique Not null,
 	Documentacao VarBinary(max) Not null,
 	Nome_Contratante Varchar(50) Not null,
-	Senha_Contratante Varchar(12) Not null,
+	Senha_Contratante Varchar(32) Not null,
 	Primary Key (CNPJ)
 );
 
@@ -33,10 +33,10 @@ Create Table Tipo_Funcionario (
 
 --Funcionário de Farmácia/Hospital/Clínica
 Create Table Funcionario (
-	ID_Funcionario INT Identity Not null,
+	ID_Funcionario INT Identity Unique Not null,
 	ID_Tipo_Funcionario TINYINT Not null,
 	CNPJ Varchar Not null,
-	Senha_Funcionario Varchar(12) Not null,
+	Senha_Funcionario Varchar(32) Not null,
 	Nome_Funcionario Varchar(50) Not null,
 	Primary Key (ID_Funcionario),
 	Foreign Key (ID_Tipo_Funcionario) References Tipo_Funcionario(ID_Tipo_Funcionario),
@@ -45,8 +45,8 @@ Create Table Funcionario (
 
 --Paciente
 Create Table Paciente (
-	CPF Varchar(11) Not null,
-	Senha_Paciente Varchar(12) Not null,
+	CPF Varchar(11) Unique Not null,
+	Senha_Paciente Varchar(32) Not null,
 	Email Varchar(45),
 	Nome_Paciente Varchar(50) Not null,
 	Nome_Social Varchar(50) Not null,
@@ -63,6 +63,7 @@ Create Table Receita (
 	Medicamento Varchar(100) Not null,
 	Detalhes Varchar(300),
 	Limite_Baixas Tinyint,
+	Valido Bit,
 	Baixas Tinyint,
 	Primary Key (ID_Receita),
 	Foreign Key (ID_Funcionario) References Funcionario(ID_Funcionario),
@@ -118,7 +119,7 @@ Go
 --Procedure para registrar Paciente
 Create Procedure Registra_Paciente(
 	@CPF Varchar(11),
-	@Senha Varchar(12),
+	@Senha Varchar(32),
 	@Email Varchar(45),
 	@Nome Varchar(50),
 	@Nome_Social Varchar(50)
@@ -130,7 +131,7 @@ Create Procedure Registra_Paciente(
 			@RetornoSenha Bit,
 
 			@CPFT Varchar(14),
-			@SenhaT Varchar(12),
+			@SenhaT Varchar(32),
 			@EmailT Varchar(45),
 			@NomeT Varchar(50),
 			@Nome_SocialT Varchar(50),
@@ -298,7 +299,11 @@ Create Procedure Registra_Paciente(
 
 		IF @RetornoNull = 0 or @RetornoCPF = 0 or @RetornoEmail = 0 or @RetornoSenha = 0
 			Begin
-				Select 'Informações inválidas' As 'Registra_Paciente_Retorno';
+				IF (@RetornoNull = 0) Select 'Digite algo'  As 'Registra_Paciente_Retorno'
+				Else If (@RetornoCPF = 0) Select 'CPF Inválido' As 'Registra_Paciente_Retorno'
+				Else If (@RetornoEmail = 0) Select 'Email Inválido' As 'Registra_Paciente_Retorno'
+				Else If (@RetornoSenha = 0) Select 'Senha Inválida' As 'Registra_Paciente_Retorno'
+				Else Select 'Tem algo muito errado' As 'Registra_Paciente_Retorno';
 			End
 		Else 
 			Begin
@@ -319,11 +324,11 @@ Go
 --Procedure para login de Paciente (via CPF)
 Create Procedure Login_Paciente(
 	@CPF Varchar(11),
-	@Senha Varchar(12)
+	@Senha Varchar(32)
 	) AS
 		Declare
 		@Tamanho TINYINT,
-		@SenhaR Varchar(12);
+		@SenhaR Varchar(32);
 
 		Begin Try
 			Set @Tamanho = (Select Count(CPF) From Paciente Where CPF = @CPF);
@@ -332,7 +337,7 @@ Create Procedure Login_Paciente(
 
 			If @Tamanho = 0 
 				Begin
-					Select 'Informações Inválidas' As 'Login_Paciente_Retorno';
+					Select 'CPF Inválido' As 'Login_Paciente_Retorno';
 				End
 			Else 
 				Begin
@@ -342,7 +347,7 @@ Create Procedure Login_Paciente(
 						End
 					Else
 						Begin
-							Select 'Informações Inválidas' As 'Login_Paciente_Retorno';
+							Select 'Senha Inválida' As 'Login_Paciente_Retorno';
 						End
 				End
 		End Try
@@ -357,16 +362,16 @@ Create Procedure Registra_Funcionario(
 	@CNPJ Varchar,
 	@ID_Tipo_Funcionario Tinyint,
 	@Nome_Funcionario Varchar(50),
-	@Senha_Funcionario Varchar(12),
-	@Senha_Contratante Varchar(12)
+	@Senha_Funcionario Varchar(32),
+	@Senha_Contratante Varchar(32)
 	) AS
 		
 		Declare
 			@CNPJT Varchar,
 			@ID_Tipo_FuncionarioT Tinyint,
 			@Nome_FuncionarioT Varchar(50),
-			@Senha_FuncionarioT Varchar(12),
-			@Senha_ContratanteT Varchar(12),
+			@Senha_FuncionarioT Varchar(32),
+			@Senha_ContratanteT Varchar(32),
 
 			@Verificado Bit,
 			@Empresa Bit,
@@ -399,7 +404,10 @@ Create Procedure Registra_Funcionario(
 				End
 			Else
 				Begin
-					Select 'Informações Inválidas' As 'Registra_Funcionario_Retorno';
+					If (@Empresa = 0) Select 'Empreasa Inválida' As 'Registra_Funcionario_Retorno'
+					Else If (@Verificado = 0) Select '' As 'Registra_Funcionario_Retorno'
+					Else If (@VSenha = 0) Select '' As 'Registra_Funcionario_Retorno'
+					Else Select 'Tem algo muito errado' As 'Registra_Funcionario_Retorno';
 				End
 		End Try
 		Begin Catch
@@ -420,7 +428,9 @@ Create Procedure Login_Funcionario(
 			Set @Tamanho = (Select Count(ID_Funcionario) From Funcionario Where ID_Funcionario = @ID_Funcionario);
 			Set @SenhaR = (Select Count(@ID_Funcionario) From Funcionario Where ID_Funcionario = @ID_Funcionario and Senha_Funcionario = @Senha_Funcionario);
 			If (@Tamanho = 1) and (@SenhaR = 1) Select * From Funcionario Where ID_Funcionario = @ID_Funcionario;
-			Else Select 'Informações Inválidas' As 'Login_Funcionario_Retorno'
+			Else If (@Tamanho = 0) Select 'Usuário Inválido' As 'Login_Funcionario_Retorno'
+			Else If (@SenhaR = 0) Select 'Senha Inválida' As 'Login_Funcionario_Retorno'
+			Else Select 'Tem algo muito errado' As 'Login_Funcionario_Retorno'
 		End Try
 		Begin Catch
 			Select 'Informações Inválidas' As 'Login_Funcionario_Retorno'
@@ -458,15 +468,18 @@ Create Procedure Registra_Receita (
 			--Verificações
 			If (@ID_Funcionario_R = 1) and (@Senha_Funcionario_R = 1) and (@Tipo_Funcionario_R = 2) and (@CPF_Receita_R = 1)
 				Begin
-					Insert Into Receita (ID_Funcionario, Data_Receita, Data_Validade, Medicamento, Detalhes, Limite_Baixas, CPF) Values
-						(@ID_Funcionario, GETDATE(), @Data_Validade, @Medicamento_R, @Detalhes_R, @Limite_Baixas_R, @CPF_Receita);
+					Insert Into Receita (ID_Funcionario, Data_Receita, Data_Validade, Medicamento, Detalhes, Limite_Baixas, CPF, Valido) Values
+						(@ID_Funcionario, GETDATE(), @Data_Validade, @Medicamento_R, @Detalhes_R, @Limite_Baixas_R, @CPF_Receita, 1);
 						Select * From Receita;
 				End
-			Else
-				Select 'Informações Inválidas';
+			Else If (@ID_Funcionario_R = 0) Select 'Funcionário Inválido' As 'Retorno_Registra_Receita'
+			Else If (@Senha_Funcionario_R = 0) Select 'Senha Inválida' As 'Retorno_Registra_Receita'
+			Else If (@Tipo_Funcionario_R != 2) Select 'Funcionário não tem permissão' As 'Retorno_Registra_Receita'
+			Else If (@CPF_Receita_R = 0) Select 'CPF Inválido' As 'Retorno_Registra_Receita'
+			Else Select 'Tem algo muito errado' As 'Retorno_Registra_Receita';
 		End Try
 		Begin Catch
-			Select 'Informações Inválidas';
+			Select 'Informações Inválidas' As 'Retorno_Registra_Receita';
 		End Catch
 			
 Go
@@ -475,10 +488,16 @@ Go
 Create Procedure Ver_Receita (
 	@CPF_Receita Varchar(11)
 	) As
-		IF (Select Count(CPF) From Receita where CPF = @CPF_Receita) = 1
-			Select * From Receita Where CPF = @CPF_Receita;
-		Else
-			Select 'Informações Inválidas';
+		Begin Try
+			IF (Select Count(CPF) From Receita where CPF = @CPF_Receita) = 1
+				Select * From Receita Where CPF = @CPF_Receita;
+			Else
+				Select 'Não há Receitas' As 'Ver_Receita_Retorno';
+		End Try
+		Begin Catch
+			Select 'Informações Inválidas' As 'Ver_Receita_Retorno';
+		End Catch
+		
 Go
 
 --Procedure altera receita (farmácia)
@@ -495,40 +514,141 @@ Create Procedure Altera_Receita (
 			@Tipo_Funcionario_Alt Tinyint,
 			@Limite_Baixas_Alt Tinyint,
 			@ID_Receita_Alt_R Bit;
-		Set @ID_Funcionario_Alt_R = (Select Count(ID_Funcionario) From Funcionario Where ID_Funcionario = @ID_Funcionario_Alt);
-		Set @Senha_Funcionario_Alt_R = (Select Count(Senha_Funcionario) From Funcionario Where ID_Funcionario = @ID_Funcionario_Alt and Senha_Funcionario = @Senha_Funcionario_Alt);
-		Set @Tipo_Funcionario_Alt = (Select ID_Tipo_Funcionario From Funcionario Where ID_Funcionario = @ID_Funcionario_Alt);
-		Set @CPF_Alt_R = (Select Count(CPF) From Paciente Where CPF = @CPF_Alt);
-		Set @ID_Receita_Alt_R = (Select Count(ID_Receita) From Receita Where ID_Receita = @ID_Receita_Alt_R);
-		Set @Limite_Baixas_Alt = (Select Limite_Baixas From Receita Where ID_Receita = @ID_Receita_Alt_R) - (Select Baixas From Receita Where ID_Receita = @ID_Receita_Alt_R)
-		If (@Limite_Baixas_Alt < 1)
-			Begin
-				Select 'Não é possivel dar mais baixas'
-			End
-		Else
-			Begin
-				IF (@ID_Funcionario_Alt_R = 1) and (@Senha_Funcionario_Alt_R = 1) and (@CPF_Alt_R = 1) and (@ID_Receita_Alt_R = 1) and (@Tipo_Funcionario_Alt = 1)
-					Update Receita Set Baixas = (Baixas + 1);
-				Else 
-					Select 'Informações Inválidas'
-			End
+		Begin Try
+			Set @ID_Funcionario_Alt_R = (Select Count(ID_Funcionario) From Funcionario Where ID_Funcionario = @ID_Funcionario_Alt);
+			Set @Senha_Funcionario_Alt_R = (Select Count(Senha_Funcionario) From Funcionario Where ID_Funcionario = @ID_Funcionario_Alt and Senha_Funcionario = @Senha_Funcionario_Alt);
+			Set @Tipo_Funcionario_Alt = (Select ID_Tipo_Funcionario From Funcionario Where ID_Funcionario = @ID_Funcionario_Alt);
+			Set @CPF_Alt_R = (Select Count(CPF) From Paciente Where CPF = @CPF_Alt);
+			Set @ID_Receita_Alt_R = (Select Count(ID_Receita) From Receita Where ID_Receita = @ID_Receita_Alt_R);
+			Set @Limite_Baixas_Alt = (Select Limite_Baixas From Receita Where ID_Receita = @ID_Receita_Alt_R) - (Select Baixas From Receita Where ID_Receita = @ID_Receita_Alt_R)
+			If (@Limite_Baixas_Alt < 1)
+				Begin
+					Select 'Não é possivel dar mais baixas' As 'Retorno_Altera_Receita';
+				End
+			Else
+				Begin
+					IF (@ID_Funcionario_Alt_R = 1) and (@Senha_Funcionario_Alt_R = 1) and (@CPF_Alt_R = 1) and (@ID_Receita_Alt_R = 1) and (@Tipo_Funcionario_Alt = 1)
+						Update Receita Set Baixas = (Baixas + 1);
+					Else If (@ID_Funcionario_Alt_R = 0) Select 'Funcionário Inválido' As 'Retorno_Altera_Receita'
+					Else If (@Senha_Funcionario_Alt_R = 0) Select 'Senha Inválida' As 'Retorno_Altera_Receita'
+					Else If (@CPF_Alt_R = 0) Select 'CPF Inválido' As 'Retorno_Altera_Receita'
+					Else If (@ID_Receita_Alt_R = 0) Select 'Receita Inválida' As 'Retorno_Altera_Receita'
+					Else If (@Tipo_Funcionario_Alt != 1) Select 'Funcionário não tem permissão' As 'Retorno_Altera_Receita'
+					Else Select 'Tem algo muito errado' As 'Retorno_Altera_Receita'
+				End
+		End Try
+		Begin Catch
+			Select 'Informações Inválidas' As 'Retorno_Altera_Receita'
+		End Catch
+		
 		
 Go
 
 --Procedure para inserir histórico
-
+Create Procedure Insere_Historico(
+	@CPF_Rec Varchar(11),
+	@Senha_Paciente_Rec Varchar(32),
+	@Historico_Arqui Varbinary (Max)
+	) As
+		Declare 
+			@CPF_Rec_R Bit,
+			@Senha_Paciente_Rec_R Bit;
+		Begin Try
+			Set @CPF_Rec_R = (Select Count(CPF) From Paciente Where CPF = @CPF_Rec);
+			Set @Senha_Paciente_Rec_R = (Select Count(CPF) From Paciente Where CPF = @CPF_Rec and Senha_Paciente = @Senha_Paciente_Rec);
+			If (@CPF_Rec_R = 1 and @Senha_Paciente_Rec_R = 1) 
+				Begin
+					Insert Into Historico_Medico (CPF, Registro_Medico) Values
+						(@CPF_Rec, @Historico_Arqui);
+					Select 'Inserção feita' As 'Retorno_Registra_Historico'
+				End
+			Else
+				Begin
+					If (@CPF_Rec_R = 0) Select 'CPF Inválido' As 'Retorno_Registra_Historico'
+					Else If (@Senha_Paciente_Rec_R = 0) Select 'Senha Inválida' As 'Retorno_Registra_Historico'
+					Else Select 'Tem algo muito errado' As 'Retorno_Registra_Historico';
+				End
+		End Try
+		Begin Catch
+			Select 'Informações Inválidas' As 'Retorno_Registra_Historico';
+		End Catch
 Go
 
---Procedure para ver histórico
-
+--Procedure para ver histórico (paciente)
+Create Procedure Ver_Historico_Paciente (
+	@CPF_V_Historico_Pac Varchar(11),
+	@Senha_V_Historico_Pac Varchar(32)
+	) As
+		Declare
+			@CPF_V_Historico_Pac_R Bit,
+			@Senha_V_Historico_Pac_R Bit;
+		Begin Try
+			Set @CPF_V_Historico_Pac_R = (Select Count(CPF) From Paciente Where CPF = @CPF_V_Historico_Pac);
+			Set @Senha_V_Historico_Pac_R = (Select Count(CPF) From Paciente Where CPF = @CPF_V_Historico_Pac and Senha_Paciente = @Senha_V_Historico_Pac);
+			If (@CPF_V_Historico_Pac_R = 1 and @Senha_V_Historico_Pac_R = 1)
+				Begin
+					Select Registro_Medico From Historico_Medico Where CPF = @CPF_V_Historico_Pac;
+				End
+			Else
+				Begin
+					If (@CPF_V_Historico_Pac_R = 0) Select 'CPF Inválido' As 'Retorno_Ver_Histórico'
+					Else IF (@Senha_V_Historico_Pac_R = 0) Select 'Senha Inválida' As 'Retorno_Ver_Histórico'
+					Else Select 'Tem algo muito errado' As 'Retorno_Ver_Histórico';
+				End
+		End Try
+		Begin Catch
+			Select 'Informações Inválidas' As 'Retorno_Ver_Histórico'
+		End Catch
 Go
 
 --Procedure Criar Chat?
 
 Go
+
+--Procedure Altera_Paciente
+
+Go
+
+--Procedure para Invalidar receita (Funcionário)
+Create Procedure Invalidar_Receita (
+	@ID_Func_In_Rec Int,
+	@Senha_Func_In_Rec Varchar(32),
+	@Tipo_Func_In_Rec Smallint,
+	@ID_Receita_In_Rec Int,
+	@CPF_In_Rec Varchar(11)
+	) As 
+		Declare
+			@ID_Func_In_Rec_R Bit,
+			@Senha_Func_In_Rec_R Bit,
+			@Tipo_Func_In_Rec_R Bit,
+			@ID_Receita_In_Rec_R Bit;
+		Begin Try
+			Set @ID_Func_In_Rec_R = (Select Count(ID_Funcionario) From Funcionario Where @ID_Func_In_Rec = ID_Funcionario);
+			Set @Senha_Func_In_Rec_R = (Select Count(ID_Funcionario) From Funcionario Where @ID_Func_In_Rec = ID_Funcionario and @Senha_Func_In_Rec = Senha_Funcionario);
+			If (@Tipo_Func_In_Rec = 2) Set @Senha_Func_In_Rec_R = 1 Else Set @Senha_Func_In_Rec_R = 0;
+			Set @ID_Receita_In_Rec_R = (Select Count(ID_Receita) From Receita Where ID_Receita = @ID_Receita_In_Rec and CPF = @CPF_In_Rec);
+			If @ID_Func_In_Rec_R = 1 and @Senha_Func_In_Rec_R = 1 and @Tipo_Func_In_Rec_R = 1 and @ID_Receita_In_Rec_R = 1
+				Begin
+					Update Receita Set Valido = 0;
+					Select 'Invalidação bem sucedida' As 'Retorno_Invalidar_Receita';
+				End
+			Else
+				Begin
+					If (@ID_Func_In_Rec_R = 0) Select 'ID de Funcionário Inválido' As 'Retorno_Invalidar_Receita'
+					Else If (@Senha_Func_In_Rec_R = 0) Select 'Senha Inválida' As 'Retorno_Invalidar_Receita'
+					Else IF (@Tipo_Func_In_Rec_R = 0) Select 'Funcionário não tem permissão' As 'Retorno_Invalidar_Receita'
+					Else If (@ID_Receita_In_Rec_R = 0) Select 'Receita Inválida' As 'Retorno_Invalidar_Receita'
+					Else Select 'Tem algo muito errado' As 'Retorno_Invalidar_Receita';
+				End
+		End Try
+		Begin Catch
+			Select 'Informações Inválidas' As 'Retorno_Invalidar_Receita';
+		End Catch
+Go
+
 --Nota: a inserção no CPF NÃO está mais aceitando caracteres que não podem ser convertidos diretamente a INT
 --Senha deve ter 6 ou mais caracteres
-Exec Registra_Paciente '54856098802', 'Alanzoca', 'vitorpires3707@gmail.com', 'Alan', 'Talvez';
+Exec Registra_Paciente '54856098802', 'Alanzoca', 'algumEmail@gmail.com', 'Alan', 'Talvez';
 Go
 --O Login_Paciente retorna todas as informações do paciente (Alterar)
 Exec Login_Paciente '54856098802', 'Alanzoca';
