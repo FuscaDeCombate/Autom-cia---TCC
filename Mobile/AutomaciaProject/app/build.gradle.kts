@@ -46,6 +46,7 @@ dependencies {
     implementation(libs.lifecycle.livedata.ktx)
     implementation(libs.lifecycle.viewmodel.ktx)
     implementation(libs.coordinatorlayout)
+    implementation(libs.swiperefreshlayout)
     implementation(libs.circleimageview)
     implementation (libs.nafisbottomnav)
     implementation(libs.kotlin.stdlib.jdk7)

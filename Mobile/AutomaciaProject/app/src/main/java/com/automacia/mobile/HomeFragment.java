@@ -156,6 +156,8 @@ public class HomeFragment extends Fragment {
     private List<Prescription> createSamplePrescriptions() {
         List<Prescription> prescriptions = new ArrayList<>();
 
+        // TODO: pegar as receitas diretamente do banco
+
         prescriptions.add(new Prescription(
                 "1",
                 "Receita - Antibiótico",
@@ -171,7 +173,7 @@ public class HomeFragment extends Fragment {
                 "Dr. João Costa",
                 "28/03/2025",
                 "Enviada para Farmácia",
-                PrescriptionStatus.SENT
+                PrescriptionStatus.VALID
         ));
 
         prescriptions.add(new Prescription(
@@ -180,7 +182,7 @@ public class HomeFragment extends Fragment {
                 "Dr. Ana Lima",
                 "25/03/2025",
                 "Processada",
-                PrescriptionStatus.PROCESSED
+                PrescriptionStatus.CANCELLED
         ));
 
         prescriptions.add(new Prescription(

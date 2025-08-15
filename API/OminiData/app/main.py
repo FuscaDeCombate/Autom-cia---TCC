@@ -1,4 +1,5 @@
 from fastapi import FastAPI
+from app.middleware.logging_middleware import LoggingMiddleWare
 from app.routes.connection import router as connection_router
 
 app = FastAPI(
@@ -10,6 +11,8 @@ app = FastAPI(
 # Incluir rotas
 app.include_router(connection_router, prefix="/api/connection", tags=["connection"])
 
+# Incluir MiddleWare
+app.add_middleware(LoggingMiddleWare)
 
 @app.get("/")
 async def root():

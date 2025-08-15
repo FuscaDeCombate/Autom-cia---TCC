@@ -98,18 +98,6 @@ public class PrescriptionAdapter extends RecyclerView.Adapter<PrescriptionAdapte
                     backgroundColorRes = R.color.success;
                     break;
 
-                case SENT:
-                    iconRes = R.drawable.ic_send;
-                    colorRes = R.color.white;
-                    backgroundColorRes = R.color.primary;
-                    break;
-
-                case PROCESSED:
-                    iconRes = R.drawable.ic_check;
-                    colorRes = R.color.white;
-                    backgroundColorRes = R.color.primary;
-                    break;
-
                 case EXPIRED:
                     iconRes = R.drawable.ic_warning;
                     colorRes = R.color.white;

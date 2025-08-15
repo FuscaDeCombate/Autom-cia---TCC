@@ -54,10 +54,13 @@ class SqlServerService:
         temp_user = f"{settings.TEMP_USER_PREFIX}{app_id}_{secrets.token_hex(8)}"
         temp_password = self._generate_secure_password()
 
+        log(f"Iniciando criação de usuário temporário: {temp_user} para database: {database_name}", "INFO")
+
         try:
             cursor = self.master_connection.cursor()
 
             # Criar login
+            log(f"Criando login para usuário: {temp_user}", "DEBUG")
             create_login_sql = f"""
             IF NOT EXISTS (SELECT * FROM sys.server_principals WHERE name = '{temp_user}')
             BEGIN
@@ -67,6 +70,7 @@ class SqlServerService:
             cursor.execute(create_login_sql)
 
             # Criar usuário no database específico
+            log(f"Criando usuário no database: {database_name}", "DEBUG")
             cursor.execute(f"USE [{database_name}]")
             create_user_sql = f"""
             IF NOT EXISTS (SELECT * FROM sys.database_principals WHERE name = '{temp_user}')
@@ -121,6 +125,7 @@ class SqlServerService:
             }
 
         except Exception as e:
+            log(f"ERRO CRÍTICO ao criar usuário {temp_user}: {str(e)}", "ERROR")
             self.master_connection.rollback()
             raise Exception(f"Erro ao criar usuário temporário: {str(e)}")
 
@@ -138,6 +143,8 @@ class SqlServerService:
 
     def cleanup_expired_users(self):
         """Remove usuários temporários expirados"""
+        log("Iniciando limpeza de usuários temporários expirados", "INFO")
+
         try:
             cursor = self.master_connection.cursor()
 
@@ -148,6 +155,7 @@ class SqlServerService:
             """)
 
             temp_users = cursor.fetchall()
+            log(f"Encontrados {len(temp_users)} usuários temporários para verificação", "INFO")
 
             for user in temp_users:
                 username = user[0]
