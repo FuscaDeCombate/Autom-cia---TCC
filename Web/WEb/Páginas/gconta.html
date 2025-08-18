@@ -4,44 +4,47 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Gerenciar Contas</title>
-    <link rel="stylesheet" href="../CSS/headerfoot.css">
     <link rel="stylesheet" href="../CSS/gconta.css">
     <link rel="shortcut icon" href="../Imagem/file.png">
 </head>
 <body>
     <main>
-        <div id="divg">
-            <div id="topo">
-                <img src="../Imagem/file.png">
-                <h1>CADASTRO</h1>
-            </div>
-            <div id="caixas">
-                <div>
-                    <p class="explica">Nome</p> <br>
-                    <input name="email" type="text" class="txt">
+        <form action="../PHP/conta.php" method="post">
+            <div id="divg">
+                <div id="topo">
+                    <img src="../Imagem/file.png">
+                    <h1>CADASTRO</h1>
+                </div>
+                <div id="caixas">
+                    <div>
+                        <p class="explica">Nome</p> <br>
+                        <input name="email" type="text" class="txt">
+            
+                        <p class="explica">Email</p> <br>
+                        <input name="senha" type="email" class="txt" disabled="true"> 
         
-                    <p class="explica">Email</p> <br>
-                    <input name="senha" type="email" class="txt" disabled="true"> 
-    
-                    <p class="explica">CPF</p>
-                    <input name="senha" type="password" class="txt" disabled="true"> 
+                        <p class="explica">CPF</p>
+                        <input name="senha" type="password" class="txt" disabled="true"> 
+                    </div>
+                    <div>
+                        <p class="explica">Fone</p>
+                        <input name="senha" type="tel" class="txt"> 
+        
+                        <p class="explica">Senha</p>
+                        <input name="senha" type="password" class="txt"> <br>
+        
+                        <p class="explica">Confirmar senha</p>
+                        <input name="senha" type="password" class="txt"> <br>
+                    </div>
                 </div>
-                <div>
-                    <p class="explica">Fone</p>
-                    <input name="senha" type="tel" class="txt"> 
     
-                    <p class="explica">Senha</p>
-                    <input name="senha" type="password" class="txt"> <br>
-    
-                    <p class="explica">Confirmar senha</p>
-                    <input name="senha" type="password" class="txt"> <br>
+                <div id="botoes">
+                    <input type="submit" value="ATUALIZAR" class="botao">
+                    <input type="submit" value="APAGAR CONTA" class="botao">
+                    <input type="submit" value="SAIR" class="botao">
                 </div>
             </div>
-
-            <div id="botoes">
-                <input type="button" value="ATUALIZAR" class="botao">
-            </div>
-        </div>
+        </form>
     </main>
 </body>
 </html>

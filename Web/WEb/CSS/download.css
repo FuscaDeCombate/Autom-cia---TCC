@@ -2,6 +2,102 @@
     margin: 0 auto;
 }
 
+@media only screen and (max-width: 600px) {
+    body main {
+        flex-direction: column;
+        height: 70vh;
+        width: 80%;
+    }
+
+    header {
+        width: 20vw;
+    }
+
+    header {
+        visibility: hidden;
+    }
+
+    main .abag {
+        margin-top: 20%;
+        flex-direction: column;
+        margin-bottom: 10%;
+        width: 80%;
+        height: 500px; 
+    }
+
+    main .abag a {
+        flex-direction: column;
+
+    }
+
+    main .abag a div {
+        display: block; 
+        margin-top: 20px;
+        align-items: center;
+    }
+
+    main .abag h1 {
+        color: white;
+        font-size: 20px;
+    }
+
+    main .abag h2 {
+        color: white;
+        font-size: 20px;
+        margin-top: 2%;
+    }
+
+    main .abag p {
+        color: white;
+        font-size: 20px;
+    }
+
+    main .abag a img {
+        height: 50px;
+        border-radius: 1.5vw;
+    }
+
+    footer div p {
+        font-size: 10px;
+    }
+
+    footer div a {
+        font-size: 10px;
+    }
+
+    header .headerdiv #bubulgue {
+        display: block;
+    }
+
+    main .abag button {
+        margin-bottom: 2%;
+        display: flex;
+        width: 70%;
+    }
+
+    footer {
+        width: 80%;
+    }
+
+    footer div p, a {
+        font-size: 15px;
+    }
+
+    footer div a {
+        font-size: 15px;
+        margin: 2%;
+    }
+
+    footer div {  
+        margin: 2%;
+    }
+
+    #baixar {
+        visibility: visible;
+        height: 0vw;
+    }
+}   
+
 body {
     background-image: linear-gradient(#004c9e, #000000);
     background-repeat: no-repeat;
@@ -148,3 +244,6 @@ h2 {
     font-family: sans-serif; 
 }
 
+#bubulgue {
+    display: none;
+}

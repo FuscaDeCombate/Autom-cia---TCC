@@ -9,26 +9,28 @@
 </head>
 <body>
     <main>
-        <div id="divg">
-            <div id="topo">
-                <img src="../Imagem/file.png">
-                <p>BEM VINDO DE VOLTA</p>
-            </div>
-            <div id="caixas">
-                <p class="explica">Email/CPF</p>
-                <input name="email" type="email" class="txt">
+        <form action="../PHP/login.php" method="post">
+            <div id="divg">
+                <div id="topo">
+                    <img src="../Imagem/file.png">
+                    <p>BEM VINDO DE VOLTA</p>
+                </div>
+                <div id="caixas">
+                    <p class="explica">CPF</p>
+                    <input name="cpf" type="text" class="txt">
+        
+                    <p class="explica">Senha</p>
+                    <input name="senha" type="password" class="txt" maxlength="6"> <br>
+                    
+                    <a href="cadastro.html">Ainda não possui conta?</a> <br>
+                    <a href="recsenha.html">Esqueci a senha</a>
+                </div>
     
-                <p class="explica">Senha</p>
-                <input name="senha" type="password" class="txt"> <br>
-                <a href="cadastro.html">Ainda não possui conta?</a> <br>
-                <a href="recsenha.html">Esqueci a senha</a>
+                <div id="botoes">
+                    <input type="submit" value="ENTRAR" class="botao" name="botaolog">
+                </div>
             </div>
-
-            <div id="botoes">
-                <input type="button" value="ENTRAR" class="botao">
-                <input type="button" value="GOOGLE" class="botao"> 
-            </div>
-        </div>
+        </form>
     </main>
 </body>
 </html>

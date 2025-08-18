@@ -9,36 +9,37 @@
 </head>
 <body>
     <main>
-        <div id="divg">
-            <div id="topo">
-                <img src="../Imagem/file.png">
-                <p>CADASTRO</p>
-            </div>
+        <form method="post" action="../PHP/cadastro.php">
+            <div id="divg">
+                <div id="topo">
+                    <img src="../Imagem/file.png">
+                    <p>CADASTRO</p>
+                </div>
             <div id="caixas">
-                <p class="explica">Nome</p>
-                <input name="email" type="email" class="txt">
-    
-                <p class="explica">Email</p>
-                <input name="senha" type="password" class="txt"> <br>
-
                 <p class="explica">CPF</p>
-                <input name="senha" type="password" class="txt"> <br>
+                <input name="cpf" type="text" class="txt">
+    
+                <p class="explica">Senha</s></p>
+                <input name="senha" type="password" class="txt" maxlength="6"> <br>
 
-                <p class="explica">Fone</p>
-                <input name="senha" type="password" class="txt"> <br>
+                <p class="explica">Email</p>
+                <input name="mail" type="text" class="txt"> <br>
 
-                <p class="explica">Senha</p>
-                <input name="senha" type="password" class="txt"> <br>
+                <p class="explica">Nome</p>
+                <input name="nome" type="text" class="txt">  <br>
+
+                <p class="explica">Nome Social</p>
+                <input name="social" type="text" class="txt"> <br>
 
                 <p class="explica">Confirmar senha</p>
-                <input name="senha" type="password" class="txt"> <br>
+                <input name="consenha" type="password" class="txt" maxlength="6"> <br>
                 <a href="login.html">Já possui conta?</a> <br>
             </div>
-
             <div id="botoes">
-                <input type="button" value="CADASTRAR" class="botao">
+                <input type="submit" value="CADASTRAR" class="botao">
             </div>
         </div>
+    </form>
     </main>
 </body>
 </html>

@@ -30,15 +30,18 @@ main {
     align-items: center;
 }
 
+
 #divg {
-    background-color: #012852;
     display: flex;
     border-radius: 1.5vw;
     background-color: #f0f0f013;
     text-align: center;
     flex-direction: column;
-    width: 60%;
     height: auto;
+}
+
+form {
+    width: 40%;
 }
 
 main div div {
@@ -87,7 +90,7 @@ main div a {
 
 #botoes {
     display: flex;
-    flex-direction: column;
+    flex-direction: row;
     justify-content: center;
 }
 
@@ -106,7 +109,7 @@ main div a {
 
 .botao {
     border-radius: 2.5vw;
-    font-size: 1.5vw;
+    font-size: 1.15vw;
     width: 30%;
     justify-content: center;
     color: white;

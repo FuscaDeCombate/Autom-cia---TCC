@@ -26,7 +26,7 @@
     }
 
     header .headerdiv #bubulgue {
-        visibility: visible;
+        display: block;
     }
 
     footer {
@@ -131,4 +131,8 @@ footer img {
 
 #headerimg:hover {
     transform: scale(1.08);
+}
+
+#bubulgue {
+    display: none;
 }

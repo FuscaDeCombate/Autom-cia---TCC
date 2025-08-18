@@ -14,13 +14,18 @@ main {
     align-items: center;
 }
 
+
+form {
+    width: 40%;
+}
+
 #divg {
     display: flex;
     border: solid;
     background-color: #f0f0f013;
     text-align: center;
     flex-direction: column;
-    width: 40%;
+    width: 100%;
     height: auto;
 
 }
@@ -39,12 +44,14 @@ main div img {
 main div p {
     color: white;
     font-family: sans-serif; 
+    font-size: 1.25vw;
+    
 }
 
 main div a {
     color: white;
     font-family: sans-serif; 
-    font-size: 0.6vw;
+    font-size: 0.8vw;
     text-decoration: none;
     margin-right: 18vw;
 
@@ -62,7 +69,7 @@ main div a {
 }
 
 .txt {
-    border-radius: 1.15vw;
+    border-radius: 1.20vw;
     background-color: grey;
     border: solid 2px;
     border-color: black;
@@ -71,12 +78,12 @@ main div a {
     font-family: sans-serif; 
     height: 2.5vw;
     margin-bottom: 2%;
-    font-size: 1.5vw;
+    font-size: 1.15vw;
 }                                               
 
 .botao {
     border-radius: 2.5vw;
-    font-size: 1.5vw;
+    font-size: 1.15vw;
     width: 30%;
     justify-content: center;
     color: white;
