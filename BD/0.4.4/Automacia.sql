@@ -81,11 +81,11 @@ Create Table Historico_Medico (
 
 --Mensagem
 Create Table Mensagem (
-	ID_Chat INT Identity Not null,
+	ID_Chat INT Identity,
 	CPF Varchar(11),
 	ID_Funcionario INT,
 	Mensagem Varchar(255),
-	Hora_Envio Date,
+	Hora_Envio DateTime,
 	Primary Key (ID_Chat),
 	Foreign Key (CPF) References Paciente(CPF),
 	Foreign Key (ID_Funcionario) References Funcionario(ID_Funcionario)
@@ -414,7 +414,6 @@ Create Procedure Registra_Funcionario(
 		Begin Catch
 			Select 'Informações Inválidas' As 'Registra_Funcionario_Retorno';
 		End Catch
-		
 Go
 
 --Procedure para login funcionario
@@ -531,7 +530,7 @@ Create Procedure Altera_Receita (
 				Begin
 					IF (@ID_Funcionario_Alt_R = 1) and (@Senha_Funcionario_Alt_R = 1) and (@CPF_Alt_R = 1) and (@ID_Receita_Alt_R != 0) and (@Tipo_Funcionario_Alt = 1)
 						Begin
-							Update Receita Set Baixas = (Baixas + 1);
+							Update Receita Set Baixas = (Baixas + 1) Where @ID_Receita = ID_Receita;
 							Select 'Baixa dada com sucesso' As 'Retorno_Altera_Receita';
 						End
 					Else If (@ID_Funcionario_Alt_R = 0) Select 'Funcionário Inválido' As 'Retorno_Altera_Receita'
@@ -539,7 +538,7 @@ Create Procedure Altera_Receita (
 					Else If (@CPF_Alt_R = 0) Select 'CPF Inválido' As 'Retorno_Altera_Receita'
 					Else If (@ID_Receita_Alt_R = 0) Select 'Receita Inválida' As 'Retorno_Altera_Receita'
 					Else If (@Tipo_Funcionario_Alt != 1) Select 'Funcionário não tem permissão' As 'Retorno_Altera_Receita'
-					Else Select 'Tem algo muito errado' As 'Retorno_Altera_Receita'
+					Else Select 'Tem algo muito errado' As 'Retorno_Altera_Receita';
 				End
 		End Try
 		Begin Catch
@@ -607,16 +606,16 @@ Create Procedure Ver_Historico_Paciente (
 Go
 
 --Procedure para enviar mensagem (Paciente)
-Create Procedure Envia_Mensagem (
+Create Procedure Envia_Mensagem_P (
 	@ID_Chat INT,
 	@ID_Receptor INT,
 	@ID_Mensageiro Varchar(11),
 	@Mensagem Varchar(255)
 	) As
 		Declare 
-			@ID_Receptor_R INT,
-			@ID_Mensageiro_R INT,
-			@Hora Date;
+			@ID_Receptor_R Bit,
+			@ID_Mensageiro_R Bit,
+			@Hora DateTime;
 		Begin Try
 			Set @Hora = FORMAT(GETDATE() , 'dd/MM/yyyy HH:mm:ss');
 			Set @ID_Mensageiro_R = (Select Count(CPF) From Paciente Where @ID_Mensageiro = CPF);
@@ -627,20 +626,162 @@ Create Procedure Envia_Mensagem (
 					IF (Select Count(ID_Chat) From Mensagem Where ID_Chat = @ID_Chat) = 0 Insert Into Mensagem (CPF, ID_Funcionario, Mensagem, Hora_Envio) Values (@ID_Mensageiro, @ID_Receptor, @Mensagem, @Hora);
 					Else Insert Into Mensagem (ID_Chat, ID_Funcionario, CPF, Mensagem, Hora_Envio) Values (@ID_Chat, @ID_Receptor, @ID_Mensageiro, @Mensagem, @Hora);
 				End
-			Else If (@ID_Mensageiro_R = 0) Select 'CPF Inválido' As 'Mensagem_Retorno'
-			Else IF (@ID_Receptor_R = 0) Select 'ID de Funcionário Inválido' As 'Mensagem_Retorno'
-			Else Select 'Tem algo muito errado' As 'Mensagem_Retorno';
+			Else If (@ID_Mensageiro_R = 0) Select 'CPF Inválido' As 'Mensagem_Retorno_P'
+			Else IF (@ID_Receptor_R = 0) Select 'ID de Funcionário Inválido' As 'Mensagem_Retorno_P'
+			Else Select 'Tem algo muito errado' As 'Mensagem_Retorno_P';
 		End Try
 		Begin Catch
-			Select 'Informações inválidas' As 'Mensagem_Retorno';
+			Select 'Informações inválidas' As 'Mensagem_Retorno_P';
 		End Catch
 		
 Go
 
---Procedure Altera Paciente
-
-
+--Procedure para enviar mensagem (Funcionario) erro por causa do Identity
+Create Procedure Envia_Mensagem_F (
+	@ID_Chat INT,
+	@ID_Receptor Varchar(11),
+	@ID_Mensageiro INT,
+	@Mensagem Varchar(255)
+	) As
+		Declare 
+			@ID_Receptor_R Bit,
+			@ID_Mensageiro_R Bit,
+			@Hora DateTime;
+		Begin Try
+			Set @Hora = FORMAT(GETDATE() , 'dd/MM/yyyy HH:mm:ss');
+			Set @ID_Mensageiro_R = (Select Count(ID_Funcionario) From Funcionario Where @ID_Mensageiro = ID_Funcionario);
+			Set @ID_Receptor_R = (Select Count(CPF) From Paciente Where CPF = @ID_Receptor);
+			IF (@ID_Mensageiro_R = 1) and (@ID_Receptor_R) = 1
+			Begin
+				IF (Select Count(ID_Chat) From Mensagem Where ID_Chat = @ID_Chat) = 0 Insert Into Mensagem (ID_Chat ,CPF, ID_Funcionario, Mensagem, Hora_Envio) Values (@ID_Receptor, @ID_Mensageiro, @Mensagem, @Hora);
+				Else Insert Into Mensagem (ID_Chat, CPF, ID_Funcionario, Mensagem, Hora_Envio) Values (@ID_Chat, @ID_Receptor, @ID_Mensageiro, @Mensagem, @Hora);	
+			End
+			Else IF (@ID_Mensageiro_R = 0) Select 'Funcionário Inválido' As 'Mensagem_Retorno_F';
+			Else IF (@ID_Receptor_R = 0) Select 'CPF Inválido' As 'Mensagem_Retorno_F';
+			Else Select 'Tem algo muito errado' As 'Mensagem_Retorno_F';
+		End Try
+		Begin Catch
+			Select 'Informações inválidas' As 'Mensagem_Retorno_F';
+		End Catch
 Go
+
+--Procedure Altera Paciente (Menos Senha)
+Create Procedure Alt_Paciente(
+		@CPF_Alt_P Varchar(11),
+		@Senha_Alt_P Varchar(32),
+		@Email_Alt_P Varchar(45),
+		@Nome_Alt_P Varchar(50),
+		@Nome_Social_Alt_P Varchar (50)
+	) As 
+		Declare 
+			@RetornoEmail Bit,
+			@Veri1 Bit,
+			@Veri2 Bit,
+			@Veri3 Bit,
+			@Veri4 Bit,
+			@Veri5 Bit,
+			@Veri6 Bit,
+			@EmailT Varchar(45),
+
+			@CPF_Alt_P_R Bit,
+			@Senha_Alt_P_R Bit;
+
+		Begin Try
+			Set @Veri1 = 0;
+			Set @Veri2 = 0;
+			Set @Veri3 = 0;
+			Set @Veri4 = 0;
+			Set @Veri5 = 0;
+			Set @Veri6 = 0;
+
+			Set @RetornoEmail = 1;
+			Set @EmailT = REPLACE(@Email_Alt_P, ' ', '');
+
+			While (@Veri1 = 0 or @Veri2 = 0 or @Veri3 = 0 or @Veri4 = 0 or @Veri5 = 0 or @Veri6 = 0)
+				Begin
+					IF CHARINDEX('@', @EmailT) = 0
+						Begin
+							Set @RetornoEmail = 0;
+							Set @Veri1 = 1;
+						End
+					Else
+						Begin
+							Set @Veri1 = 1;
+						End
+
+					IF CHARINDEX('.', SUBSTRING(@EmailT, CHARINDEX('@', @EmailT) + 1, LEN(@EmailT))) = 0
+						Begin
+							Set @RetornoEmail = 0;
+							Set @Veri2 = 1;
+						End
+					Else
+						Begin
+							Set @Veri2 = 1;
+						End
+
+					IF LEN(@EmailT) < 6 OR LEN(@EmailT) > 255
+						Begin
+							Set @RetornoEmail = 0;
+							Set @Veri3 = 1;
+						End	
+					Else
+						Begin
+							Set @Veri3 = 1;
+						End
+
+					IF LEFT(@EmailT, 1) IN ('@', '.', '-') OR RIGHT(@EmailT, 1) IN ('@', '.', '-')
+						Begin
+							Set @RetornoEmail = 0;
+							Set @Veri4 = 1;
+						End
+					Else
+						Begin
+							Set @Veri4 = 1;
+						End
+
+					IF PATINDEX('%[^a-zA-Z0-9@._-]% ', @EmailT) <> 0
+						Begin
+							Set @RetornoEmail = 0;
+							Set @Veri5 = 1;
+						End
+					Else
+						Begin
+							Set @Veri5 = 1;
+						End
+
+					IF @EmailT LIKE '%..%' OR @EmailT LIKE '%@@%'
+						Begin
+							Set @RetornoEmail = 0;
+							Set @Veri6 = 1
+						End
+					Else
+						Begin
+							Set @Veri6 = 1;
+						End
+				End
+
+			Set @CPF_Alt_P_R = (Select Count(CPF) From Paciente Where CPF = @CPF_Alt_P);
+			Set @Senha_Alt_P_R = (Select Count(CPF) From Paciente Where CPF = @CPF_Alt_P and Senha_Paciente = @Senha_Alt_P);
+
+			IF @CPF_Alt_P_R = 1 and @Senha_Alt_P_R = 1 and @RetornoEmail = 1
+				Begin 
+					Update Paciente Set Email = @EmailT Where CPF = @CPF_Alt_P;
+					Update Paciente Set Nome_Paciente = @Nome_Alt_P Where CPF = @CPF_Alt_P;
+					Update Paciente Set Nome_Social = @Nome_Social_Alt_P Where CPF = @CPF_Alt_P;
+					Select 'Alterações Concluidas' As 'Retorono_Altera_Paciente';
+				End
+			Else If (@CPF_Alt_P_R = 0) Select 'CPF Inválido' As 'Retorono_Altera_Paciente'
+			Else IF (@Senha_Alt_P_R = 0) Select 'Senha Inválida' As 'Retorono_Altera_Paciente'
+			Else IF (@RetornoEmail = 0) Select 'Email Inválido' As 'Retorono_Altera_Paciente'
+			Else Select 'Tem algo muito errado' As 'Retorono_Altera_Paciente'
+		End Try
+		Begin Catch
+			Select 'Informações Inválidas' As 'Retorono_Altera_Paciente';
+		End Catch
+
+		
+Go
+
 
 --Nota: a inserção no CPF NÃO está mais aceitando caracteres que não podem ser convertidos diretamente a INT
 --Senha deve ter 6 ou mais caracteres
@@ -660,4 +801,10 @@ Exec Ver_Receita '54856098802';
 Go
 Exec Altera_Receita '1', 'senha123',  '54856098802', 1;
 Go
-Exec Envia_Mensagem null, 1, '54856098802', 'Mensagem Teste';
+Exec Envia_Mensagem_P null, 1, '54856098802', 'Mensagem Teste1';
+Go
+Exec Envia_Mensagem_F 2, '54856098802', 1, 'Mensagem Teste2';
+Go
+Exec Alt_Paciente '54856098802', 'Alanzoca', 'algumEmail@gmail.com', 'Alan2', 'Talvez2';
+
+Select * From Mensagem;
