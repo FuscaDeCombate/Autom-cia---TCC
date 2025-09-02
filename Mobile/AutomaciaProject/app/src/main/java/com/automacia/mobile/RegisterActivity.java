@@ -4,7 +4,6 @@ import android.content.Intent;
 import android.os.Bundle;
 import android.text.Editable;
 import android.text.TextWatcher;
-import android.util.Patterns;
 import android.view.View;
 import android.widget.Toast;
 
@@ -14,6 +13,10 @@ import androidx.core.graphics.Insets;
 import androidx.core.view.ViewCompat;
 import androidx.core.view.WindowInsetsCompat;
 
+import com.automacia.mobile.models.UsuarioDTO;
+import com.automacia.mobile.utils.Utils;
+import com.automacia.mobile.watchers.CpfMaskWatcher;
+import com.automacia.mobile.watchers.TelefoneMaskWatcher;
 import com.google.android.material.button.MaterialButton;
 import com.google.android.material.textfield.TextInputEditText;
 import com.google.android.material.textfield.TextInputLayout;

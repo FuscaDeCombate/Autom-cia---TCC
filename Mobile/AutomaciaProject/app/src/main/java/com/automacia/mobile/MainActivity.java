@@ -12,6 +12,11 @@ import androidx.fragment.app.FragmentManager;
 import androidx.fragment.app.FragmentTransaction;
 
 import com.automacia.mobile.databinding.ActivityMainBinding;
+import com.automacia.mobile.fragments.ChatFragment;
+import com.automacia.mobile.fragments.HomeFragment;
+import com.automacia.mobile.fragments.NotificationFragment;
+import com.automacia.mobile.fragments.PreferencesFragment;
+import com.automacia.mobile.fragments.UserFragment;
 import com.nafis.bottomnavigation.NafisBottomNavigation;
 
 import kotlin.Unit;
@@ -62,11 +67,12 @@ public class MainActivity extends AppCompatActivity {
 
     private void setupNafisBottomNavigation() {
         // Adiciona os itens do menu à navegação
-        binding.bottomNavigation.add(new NafisBottomNavigation.Model(ID_HOME, R.drawable.ic_home));
-        binding.bottomNavigation.add(new NafisBottomNavigation.Model(ID_CHAT, R.drawable.ic_chat));
         binding.bottomNavigation.add(new NafisBottomNavigation.Model(ID_NOTIF, R.drawable.ic_notifications));
-        binding.bottomNavigation.add(new NafisBottomNavigation.Model(ID_PREF, R.drawable.ic_settings));
+        binding.bottomNavigation.add(new NafisBottomNavigation.Model(ID_CHAT, R.drawable.ic_chat));
+        binding.bottomNavigation.add(new NafisBottomNavigation.Model(ID_HOME, R.drawable.ic_home));
         binding.bottomNavigation.add(new NafisBottomNavigation.Model(ID_USER, R.drawable.ic_person));
+        binding.bottomNavigation.add(new NafisBottomNavigation.Model(ID_PREF, R.drawable.ic_settings));
+
 
         // Listener para quando um item é clicado
         binding.bottomNavigation.setOnClickMenuListener(new Function1<NafisBottomNavigation.Model, Unit>() {
@@ -179,7 +185,7 @@ public class MainActivity extends AppCompatActivity {
         binding.bottomNavigation.show(itemId, true);
     }
 
-    // Método para adicionar badge de notificação
+    // Método para adicionar badge de notificaçnão
     public void setNotificationBadge(String count) {
         binding.bottomNavigation.setCount(ID_NOTIF, count);
     }

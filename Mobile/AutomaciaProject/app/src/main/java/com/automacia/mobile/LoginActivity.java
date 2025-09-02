@@ -5,7 +5,6 @@ import android.content.SharedPreferences;
 import android.os.Bundle;
 import android.text.Editable;
 import android.text.TextWatcher;
-import android.util.Patterns;
 import android.view.View;
 import android.widget.TextView;
 import android.widget.Toast;
@@ -16,6 +15,8 @@ import androidx.core.graphics.Insets;
 import androidx.core.view.ViewCompat;
 import androidx.core.view.WindowInsetsCompat;
 
+import com.automacia.mobile.utils.Utils;
+import com.automacia.mobile.watchers.CpfMaskWatcher;
 import com.google.android.material.button.MaterialButton;
 import com.google.android.material.checkbox.MaterialCheckBox;
 import com.google.android.material.textfield.TextInputEditText;
@@ -43,6 +44,8 @@ public class LoginActivity extends AppCompatActivity {
     // Flags de validação
     private boolean isCpfValid = false;
     private boolean isSenhaValid = false;
+
+    private static final int FORGOT_PASSWORD_REQUEST = 1001;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -313,23 +316,40 @@ public class LoginActivity extends AppCompatActivity {
      * Manipula esqueci senha
      */
     private void handleForgotPassword() {
-        String cpfFormatado = editCpf.getText().toString();
-        String cpfNumeros = Utils.extrairNumeros(cpfFormatado);
+        Intent intent = new Intent(getBaseContext(), ForgotPasswordActivity.class);
 
-        if (Utils.isCampoVazio(cpfFormatado)) {
-            showToast("Digite seu CPF para recuperar a senha");
-            editCpf.requestFocus();
-            return;
+        // Passa o CPF preenchido se houver (para facilitar o processo)
+        String cpfAtual = editCpf.getText().toString().trim();
+        if (!Utils.isCampoVazio(cpfAtual)) {
+            String cpfNumeros = Utils.extrairNumeros(cpfAtual);
+            intent.putExtra("cpf_prefil", cpfNumeros);
         }
 
-        String erroCpf = Utils.validarCpf(cpfFormatado);
-        if (erroCpf != null) {
-            showToast("Digite um CPF válido para recuperar a senha");
-            return;
-        }
+        startActivity(intent);
+        // Adiciona animação e transição suave
+        overridePendingTransition(R.anim.slide_in_right, R.anim.slide_out_left);
+    }
 
-        // TODO: Implementar recuperação de senha
-        showToast("Instruções enviadas para o email cadastrado");
+    /**
+     * Trata o resultado da tela de recuperação de senha
+     */
+    @Override
+    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+        super.onActivityResult(requestCode, resultCode, data);
+
+        if (requestCode == FORGOT_PASSWORD_REQUEST && resultCode == RESULT_OK) {
+            // Senha foi redefinida com sucesso
+            showToast("Senha redefinida com sucesso! Faça login com sua nova senha.");
+
+            // Limpar o campo senha para que o usuário digite a nova
+            editSenha.setText("");
+            layoutSenha.setError(null);
+            isSenhaValid = false;
+            updateLoginButtonState();
+
+            // Focar no campo senha
+            editSenha.requestFocus();
+        }
     }
 
     /**

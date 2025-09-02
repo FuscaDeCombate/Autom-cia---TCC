@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+    <!-- Cores principais -->
     <color name="black">#000000</color>
     <color name="white">#FFFFFF</color>
     <color name="primary">#001A6E</color>
@@ -18,4 +19,20 @@
     <color name="red_light">#FFEBEA</color>
     <color name="red_dark">#CC1D10</color>
     <color name="dialog_background">#2E46EB</color>
+
+    <!-- Cores de estado adicionais -->
+    <color name="green">#4CAF50</color>
+    <color name="green_light">#E8F5E8</color>
+    <color name="blue">#2196F3</color>
+    <color name="blue_light">#E3F2FD</color>
+    <color name="orange">#FF9800</color>
+    <color name="orange_light">#FFF3E0</color>
+
+    <!-- Cores de fundo -->
+    <color name="background">#F5F5F5</color>
+    <color name="surface">#FFFFFF</color>
+
+    <!-- Cores de acento -->
+    <color name="accent">#FF4081</color>
+    <color name="accent_light">#FCE4EC</color>
 </resources>

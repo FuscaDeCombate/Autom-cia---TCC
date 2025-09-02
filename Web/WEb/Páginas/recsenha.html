@@ -3,30 +3,736 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Rec. Senha</title>
-    <link rel="stylesheet" href="../CSS/login.css">
+    <title>Recuperar Senha - Sistema</title>
+    <link rel="stylesheet" href="../CSS/recsenha.css">
     <link rel="shortcut icon" href="../Imagem/file.png">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
 </head>
 <body>
+    <div class="background-overlay"></div>
+    
     <main>
-        <form action="../PHP/recsenha.php" method="post">
-            <div id="divg">
-                <div id="topo">
-                    <img src="../Imagem/file.png">
-                    <p>CADASTRO</p>
+        <div class="recovery-container">
+            <!-- Progress indicator -->
+            <div class="progress-container">
+                <div class="progress-bar">
+                    <div class="progress-fill" id="progressFill"></div>
                 </div>
-                <div id="caixas">
-                    <p class="explica">Insira o email</p>
-                    <input name="email" type="email" class="txt"> <br>
-    
-                    <a href="login.html">Retornar ao login</a>
-                </div>
-    
-                <div id="botoes">
-                    <input type="submit" value="ENVIAR" class="botao">
+                <div class="progress-steps">
+                    <div class="step active" data-step="1">
+                        <div class="step-number">1</div>
+                        <span>Email</span>
+                    </div>
+                    <div class="step" data-step="2">
+                        <div class="step-number">2</div>
+                        <span>Código</span>
+                    </div>
+                    <div class="step" data-step="3">
+                        <div class="step-number">3</div>
+                        <span>Nova Senha</span>
+                    </div>
                 </div>
             </div>
-        </form>
+
+            <!-- Step 1: Email -->
+            <div class="step-content active" id="step1">
+                <!-- 
+                BACKEND INTEGRATION: 
+                - Altere o action para apontar para seu script PHP (ex: "enviar_codigo.php")
+                - Remova o event.preventDefault() do JavaScript se usar form submission tradicional
+                - Ou mantenha AJAX para uma experiência mais fluida
+                -->
+                <form id="emailForm" method="POST" action="">
+                    <div class="header">
+                        <div class="logo-container">
+                            <img src="../Imagem/file.png" alt="Logo">
+                        </div>
+                        <h1>RECUPERAR SENHA</h1>
+                        <p class="subtitle">Digite seu email para receber o código de verificação</p>
+                    </div>
+
+                    <div class="form-content">
+                        <div class="info-box">
+                            <i class="fas fa-info-circle"></i>
+                            <p>Enviaremos um código de 6 dígitos para o email cadastrado em sua conta.</p>
+                        </div>
+
+                        <div class="input-group">
+                            <label for="email">Email</label>
+                            <div class="input-container">
+                                <i class="fas fa-envelope input-icon"></i>
+                                <input 
+                                    type="email" 
+                                    id="email"
+                                    name="email" 
+                                    class="form-input"
+                                    placeholder="seu@email.com"
+                                    required
+                                >
+                                <div class="validation-icon">
+                                    <i class="fas fa-check success-icon"></i>
+                                    <i class="fas fa-times error-icon"></i>
+                                </div>
+                            </div>
+                            <div class="input-feedback"></div>
+                        </div>
+
+                        <button type="submit" class="primary-btn">
+                            <span class="btn-text">ENVIAR CÓDIGO</span>
+                            <i class="fas fa-paper-plane btn-icon"></i>
+                        </button>
+
+                        <div class="back-to-login">
+                            <a href="login.html" class="back-link">
+                                <i class="fas fa-arrow-left"></i>
+                                Voltar ao login
+                            </a>
+                        </div>
+                    </div>
+                </form>
+            </div>
+
+            <!-- Step 2: Verification Code -->
+            <div class="step-content" id="step2">
+                <!-- 
+                BACKEND INTEGRATION:
+                - Adicione action para script de verificação (ex: "verificar_codigo.php")
+                - O código será enviado como string concatenada dos 6 inputs
+                -->
+                <form id="codeForm" method="POST" action="">
+                    <!-- Campo oculto para enviar o email junto com o código -->
+                    <input type="hidden" id="hiddenEmail" name="email" value="">
+                    <input type="hidden" id="verificationCode" name="code" value="">
+                    
+                    <div class="header">
+                        <div class="logo-container">
+                            <img src="../Imagem/file.png" alt="Logo">
+                        </div>
+                        <h1>VERIFICAR CÓDIGO</h1>
+                        <p class="subtitle">Digite o código de 6 dígitos enviado para <span id="emailDisplay"></span></p>
+                    </div>
+
+                    <div class="form-content">
+                        <div class="code-input-container">
+                            <div class="code-inputs">
+                                <input type="text" class="code-input" maxlength="1" data-index="0">
+                                <input type="text" class="code-input" maxlength="1" data-index="1">
+                                <input type="text" class="code-input" maxlength="1" data-index="2">
+                                <input type="text" class="code-input" maxlength="1" data-index="3">
+                                <input type="text" class="code-input" maxlength="1" data-index="4">
+                                <input type="text" class="code-input" maxlength="1" data-index="5">
+                            </div>
+                        </div>
+
+                        <div class="resend-container">
+                            <p>Não recebeu o código? 
+                                <button type="button" class="resend-btn" id="resendBtn" disabled>
+                                    Reenviar em <span id="countdown">60</span>s
+                                </button>
+                            </p>
+                        </div>
+
+                        <button type="submit" class="primary-btn" id="verifyBtn" disabled>
+                            <span class="btn-text">VERIFICAR CÓDIGO</span>
+                            <i class="fas fa-check btn-icon"></i>
+                        </button>
+
+                        <div class="back-to-login">
+                            <button type="button" class="back-link" onclick="goToStep(1)">
+                                <i class="fas fa-arrow-left"></i>
+                                Voltar
+                            </button>
+                        </div>
+                    </div>
+                </form>
+            </div>
+
+            <!-- Step 3: New Password -->
+            <div class="step-content" id="step3">
+                <!-- 
+                BACKEND INTEGRATION:
+                - Adicione action para script de alteração de senha (ex: "alterar_senha.php")
+                - Inclua campos ocultos para email e código verificado
+                -->
+                <form id="passwordForm" method="POST" action="">
+                    <input type="hidden" id="hiddenEmailStep3" name="email" value="">
+                    <input type="hidden" id="hiddenCodeStep3" name="verified_code" value="">
+                    
+                    <div class="header">
+                        <div class="logo-container">
+                            <img src="../Imagem/file.png" alt="Logo">
+                        </div>
+                        <h1>NOVA SENHA</h1>
+                        <p class="subtitle">Digite sua nova senha</p>
+                    </div>
+
+                    <div class="form-content">
+                        <div class="input-group">
+                            <label for="newPassword">Nova Senha</label>
+                            <div class="input-container">
+                                <i class="fas fa-lock input-icon"></i>
+                                <!-- ALTERADO: maxlength aumentado para 32 -->
+                                <input 
+                                    type="password" 
+                                    id="newPassword"
+                                    name="newPassword" 
+                                    class="form-input"
+                                    placeholder="Digite a nova senha"
+                                    maxlength="32"
+                                    required
+                                >
+                                <button type="button" class="toggle-password" onclick="togglePasswordVisibility('newPassword')">
+                                    <i class="fas fa-eye"></i>
+                                </button>
+                            </div>
+                            <div class="password-strength">
+                                <div class="strength-bar">
+                                    <div class="strength-fill"></div>
+                                </div>
+                                <span class="strength-text">Digite uma senha</span>
+                            </div>
+                        </div>
+
+                        <div class="input-group">
+                            <label for="confirmPassword">Confirmar Senha</label>
+                            <div class="input-container">
+                                <i class="fas fa-lock input-icon"></i>
+                                <!-- ALTERADO: maxlength aumentado para 32 -->
+                                <input 
+                                    type="password" 
+                                    id="confirmPassword"
+                                    name="confirmPassword" 
+                                    class="form-input"
+                                    placeholder="Confirme a nova senha"
+                                    maxlength="32"
+                                    required
+                                >
+                                <button type="button" class="toggle-password" onclick="togglePasswordVisibility('confirmPassword')">
+                                    <i class="fas fa-eye"></i>
+                                </button>
+                            </div>
+                            <div class="input-feedback"></div>
+                        </div>
+
+                        <button type="submit" class="primary-btn" id="changePasswordBtn">
+                            <span class="btn-text">ALTERAR SENHA</span>
+                            <i class="fas fa-save btn-icon"></i>
+                        </button>
+                    </div>
+                </form>
+            </div>
+
+            <!-- Success Modal -->
+            <div id="successModal" class="modal">
+                <div class="modal-content success">
+                    <div class="modal-header">
+                        <i class="fas fa-check-circle"></i>
+                        <h2>Senha alterada com sucesso!</h2>
+                    </div>
+                    <div class="modal-body">
+                        <p>Sua senha foi redefinida com sucesso.</p>
+                        <p>Você já pode fazer login com sua nova senha.</p>
+                    </div>
+                    <div class="modal-actions">
+                        <a href="login.html" class="modal-btn primary">
+                            Fazer Login
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
     </main>
+
+    <script>
+        let currentStep = 1;
+        let userEmail = '';
+        let verifiedCode = '';
+        let countdownTimer;
+
+        // Step navigation
+        function goToStep(step) {
+            // Hide current step
+            document.querySelector('.step-content.active').classList.remove('active');
+            document.querySelector('.step.active').classList.remove('active');
+            
+            // Show new step
+            document.getElementById(`step${step}`).classList.add('active');
+            document.querySelector(`.step[data-step="${step}"]`).classList.add('active');
+            
+            currentStep = step;
+            updateProgress();
+        }
+
+        function updateProgress() {
+            const progressFill = document.getElementById('progressFill');
+            const progressPercent = ((currentStep - 1) / 2) * 100;
+            progressFill.style.width = `${progressPercent}%`;
+        }
+
+        // Email validation
+        function validateEmail(email) {
+            const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+            return emailRegex.test(email);
+        }
+
+        // Step 1: Email form
+        document.getElementById('email').addEventListener('input', function() {
+            const email = this.value;
+            const isValid = validateEmail(email);
+            const validationIcon = document.querySelector('.validation-icon');
+            const feedback = document.querySelector('.input-feedback');
+            
+            if (email.length === 0) {
+                this.classList.remove('success', 'error');
+                validationIcon.style.display = 'none';
+                feedback.textContent = '';
+            } else if (isValid) {
+                this.classList.remove('error');
+                this.classList.add('success');
+                validationIcon.style.display = 'flex';
+                validationIcon.classList.remove('error');
+                validationIcon.classList.add('success');
+                feedback.textContent = 'Email válido';
+                feedback.className = 'input-feedback success';
+            } else {
+                this.classList.remove('success');
+                this.classList.add('error');
+                validationIcon.style.display = 'flex';
+                validationIcon.classList.remove('success');
+                validationIcon.classList.add('error');
+                feedback.textContent = 'Digite um email válido';
+                feedback.className = 'input-feedback error';
+            }
+        });
+
+        document.getElementById('emailForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            const email = document.getElementById('email').value;
+            
+            if (!validateEmail(email)) {
+                document.getElementById('email').focus();
+                return;
+            }
+
+            userEmail = email;
+            document.getElementById('emailDisplay').textContent = email;
+            document.getElementById('hiddenEmail').value = email;
+            
+            // IMPLEMENTAÇÃO REAL DO ENVIO DE EMAIL
+            const btn = this.querySelector('.primary-btn');
+            const btnText = btn.querySelector('.btn-text');
+            const btnIcon = btn.querySelector('.btn-icon');
+            
+            btnText.textContent = 'ENVIANDO...';
+            btnIcon.classList.remove('fa-paper-plane');
+            btnIcon.classList.add('fa-spinner', 'fa-spin');
+            btn.disabled = true;
+
+            // BACKEND INTEGRATION: Substitua esta simulação por uma chamada AJAX real
+            fetch("recsenha.php", {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                },
+                body: 'email=' + encodeURIComponent(email)
+            })
+            .then(response => response.json())
+            .then(data => {
+                btnText.textContent = 'ENVIAR CÓDIGO';
+                btnIcon.classList.remove('fa-spinner', 'fa-spin');
+                btnIcon.classList.add('fa-paper-plane');
+                btn.disabled = false;
+                
+                if (data.success) {
+                    goToStep(2);
+                    startCountdown();
+                } else {
+                    // Mostrar erro - email não encontrado ou erro no envio
+                    alert('Erro: ' + data.message);
+                }
+            })
+            .catch(error => {
+                console.error('Erro:', error);
+                btnText.textContent = 'ENVIAR CÓDIGO';
+                btnIcon.classList.remove('fa-spinner', 'fa-spin');
+                btnIcon.classList.add('fa-paper-plane');
+                btn.disabled = false;
+                alert('Erro ao enviar código. Tente novamente.');
+            });
+
+            /* 
+            ALTERNATIVA USANDO PHP DIRETO (remova o e.preventDefault() acima):
+            - Configure o action do form para "enviar_codigo.php"
+            - O PHP já está pronto para enviar o email
+            - Adicione redirecionamento no PHP para retornar ao step 2
+            */
+        });
+
+        // Step 2: Code verification
+        const codeInputs = document.querySelectorAll('.code-input');
+        
+        codeInputs.forEach((input, index) => {
+            input.addEventListener('input', function() {
+                if (this.value.length === 1 && index < codeInputs.length - 1) {
+                    codeInputs[index + 1].focus();
+                }
+                
+                checkCodeComplete();
+                updateHiddenCodeField();
+            });
+            
+            input.addEventListener('keydown', function(e) {
+                if (e.key === 'Backspace' && this.value === '' && index > 0) {
+                    codeInputs[index - 1].focus();
+                }
+            });
+            
+            input.addEventListener('paste', function(e) {
+                e.preventDefault();
+                const pastedData = e.clipboardData.getData('text').slice(0, 6);
+                
+                for (let i = 0; i < pastedData.length && (index + i) < codeInputs.length; i++) {
+                    codeInputs[index + i].value = pastedData[i];
+                }
+                
+                checkCodeComplete();
+                updateHiddenCodeField();
+            });
+        });
+
+        function updateHiddenCodeField() {
+            const code = Array.from(codeInputs).map(input => input.value).join('');
+            document.getElementById('verificationCode').value = code;
+        }
+
+        function checkCodeComplete() {
+            const code = Array.from(codeInputs).map(input => input.value).join('');
+            const verifyBtn = document.getElementById('verifyBtn');
+            
+            if (code.length === 6) {
+                verifyBtn.disabled = false;
+                verifyBtn.classList.add('ready');
+            } else {
+                verifyBtn.disabled = true;
+                verifyBtn.classList.remove('ready');
+            }
+        }
+
+        function startCountdown() {
+            let seconds = 60;
+            const countdownSpan = document.getElementById('countdown');
+            const resendBtn = document.getElementById('resendBtn');
+            
+            countdownTimer = setInterval(() => {
+                seconds--;
+                countdownSpan.textContent = seconds;
+                
+                if (seconds === 0) {
+                    clearInterval(countdownTimer);
+                    resendBtn.disabled = false;
+                    resendBtn.innerHTML = 'Reenviar código';
+                    resendBtn.classList.add('active');
+                }
+            }, 1000);
+        }
+
+        document.getElementById('resendBtn').addEventListener('click', function() {
+            if (!this.disabled) {
+                this.disabled = true;
+                this.classList.remove('active');
+                this.innerHTML = 'Reenviar em <span id="countdown">60</span>s';
+                startCountdown();
+                
+                // BACKEND INTEGRATION: Chamada para reenviar código
+                fetch('enviar_codigo.php', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/x-www-form-urlencoded',
+                    },
+                    body: 'email=' + encodeURIComponent(userEmail)
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        console.log('Código reenviado para:', userEmail);
+                    }
+                })
+                .catch(error => {
+                    console.error('Erro ao reenviar:', error);
+                });
+            }
+        });
+
+        document.getElementById('codeForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            const code = Array.from(codeInputs).map(input => input.value).join('');
+            
+            if (code.length === 6) {
+                const btn = document.getElementById('verifyBtn');
+                const btnText = btn.querySelector('.btn-text');
+                const btnIcon = btn.querySelector('.btn-icon');
+                
+                btnText.textContent = 'VERIFICANDO...';
+                btnIcon.classList.remove('fa-check');
+                btnIcon.classList.add('fa-spinner', 'fa-spin');
+                btn.disabled = true;
+
+                // BACKEND INTEGRATION: Verificar código no servidor
+                fetch('verificar_codigo.php', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/x-www-form-urlencoded',
+                    },
+                    body: 'email=' + encodeURIComponent(userEmail) + '&code=' + encodeURIComponent(code)
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        verifiedCode = code;
+                        document.getElementById('hiddenEmailStep3').value = userEmail;
+                        document.getElementById('hiddenCodeStep3').value = code;
+                        goToStep(3);
+                    } else {
+                        // Código inválido
+                        codeInputs.forEach(input => {
+                            input.classList.add('error');
+                            input.value = '';
+                        });
+                        codeInputs[0].focus();
+                        
+                        btnText.textContent = 'VERIFICAR CÓDIGO';
+                        btnIcon.classList.remove('fa-spinner', 'fa-spin');
+                        btnIcon.classList.add('fa-check');
+                        btn.disabled = true;
+                        
+                        alert('Código inválido. Tente novamente.');
+                    }
+                })
+                .catch(error => {
+                    console.error('Erro:', error);
+                    btnText.textContent = 'VERIFICAR CÓDIGO';
+                    btnIcon.classList.remove('fa-spinner', 'fa-spin');
+                    btnIcon.classList.add('fa-check');
+                    btn.disabled = true;
+                });
+
+                /* 
+                SIMULAÇÃO REMOVIDA - substitua por código real acima
+                setTimeout(() => {
+                    if (code === '123456' || true) {
+                        goToStep(3);
+                    } else {
+                        // Handle invalid code
+                    }
+                }, 1500);
+                */
+            }
+        });
+
+        // Step 3: Password form
+        function togglePasswordVisibility(inputId) {
+            const input = document.getElementById(inputId);
+            const button = input.nextElementSibling;
+            const icon = button.querySelector('i');
+            
+            if (input.type === 'password') {
+                input.type = 'text';
+                icon.classList.remove('fa-eye');
+                icon.classList.add('fa-eye-slash');
+            } else {
+                input.type = 'password';
+                icon.classList.remove('fa-eye-slash');
+                icon.classList.add('fa-eye');
+            }
+        }
+
+        function checkPasswordStrength(password) {
+            let strength = 0;
+            let text = '';
+            let className = '';
+            
+            // ALTERADO: Critérios ajustados para senhas até 32 caracteres
+            if (password.length >= 4) strength += 1;
+            if (password.length >= 8) strength += 1;  // Mudou de 6 para 8
+            if (password.length >= 12) strength += 1; // Novo critério
+            if (/\d/.test(password)) strength += 1;
+            if (/[A-Z]/.test(password)) strength += 1;
+            if (/[!@#$%^&*]/.test(password)) strength += 1;
+            
+            switch (strength) {
+                case 0:
+                case 1:
+                    text = 'Muito fraca';
+                    className = 'weak';
+                    break;
+                case 2:
+                case 3:
+                    text = 'Fraca';
+                    className = 'medium';
+                    break;
+                case 4:
+                    text = 'Boa';
+                    className = 'good';
+                    break;
+                case 5:
+                case 6:
+                    text = 'Forte';
+                    className = 'strong';
+                    break;
+            }
+            
+            return { strength: Math.min(strength * 16.67, 100), text, className }; // Ajustado para 6 critérios
+        }
+
+        document.getElementById('newPassword').addEventListener('input', function() {
+            const password = this.value;
+            const strengthBar = document.querySelector('.strength-fill');
+            const strengthText = document.querySelector('.strength-text');
+            
+            if (password.length === 0) {
+                strengthBar.style.width = '0%';
+                strengthText.textContent = 'Digite uma senha';
+                strengthText.className = 'strength-text';
+                return;
+            }
+            
+            const strength = checkPasswordStrength(password);
+            strengthBar.style.width = `${strength.strength}%`;
+            strengthText.textContent = strength.text;
+            strengthText.className = `strength-text ${strength.className}`;
+            strengthBar.className = `strength-fill ${strength.className}`;
+        });
+
+        document.getElementById('confirmPassword').addEventListener('input', function() {
+            const password = document.getElementById('newPassword').value;
+            const confirmPassword = this.value;
+            const feedback = this.parentElement.nextElementSibling;
+            
+            if (confirmPassword.length === 0) {
+                feedback.textContent = '';
+                feedback.className = 'input-feedback';
+                this.classList.remove('success', 'error');
+                return;
+            }
+            
+            if (password === confirmPassword) {
+                feedback.textContent = 'Senhas coincidem';
+                feedback.className = 'input-feedback success';
+                this.classList.remove('error');
+                this.classList.add('success');
+            } else {
+                feedback.textContent = 'Senhas não coincidem';
+                feedback.className = 'input-feedback error';
+                this.classList.remove('success');
+                this.classList.add('error');
+            }
+        });
+
+        document.getElementById('passwordForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            const password = document.getElementById('newPassword').value;
+            const confirmPassword = document.getElementById('confirmPassword').value;
+            
+            if (password !== confirmPassword) {
+                document.getElementById('confirmPassword').focus();
+                return;
+            }
+            
+            if (password.length < 4) {
+                document.getElementById('newPassword').focus();
+                return;
+            }
+            
+            const btn = document.getElementById('changePasswordBtn');
+            const btnText = btn.querySelector('.btn-text');
+            const btnIcon = btn.querySelector('.btn-icon');
+            
+            btnText.textContent = 'ALTERANDO...';
+            btnIcon.classList.remove('fa-save');
+            btnIcon.classList.add('fa-spinner', 'fa-spin');
+            btn.disabled = true;
+
+            // BACKEND INTEGRATION: Alterar senha no servidor
+            fetch('alterar_senha.php', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                },
+                body: 'email=' + encodeURIComponent(userEmail) + 
+                      '&verified_code=' + encodeURIComponent(verifiedCode) + 
+                      '&newPassword=' + encodeURIComponent(password)
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    document.getElementById('successModal').style.display = 'flex';
+                    document.body.style.overflow = 'hidden';
+                } else {
+                    alert('Erro ao alterar senha: ' + data.message);
+                    btnText.textContent = 'ALTERAR SENHA';
+                    btnIcon.classList.remove('fa-spinner', 'fa-spin');
+                    btnIcon.classList.add('fa-save');
+                    btn.disabled = false;
+                }
+            })
+            .catch(error => {
+                console.error('Erro:', error);
+                alert('Erro ao alterar senha. Tente novamente.');
+                btnText.textContent = 'ALTERAR SENHA';
+                btnIcon.classList.remove('fa-spinner', 'fa-spin');
+                btnIcon.classList.add('fa-save');
+                btn.disabled = false;
+            });
+
+            /* 
+            SIMULAÇÃO REMOVIDA - substitua por código real acima
+            setTimeout(() => {
+                document.getElementById('successModal').style.display = 'flex';
+                document.body.style.overflow = 'hidden';
+            }, 2000);
+            */
+        });
+
+        // Initialize
+        updateProgress();
+
+        /*
+        BACKEND INTEGRATION SUMMARY:
+        
+        1. ENVIO DE EMAIL (enviar_codigo.php):
+           - Usar o código PHP fornecido
+           - Gerar código de 6 dígitos aleatório
+           - Salvar código + timestamp no banco de dados
+           - Enviar por email usando PHPMailer
+           - Retornar JSON: {"success": true/false, "message": "..."}
+        
+        2. VERIFICAÇÃO DE CÓDIGO (verificar_codigo.php):
+           - Receber email e código via POST
+           - Verificar se código está correto e não expirou (ex: 10 minutos)
+           - Retornar JSON: {"success": true/false, "message": "..."}
+        
+        3. ALTERAÇÃO DE SENHA (alterar_senha.php):
+           - Receber email, código verificado e nova senha
+           - Validar novamente o código (segurança)
+           - Criptografar nova senha (password_hash)
+           - Atualizar no banco de dados
+           - Invalidar código usado
+           - Retornar JSON: {"success": true/false, "message": "..."}
+        
+        4. BANCO DE DADOS:
+           - Tabela para códigos de recuperação:
+             - id, email, codigo, created_at, used_at
+           - Limpar códigos expirados periodicamente
+        
+        5. SEGURANÇA:
+           - Limitar tentativas de código por IP/email
+           - Códigos com expiração (10-15 minutos)
+           - Rate limiting para envio de emails
+           - Validação server-side de todos os dados
+        */
+    </script>
 </body>
 </html>

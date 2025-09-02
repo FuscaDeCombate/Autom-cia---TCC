@@ -4,13 +4,12 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:background="#FF089A"
-    tools:context=".PreferencesFragment">
+    tools:context=".fragments.PreferencesFragment">
 
-    <!-- TODO: Update blank fragment layout -->
     <TextView
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        android:text="Preferencias"
+        android:text="Preferências"
         android:textSize="40sp"
         android:textColor="@color/white"
         android:gravity="center"/>

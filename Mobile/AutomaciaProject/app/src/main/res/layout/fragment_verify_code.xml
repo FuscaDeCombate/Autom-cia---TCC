@@ -38,9 +38,9 @@
                     android:layout_height="80dp"
                     android:layout_gravity="center"
                     android:layout_marginBottom="24dp"
-                    android:contentDescription="Nova senha"
+                    android:contentDescription="Código de verificação"
                     android:scaleType="fitCenter"
-                    android:src="@drawable/ic_lock"
+                    android:src="@drawable/ic_encrypted"
                     app:tint="@color/primary" />
 
                 <!-- Título -->
@@ -49,7 +49,7 @@
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:layout_gravity="center"
-                    android:text="Nova Senha"
+                    android:text="Verificar Código"
                     android:textSize="24sp"
                     android:textStyle="bold"
                     android:textColor="@color/primary_dark"
@@ -60,105 +60,59 @@
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:layout_gravity="center"
-                    android:text="Defina uma nova senha segura para sua conta"
+                    android:text="Digite o código de 6 dígitos enviado para seu email"
                     android:textSize="14sp"
                     android:textColor="@color/text_secondary"
                     android:textAlignment="center"
-                    android:layout_marginBottom="32dp" />
+                    android:layout_marginBottom="24dp" />
 
-                <!-- Campo Nova Senha -->
+                <!-- Campo Código -->
                 <com.google.android.material.textfield.TextInputLayout
-                    android:id="@+id/layoutNovaSenha"
+                    android:id="@+id/layoutCodigo"
                     style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:layout_marginBottom="16dp"
-                    android:hint="Nova Senha"
-                    app:startIconDrawable="@drawable/ic_lock"
-                    app:startIconTint="@color/primary"
-                    app:endIconMode="password_toggle"
+                    android:hint="Código de Verificação"
                     app:boxStrokeColor="@color/primary"
                     app:hintTextColor="@color/primary"
                     app:errorEnabled="true"
                     app:expandedHintEnabled="true">
 
                     <com.google.android.material.textfield.TextInputEditText
-                        android:id="@+id/editNovaSenha"
+                        android:id="@+id/editCodigo"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:inputType="textPassword"
-                        android:importantForAutofill="yes"
-                        android:autofillHints="newPassword"
+                        android:inputType="number"
                         android:textColor="@color/text_primary"
-                        android:maxLines="1" />
+                        android:maxLength="6"
+                        android:maxLines="1"
+                        android:drawableStart="@drawable/ic_shield"
+                        android:drawableTint="@color/primary"
+                        android:textAlignment="center"
+                        android:textSize="18sp"
+                        android:letterSpacing="0.3" />
                 </com.google.android.material.textfield.TextInputLayout>
 
-                <!-- Campo Confirmar Senha -->
-                <com.google.android.material.textfield.TextInputLayout
-                    android:id="@+id/layoutConfirmarSenha"
-                    style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox"
-                    android:layout_width="match_parent"
+                <!-- Countdown -->
+                <TextView
+                    android:id="@+id/txtCountdown"
+                    android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:layout_marginBottom="24dp"
-                    android:hint="Confirmar Senha"
-                    app:startIconDrawable="@drawable/ic_lock"
-                    app:startIconTint="@color/primary"
-                    app:endIconMode="password_toggle"
-                    app:boxStrokeColor="@color/primary"
-                    app:hintTextColor="@color/primary"
-                    app:errorEnabled="true"
-                    app:expandedHintEnabled="true">
+                    android:layout_gravity="center"
+                    android:text="Reenviar código em 05:00"
+                    android:textSize="12sp"
+                    android:textColor="@color/text_secondary"
+                    android:layout_marginBottom="8dp"
+                    android:visibility="visible" />
 
-                    <com.google.android.material.textfield.TextInputEditText
-                        android:id="@+id/editConfirmarSenha"
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:inputType="textPassword"
-                        android:importantForAutofill="yes"
-                        android:autofillHints="newPassword"
-                        android:textColor="@color/text_primary"
-                        android:maxLines="1" />
-                </com.google.android.material.textfield.TextInputLayout>
-
-                <!-- Dicas de Segurança -->
-                <androidx.cardview.widget.CardView
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:layout_marginBottom="24dp"
-                    app:cardCornerRadius="8dp"
-                    app:cardBackgroundColor="#FFF3E0"
-                    app:cardElevation="0dp">
-
-                    <LinearLayout
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:orientation="horizontal"
-                        android:padding="12dp"
-                        android:gravity="center_vertical">
-
-                        <ImageView
-                            android:layout_width="20dp"
-                            android:layout_height="20dp"
-                            android:layout_marginEnd="8dp"
-                            android:src="@drawable/ic_info"
-                            app:tint="#FF8F00" />
-
-                        <TextView
-                            android:layout_width="0dp"
-                            android:layout_height="wrap_content"
-                            android:layout_weight="1"
-                            android:text="A senha deve ter pelo menos 6 caracteres e conter pelo menos uma letra"
-                            android:textSize="12sp"
-                            android:textColor="#E65100" />
-                    </LinearLayout>
-                </androidx.cardview.widget.CardView>
-
-                <!-- Botão Redefinir -->
+                <!-- Botão Verificar -->
                 <com.google.android.material.button.MaterialButton
-                    android:id="@+id/btnRedefinirSenha"
+                    android:id="@+id/btnVerificarCodigo"
                     android:layout_width="match_parent"
                     android:layout_height="56dp"
-                    android:text="Redefinir Senha"
+                    android:layout_marginBottom="12dp"
+                    android:text="Verificar Código"
                     android:textColor="@android:color/white"
                     android:textSize="16sp"
                     android:textStyle="bold"
@@ -168,6 +122,22 @@
                     app:icon="@drawable/ic_check"
                     app:iconGravity="textStart"
                     app:iconTint="@android:color/white" />
+
+                <!-- Botão Reenviar -->
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/btnReenviarCodigo"
+                    style="@style/Widget.MaterialComponents.Button.OutlinedButton"
+                    android:layout_width="match_parent"
+                    android:layout_height="48dp"
+                    android:text="Reenviar Código"
+                    android:textColor="@color/primary"
+                    android:textSize="14sp"
+                    app:strokeColor="@color/primary"
+                    app:strokeWidth="1dp"
+                    app:cornerRadius="15dp"
+                    app:icon="@drawable/ic_refresh"
+                    app:iconGravity="textStart"
+                    app:iconTint="@color/primary" />
 
             </LinearLayout>
         </androidx.cardview.widget.CardView>
