@@ -7,6 +7,7 @@ import android.os.Handler;
 import android.os.Looper;
 import android.text.Editable;
 import android.text.TextWatcher;
+import android.view.KeyEvent;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -34,9 +35,16 @@ public class VerifyCodeFragment extends Fragment {
     private static final long COUNTDOWN_TIME = 300000; // 5 minutos em milliseconds
     private static final long COUNTDOWN_INTERVAL = 1000; // 1 segundo
 
-    // Views
+    // Views - campos individuais
+    private TextInputEditText editCodigo1, editCodigo2, editCodigo3, editCodigo4, editCodigo5, editCodigo6;
+    private TextInputLayout layoutCodigo1, layoutCodigo2, layoutCodigo3, layoutCodigo4, layoutCodigo5, layoutCodigo6;
+    private TextInputEditText[] codeInputs;
+    private TextInputLayout[] codeLayouts;
+
+    // Views originais (para compatibilidade)
     private TextInputEditText editCodigo;
     private TextInputLayout layoutCodigo;
+
     private MaterialButton btnVerificarCodigo, btnReenviarCodigo;
     private TextView txtDescricao, txtCountdown;
 
@@ -101,7 +109,7 @@ public class VerifyCodeFragment extends Fragment {
         super.onViewCreated(view, savedInstanceState);
 
         initializeViews(view);
-        setupValidators();
+        setupCodeInputs();
         setupClickListeners();
         updateDescriptionText();
         startCountdown();
@@ -111,41 +119,101 @@ public class VerifyCodeFragment extends Fragment {
      * Inicializa as views
      */
     private void initializeViews(View view) {
+        // Campos individuais
+        editCodigo1 = view.findViewById(R.id.editCodigo1);
+        editCodigo2 = view.findViewById(R.id.editCodigo2);
+        editCodigo3 = view.findViewById(R.id.editCodigo3);
+        editCodigo4 = view.findViewById(R.id.editCodigo4);
+        editCodigo5 = view.findViewById(R.id.editCodigo5);
+        editCodigo6 = view.findViewById(R.id.editCodigo6);
+
+        layoutCodigo1 = view.findViewById(R.id.layoutCodigo1);
+        layoutCodigo2 = view.findViewById(R.id.layoutCodigo2);
+        layoutCodigo3 = view.findViewById(R.id.layoutCodigo3);
+        layoutCodigo4 = view.findViewById(R.id.layoutCodigo4);
+        layoutCodigo5 = view.findViewById(R.id.layoutCodigo5);
+        layoutCodigo6 = view.findViewById(R.id.layoutCodigo6);
+
+        // Arrays para facilitar manipulação
+        codeInputs = new TextInputEditText[]{editCodigo1, editCodigo2, editCodigo3, editCodigo4, editCodigo5, editCodigo6};
+        codeLayouts = new TextInputLayout[]{layoutCodigo1, layoutCodigo2, layoutCodigo3, layoutCodigo4, layoutCodigo5, layoutCodigo6};
+
+        // Views originais (ocultas, para compatibilidade)
         editCodigo = view.findViewById(R.id.editCodigo);
         layoutCodigo = view.findViewById(R.id.layoutCodigo);
+
+        // Outras views
         btnVerificarCodigo = view.findViewById(R.id.btnVerificarCodigo);
         btnReenviarCodigo = view.findViewById(R.id.btnReenviarCodigo);
         txtDescricao = view.findViewById(R.id.txtDescricao);
         txtCountdown = view.findViewById(R.id.txtCountdown);
 
         updateButtonState();
-        btnReenviarCodigo.setEnabled(false); // Inicialmente desabilitado
+        btnReenviarCodigo.setEnabled(false);
+
+        // Foco inicial no primeiro campo
+        editCodigo1.requestFocus();
     }
 
     /**
-     * Configura os validadores
+     * Configura os campos de código individuais
      */
-    private void setupValidators() {
-        editCodigo.addTextChangedListener(new TextWatcher() {
-            @Override
-            public void beforeTextChanged(CharSequence s, int start, int count, int after) {}
+    private void setupCodeInputs() {
+        for (int i = 0; i < codeInputs.length; i++) {
+            final int currentIndex = i;
+            final TextInputEditText currentInput = codeInputs[i];
 
-            @Override
-            public void onTextChanged(CharSequence s, int start, int before, int count) {
-                String codigo = s.toString().trim();
+            currentInput.addTextChangedListener(new TextWatcher() {
+                @Override
+                public void beforeTextChanged(CharSequence s, int start, int count, int after) {}
 
-                // Remove qualquer erro anterior
-                layoutCodigo.setError(null);
+                @Override
+                public void onTextChanged(CharSequence s, int start, int before, int count) {
+                    String text = s.toString();
 
-                // Validação básica do código
-                isCodeValid = !Utils.isCampoVazio(codigo) && codigo.length() == 6 && codigo.matches("\\d{6}");
+                    // Remove erros
+                    clearAllErrors();
 
-                updateButtonState();
-            }
+                    if (text.length() == 1) {
+                        // Move para o próximo campo
+                        if (currentIndex < codeInputs.length - 1) {
+                            codeInputs[currentIndex + 1].requestFocus();
+                        }
+                    }
 
-            @Override
-            public void afterTextChanged(Editable s) {}
-        });
+                    // Atualiza o campo oculto para compatibilidade
+                    updateHiddenCodeField();
+
+                    // Valida código completo
+                    validateCode();
+                }
+
+                @Override
+                public void afterTextChanged(Editable s) {}
+            });
+
+            // Configura backspace para voltar ao campo anterior
+            currentInput.setOnKeyListener((v, keyCode, event) -> {
+                if (keyCode == KeyEvent.KEYCODE_DEL && event.getAction() == KeyEvent.ACTION_DOWN) {
+                    if (currentInput.getText().toString().isEmpty() && currentIndex > 0) {
+                        codeInputs[currentIndex - 1].requestFocus();
+                        return true;
+                    }
+                }
+                return false;
+            });
+
+            // Foco e seleção
+            currentInput.setOnFocusChangeListener((v, hasFocus) -> {
+                if (hasFocus) {
+                    currentInput.selectAll();
+                    // Adiciona destaque visual ao campo focado
+                    codeLayouts[currentIndex].setBoxStrokeWidth(3);
+                } else {
+                    codeLayouts[currentIndex].setBoxStrokeWidth(2);
+                }
+            });
+        }
     }
 
     /**
@@ -154,6 +222,67 @@ public class VerifyCodeFragment extends Fragment {
     private void setupClickListeners() {
         btnVerificarCodigo.setOnClickListener(v -> verifyCode());
         btnReenviarCodigo.setOnClickListener(v -> resendCode());
+    }
+
+    /**
+     * Atualiza o campo oculto para manter compatibilidade com código existente
+     */
+    private void updateHiddenCodeField() {
+        StringBuilder code = new StringBuilder();
+        for (TextInputEditText input : codeInputs) {
+            code.append(input.getText().toString());
+        }
+        editCodigo.setText(code.toString());
+    }
+
+    /**
+     * Valida o código completo
+     */
+    private void validateCode() {
+        String fullCode = getFullCode();
+        isCodeValid = !Utils.isCampoVazio(fullCode) && fullCode.length() == 6 && fullCode.matches("\\d{6}");
+        updateButtonState();
+    }
+
+    /**
+     * Obtém o código completo dos campos individuais
+     */
+    private String getFullCode() {
+        StringBuilder code = new StringBuilder();
+        for (TextInputEditText input : codeInputs) {
+            code.append(input.getText().toString().trim());
+        }
+        return code.toString();
+    }
+
+    /**
+     * Remove todos os erros visuais
+     */
+    private void clearAllErrors() {
+        for (TextInputLayout layout : codeLayouts) {
+            layout.setError(null);
+        }
+        layoutCodigo.setError(null);
+    }
+
+    /**
+     * Mostra erro visual nos campos
+     */
+    private void showCodeError(String message) {
+        for (TextInputLayout layout : codeLayouts) {
+            layout.setError(" "); // Espaço para mostrar cor de erro sem texto
+        }
+        layoutCodigo.setError(message); // Mensagem no campo oculto para compatibilidade
+    }
+
+    /**
+     * Limpa todos os campos
+     */
+    private void clearAllFields() {
+        for (TextInputEditText input : codeInputs) {
+            input.setText("");
+        }
+        editCodigo1.requestFocus();
     }
 
     /**
@@ -211,10 +340,10 @@ public class VerifyCodeFragment extends Fragment {
      * Verifica o código inserido
      */
     private void verifyCode() {
-        String codigoInserido = editCodigo.getText().toString().trim();
+        String codigoInserido = getFullCode();
 
         if (!isCodeValid) {
-            layoutCodigo.setError("Código deve ter 6 dígitos");
+            showCodeError("Código deve ter 6 dígitos");
             return;
         }
 
@@ -240,10 +369,12 @@ public class VerifyCodeFragment extends Fragment {
                 }
             } else {
                 // Código incorreto
-                layoutCodigo.setError("Código incorreto. Tente novamente.");
+                showCodeError("Código incorreto. Tente novamente.");
                 btnVerificarCodigo.setEnabled(true);
                 btnVerificarCodigo.setText("Verificar Código");
 
+                // Limpa os campos e redefine foco
+                clearAllFields();
                 Toast.makeText(getContext(), "Código incorreto", Toast.LENGTH_SHORT).show();
             }
         }, 1500); // 1.5 segundos de delay
@@ -254,6 +385,9 @@ public class VerifyCodeFragment extends Fragment {
      */
     private void resendCode() {
         Toast.makeText(getContext(), "Solicitando novo código...", Toast.LENGTH_SHORT).show();
+        clearAllFields();
+        clearAllErrors();
+        startCountdown();
 
         if (listener != null) {
             listener.onResendCodeRequested();

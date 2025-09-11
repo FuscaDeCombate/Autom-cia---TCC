@@ -1,6 +1,7 @@
 [versions]
 agp = "8.9.0"
 circleimageview = "3.1.0"
+jtdsVersion = "1.3.1"
 junit = "4.13.2"
 junitVersion = "1.2.1"
 espressoCore = "3.6.1"
@@ -13,7 +14,9 @@ lifecycleLivedataKtx = "2.6.1"
 lifecycleViewmodelKtx = "2.6.1"
 coordinatorlayout = "1.3.0"
 kotlin-stdlib = "2.1.0"
+mssqlJdbcVersion = "12.4.1.jre8"
 nafisbottomnav = "5.0"
+socketIoClient = "2.0.0"
 swiperefreshlayout = "1.1.0"
 
 [libraries]
@@ -31,6 +34,8 @@ lifecycle-viewmodel-ktx = { group = "androidx.lifecycle", name = "lifecycle-view
 coordinatorlayout = { group = "androidx.coordinatorlayout", name = "coordinatorlayout", version.ref = "coordinatorlayout" }
 kotlin-stdlib-jdk7 = { group = "org.jetbrains.kotlin", name = "kotlin-stdlib-jdk7", version.ref = "kotlin-stdlib" }
 nafisbottomnav = { module = "com.github.Foysalofficial:NafisBottomNav", version.ref = "nafisbottomnav" }
+net-jtds = { module = "net.sourceforge.jtds:jtds", version.ref = "jtdsVersion" }
+socket-io-client = { module = "io.socket:socket.io-client", version.ref = "socketIoClient" }
 swiperefreshlayout = { module = "androidx.swiperefreshlayout:swiperefreshlayout", version.ref = "swiperefreshlayout" }
 
 [plugins]

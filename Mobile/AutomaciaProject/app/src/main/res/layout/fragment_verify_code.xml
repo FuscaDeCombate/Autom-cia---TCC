@@ -16,8 +16,8 @@
             android:id="@+id/cardLayout"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
-            app:cardCornerRadius="16dp"
-            app:cardElevation="12dp"
+            app:cardCornerRadius="24dp"
+            app:cardElevation="8dp"
             app:cardBackgroundColor="@android:color/white"
             app:layout_constraintTop_toTopOf="parent"
             app:layout_constraintBottom_toBottomOf="parent"
@@ -29,15 +29,15 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:orientation="vertical"
-                android:padding="24dp">
+                android:padding="32dp">
 
                 <!-- Ícone -->
                 <ImageView
                     android:id="@+id/imgIcon"
-                    android:layout_width="80dp"
-                    android:layout_height="80dp"
+                    android:layout_width="72dp"
+                    android:layout_height="72dp"
                     android:layout_gravity="center"
-                    android:layout_marginBottom="24dp"
+                    android:layout_marginBottom="32dp"
                     android:contentDescription="Código de verificação"
                     android:scaleType="fitCenter"
                     android:src="@drawable/ic_encrypted"
@@ -50,10 +50,11 @@
                     android:layout_height="wrap_content"
                     android:layout_gravity="center"
                     android:text="Verificar Código"
-                    android:textSize="24sp"
+                    android:textSize="28sp"
                     android:textStyle="bold"
                     android:textColor="@color/primary_dark"
-                    android:layout_marginBottom="8dp" />
+                    android:layout_marginBottom="12dp"
+                    android:fontFamily="sans-serif-medium" />
 
                 <TextView
                     android:id="@+id/txtDescricao"
@@ -61,37 +62,206 @@
                     android:layout_height="wrap_content"
                     android:layout_gravity="center"
                     android:text="Digite o código de 6 dígitos enviado para seu email"
-                    android:textSize="14sp"
+                    android:textSize="16sp"
                     android:textColor="@color/text_secondary"
                     android:textAlignment="center"
-                    android:layout_marginBottom="24dp" />
+                    android:layout_marginBottom="40dp"
+                    android:lineSpacingExtra="4dp" />
 
-                <!-- Campo Código -->
-                <com.google.android.material.textfield.TextInputLayout
-                    android:id="@+id/layoutCodigo"
-                    style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox"
+                <!-- Container dos campos de código -->
+                <LinearLayout
+                    android:id="@+id/layoutCodigoContainer"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:layout_marginBottom="16dp"
-                    android:hint="Código de Verificação"
-                    app:boxStrokeColor="@color/primary"
-                    app:hintTextColor="@color/primary"
-                    app:errorEnabled="true"
-                    app:expandedHintEnabled="true">
+                    android:orientation="horizontal"
+                    android:gravity="center"
+                    android:layout_marginBottom="32dp">
 
+                    <!-- Campo 1 -->
+                    <com.google.android.material.textfield.TextInputLayout
+                        android:id="@+id/layoutCodigo1"
+                        style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox"
+                        android:layout_width="48dp"
+                        android:layout_height="wrap_content"
+                        android:layout_marginEnd="8dp"
+                        app:boxStrokeColor="@color/primary"
+                        app:boxStrokeWidth="2dp"
+                        app:boxCornerRadiusTopStart="12dp"
+                        app:boxCornerRadiusTopEnd="12dp"
+                        app:boxCornerRadiusBottomStart="12dp"
+                        app:boxCornerRadiusBottomEnd="12dp"
+                        app:hintEnabled="false">
+
+                        <com.google.android.material.textfield.TextInputEditText
+                            android:id="@+id/editCodigo1"
+                            android:layout_width="match_parent"
+                            android:layout_height="56dp"
+                            android:inputType="number"
+                            android:textColor="@color/text_primary"
+                            android:maxLength="1"
+                            android:textAlignment="center"
+                            android:textSize="24sp"
+                            android:textStyle="bold"
+                            android:fontFamily="sans-serif-medium"
+                            android:selectAllOnFocus="true" />
+                    </com.google.android.material.textfield.TextInputLayout>
+
+                    <!-- Campo 2 -->
+                    <com.google.android.material.textfield.TextInputLayout
+                        android:id="@+id/layoutCodigo2"
+                        style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox"
+                        android:layout_width="48dp"
+                        android:layout_height="wrap_content"
+                        android:layout_marginEnd="8dp"
+                        app:boxStrokeColor="@color/primary"
+                        app:boxStrokeWidth="2dp"
+                        app:boxCornerRadiusTopStart="12dp"
+                        app:boxCornerRadiusTopEnd="12dp"
+                        app:boxCornerRadiusBottomStart="12dp"
+                        app:boxCornerRadiusBottomEnd="12dp"
+                        app:hintEnabled="false">
+
+                        <com.google.android.material.textfield.TextInputEditText
+                            android:id="@+id/editCodigo2"
+                            android:layout_width="match_parent"
+                            android:layout_height="56dp"
+                            android:inputType="number"
+                            android:textColor="@color/text_primary"
+                            android:maxLength="1"
+                            android:textAlignment="center"
+                            android:textSize="24sp"
+                            android:textStyle="bold"
+                            android:fontFamily="sans-serif-medium"
+                            android:selectAllOnFocus="true" />
+                    </com.google.android.material.textfield.TextInputLayout>
+
+                    <!-- Campo 3 -->
+                    <com.google.android.material.textfield.TextInputLayout
+                        android:id="@+id/layoutCodigo3"
+                        style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox"
+                        android:layout_width="48dp"
+                        android:layout_height="wrap_content"
+                        android:layout_marginEnd="16dp"
+                        app:boxStrokeColor="@color/primary"
+                        app:boxStrokeWidth="2dp"
+                        app:boxCornerRadiusTopStart="12dp"
+                        app:boxCornerRadiusTopEnd="12dp"
+                        app:boxCornerRadiusBottomStart="12dp"
+                        app:boxCornerRadiusBottomEnd="12dp"
+                        app:hintEnabled="false">
+
+                        <com.google.android.material.textfield.TextInputEditText
+                            android:id="@+id/editCodigo3"
+                            android:layout_width="match_parent"
+                            android:layout_height="56dp"
+                            android:inputType="number"
+                            android:textColor="@color/text_primary"
+                            android:maxLength="1"
+                            android:textAlignment="center"
+                            android:textSize="24sp"
+                            android:textStyle="bold"
+                            android:fontFamily="sans-serif-medium"
+                            android:selectAllOnFocus="true" />
+                    </com.google.android.material.textfield.TextInputLayout>
+
+                    <!-- Campo 4 -->
+                    <com.google.android.material.textfield.TextInputLayout
+                        android:id="@+id/layoutCodigo4"
+                        style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox"
+                        android:layout_width="48dp"
+                        android:layout_height="wrap_content"
+                        android:layout_marginEnd="8dp"
+                        app:boxStrokeColor="@color/primary"
+                        app:boxStrokeWidth="2dp"
+                        app:boxCornerRadiusTopStart="12dp"
+                        app:boxCornerRadiusTopEnd="12dp"
+                        app:boxCornerRadiusBottomStart="12dp"
+                        app:boxCornerRadiusBottomEnd="12dp"
+                        app:hintEnabled="false">
+
+                        <com.google.android.material.textfield.TextInputEditText
+                            android:id="@+id/editCodigo4"
+                            android:layout_width="match_parent"
+                            android:layout_height="56dp"
+                            android:inputType="number"
+                            android:textColor="@color/text_primary"
+                            android:maxLength="1"
+                            android:textAlignment="center"
+                            android:textSize="24sp"
+                            android:textStyle="bold"
+                            android:fontFamily="sans-serif-medium"
+                            android:selectAllOnFocus="true" />
+                    </com.google.android.material.textfield.TextInputLayout>
+
+                    <!-- Campo 5 -->
+                    <com.google.android.material.textfield.TextInputLayout
+                        android:id="@+id/layoutCodigo5"
+                        style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox"
+                        android:layout_width="48dp"
+                        android:layout_height="wrap_content"
+                        android:layout_marginEnd="8dp"
+                        app:boxStrokeColor="@color/primary"
+                        app:boxStrokeWidth="2dp"
+                        app:boxCornerRadiusTopStart="12dp"
+                        app:boxCornerRadiusTopEnd="12dp"
+                        app:boxCornerRadiusBottomStart="12dp"
+                        app:boxCornerRadiusBottomEnd="12dp"
+                        app:hintEnabled="false">
+
+                        <com.google.android.material.textfield.TextInputEditText
+                            android:id="@+id/editCodigo5"
+                            android:layout_width="match_parent"
+                            android:layout_height="56dp"
+                            android:inputType="number"
+                            android:textColor="@color/text_primary"
+                            android:maxLength="1"
+                            android:textAlignment="center"
+                            android:textSize="24sp"
+                            android:textStyle="bold"
+                            android:fontFamily="sans-serif-medium"
+                            android:selectAllOnFocus="true" />
+                    </com.google.android.material.textfield.TextInputLayout>
+
+                    <!-- Campo 6 -->
+                    <com.google.android.material.textfield.TextInputLayout
+                        android:id="@+id/layoutCodigo6"
+                        style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox"
+                        android:layout_width="48dp"
+                        android:layout_height="wrap_content"
+                        app:boxStrokeColor="@color/primary"
+                        app:boxStrokeWidth="2dp"
+                        app:boxCornerRadiusTopStart="12dp"
+                        app:boxCornerRadiusTopEnd="12dp"
+                        app:boxCornerRadiusBottomStart="12dp"
+                        app:boxCornerRadiusBottomEnd="12dp"
+                        app:hintEnabled="false">
+
+                        <com.google.android.material.textfield.TextInputEditText
+                            android:id="@+id/editCodigo6"
+                            android:layout_width="match_parent"
+                            android:layout_height="56dp"
+                            android:inputType="number"
+                            android:textColor="@color/text_primary"
+                            android:maxLength="1"
+                            android:textAlignment="center"
+                            android:textSize="24sp"
+                            android:textStyle="bold"
+                            android:fontFamily="sans-serif-medium"
+                            android:selectAllOnFocus="true" />
+                    </com.google.android.material.textfield.TextInputLayout>
+
+                </LinearLayout>
+
+                <!-- Campo oculto para manter compatibilidade -->
+                <com.google.android.material.textfield.TextInputLayout
+                    android:id="@+id/layoutCodigo"
+                    android:layout_width="0dp"
+                    android:layout_height="0dp"
+                    android:visibility="gone">
                     <com.google.android.material.textfield.TextInputEditText
                         android:id="@+id/editCodigo"
                         android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:inputType="number"
-                        android:textColor="@color/text_primary"
-                        android:maxLength="6"
-                        android:maxLines="1"
-                        android:drawableStart="@drawable/ic_shield"
-                        android:drawableTint="@color/primary"
-                        android:textAlignment="center"
-                        android:textSize="18sp"
-                        android:letterSpacing="0.3" />
+                        android:layout_height="wrap_content" />
                 </com.google.android.material.textfield.TextInputLayout>
 
                 <!-- Countdown -->
@@ -101,26 +271,29 @@
                     android:layout_height="wrap_content"
                     android:layout_gravity="center"
                     android:text="Reenviar código em 05:00"
-                    android:textSize="12sp"
+                    android:textSize="14sp"
                     android:textColor="@color/text_secondary"
-                    android:layout_marginBottom="8dp"
+                    android:layout_marginBottom="16dp"
+                    android:fontFamily="sans-serif-medium"
                     android:visibility="visible" />
 
                 <!-- Botão Verificar -->
                 <com.google.android.material.button.MaterialButton
                     android:id="@+id/btnVerificarCodigo"
                     android:layout_width="match_parent"
-                    android:layout_height="56dp"
-                    android:layout_marginBottom="12dp"
+                    android:layout_height="60dp"
+                    android:layout_marginBottom="16dp"
                     android:text="Verificar Código"
                     android:textColor="@android:color/white"
-                    android:textSize="16sp"
+                    android:textSize="18sp"
                     android:textStyle="bold"
+                    android:fontFamily="sans-serif-medium"
                     app:backgroundTint="@color/primary"
-                    app:cornerRadius="15dp"
-                    app:elevation="4dp"
+                    app:cornerRadius="16dp"
+                    app:elevation="6dp"
                     app:icon="@drawable/ic_check"
                     app:iconGravity="textStart"
+                    app:iconSize="20dp"
                     app:iconTint="@android:color/white" />
 
                 <!-- Botão Reenviar -->
@@ -128,15 +301,17 @@
                     android:id="@+id/btnReenviarCodigo"
                     style="@style/Widget.MaterialComponents.Button.OutlinedButton"
                     android:layout_width="match_parent"
-                    android:layout_height="48dp"
+                    android:layout_height="52dp"
                     android:text="Reenviar Código"
                     android:textColor="@color/primary"
-                    android:textSize="14sp"
+                    android:textSize="16sp"
+                    android:fontFamily="sans-serif-medium"
                     app:strokeColor="@color/primary"
-                    app:strokeWidth="1dp"
-                    app:cornerRadius="15dp"
+                    app:strokeWidth="2dp"
+                    app:cornerRadius="16dp"
                     app:icon="@drawable/ic_refresh"
                     app:iconGravity="textStart"
+                    app:iconSize="18dp"
                     app:iconTint="@color/primary" />
 
             </LinearLayout>

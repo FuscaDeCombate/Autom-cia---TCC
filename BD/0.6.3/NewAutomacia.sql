@@ -203,15 +203,20 @@ CREATE PROCEDURE Registra_Paciente(
 ) AS 
 BEGIN
 	DECLARE
-		@RetornoCPF BIT = 0,
-		@RetornoNull BIT = 0,
-		@RetornoEmail BIT = 1,
-		@RetornoSenha BIT = 1,
+		@RetornoCPF BIT,
+		@RetornoNull BIT,
+		@RetornoEmail BIT,
+		@RetornoSenha BIT,
 		@CPFT VARCHAR(11),
 		@SenhaT VARCHAR(32),
 		@EmailT VARCHAR(100),
 		@NomeT VARCHAR(100),
 		@Nome_SocialT VARCHAR(100);
+
+	SET @RetornoCPF = 0;
+	SET	@RetornoNull = 0;
+	SET	@RetornoEmail = 1;
+	SET @RetornoSenha = 1;
 	
 	BEGIN TRY
 		-- Limpar dados de entrada
@@ -329,9 +334,13 @@ CREATE PROCEDURE Registra_Funcionario(
 BEGIN
 	DECLARE
 		@SenhaEmpresa VARCHAR(32),
-		@Verificado BIT = 1,
-		@Empresa BIT = 0,
-		@VSenha BIT = 0;
+		@Verificado BIT,
+		@Empresa BIT,
+		@VSenha BIT;
+
+	SET @Verificado = 1;
+	SET @Empresa = 0;
+	SET @VSenha = 0;
 	
 	BEGIN TRY
 		-- Limpar entrada
@@ -442,10 +451,14 @@ CREATE PROCEDURE Registra_Receita (
 ) AS
 BEGIN
 	DECLARE
-		@ID_Funcionario_R BIT = 0,
-		@Senha_Funcionario_R BIT = 0,
-		@CPF_Receita_R BIT = 0,
+		@ID_Funcionario_R BIT,
+		@Senha_Funcionario_R BIT,
+		@CPF_Receita_R BIT,
 		@SenhaArmazenada VARCHAR(32);
+
+	SET @ID_Funcionario = 0;
+	SET @Senha_Funcionario_R = 0;
+	SET @CPF_Receita_R = 0;
 
 	BEGIN TRY
 		-- Verificar funcionário
@@ -768,9 +781,11 @@ CREATE PROCEDURE Alt_Paciente(
 ) AS 
 BEGIN
 	DECLARE 
-		@RetornoEmail BIT = 1,
+		@RetornoEmail BIT,
 		@SenhaArmazenada VARCHAR(32),
 		@EmailT VARCHAR(100);
+
+	SET @RetornoEmail = 1;
 
 	BEGIN TRY
 		SET @EmailT = REPLACE(@Email_Alt_P, ' ', '');
@@ -869,7 +884,9 @@ CREATE PROCEDURE Alt_Senha_P(
 	@Alt_Senha VARCHAR(32)
 ) AS
 BEGIN
-	DECLARE @Alt_Senha_R BIT = 0;
+	DECLARE @Alt_Senha_R BIT;
+
+	SET @Alt_Senha_R = 0;
 	
 	BEGIN TRY
 		IF NOT EXISTS (SELECT 1 FROM Paciente WHERE Paciente_F = @Alt_CPF AND Ativo = 1)
@@ -915,10 +932,15 @@ CREATE PROCEDURE Desativa_Funcionario(
 BEGIN
 	DECLARE
 		@SenhaEmpresa VARCHAR(32),
-		@Empresa_Existe BIT = 0,
-		@Senha_Valida BIT = 0,
-		@Funcionario_Existe BIT = 0,
-		@Funcionario_Pertence BIT = 0;
+		@Empresa_Existe BIT,
+		@Senha_Valida BIT,
+		@Funcionario_Existe BIT ,
+		@Funcionario_Pertence BIT;
+
+		SET @Empresa_Existe = 0;
+		SET @Senha_Valida = 0;
+		SET @Funcionario_Existe = 0;
+		SET @Funcionario_Pertence = 0;
 	
 	BEGIN TRY
 		-- Limpar entrada
@@ -992,10 +1014,15 @@ CREATE PROCEDURE Reativa_Funcionario(
 BEGIN
 	DECLARE
 		@SenhaEmpresa VARCHAR(32),
-		@Empresa_Existe BIT = 0,
-		@Senha_Valida BIT = 0,
-		@Funcionario_Existe BIT = 0,
-		@Funcionario_Pertence BIT = 0;
+		@Empresa_Existe BIT,
+		@Senha_Valida BIT,
+		@Funcionario_Existe BIT,
+		@Funcionario_Pertence BIT;
+
+	SET @Empresa_Existe = 0;
+	SET @Senha_Valida = 0;
+	SET @Funcionario_Existe = 0;
+	SET @Funcionario_Pertence = 0;
 	
 	BEGIN TRY
 		-- Limpar entrada
@@ -1069,8 +1096,11 @@ CREATE PROCEDURE Lista_Funcionarios_Empresa(
 BEGIN
 	DECLARE
 		@SenhaEmpresa VARCHAR(32),
-		@Empresa_Existe BIT = 0,
-		@Senha_Valida BIT = 0;
+		@Empresa_Existe BIT,
+		@Senha_Valida BIT;
+
+	SET @Empresa_Existe = 0;
+	SET @Senha_Valida = 0;
 	
 	BEGIN TRY
 		-- Limpar entrada

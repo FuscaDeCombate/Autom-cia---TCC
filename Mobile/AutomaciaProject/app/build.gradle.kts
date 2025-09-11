@@ -49,6 +49,8 @@ dependencies {
     implementation(libs.swiperefreshlayout)
     implementation(libs.circleimageview)
     implementation (libs.nafisbottomnav)
+    implementation(libs.socket.io.client)
+    implementation(libs.net.jtds)
     implementation(libs.kotlin.stdlib.jdk7)
     testImplementation(libs.junit)
     androidTestImplementation(libs.ext.junit)

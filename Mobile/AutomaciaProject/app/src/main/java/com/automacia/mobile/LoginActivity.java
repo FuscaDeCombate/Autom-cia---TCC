@@ -15,6 +15,8 @@ import androidx.core.graphics.Insets;
 import androidx.core.view.ViewCompat;
 import androidx.core.view.WindowInsetsCompat;
 
+import com.automacia.mobile.models.UsuarioDTO;
+import com.automacia.mobile.services.LoginService;
 import com.automacia.mobile.utils.Utils;
 import com.automacia.mobile.watchers.CpfMaskWatcher;
 import com.google.android.material.button.MaterialButton;
@@ -24,7 +26,7 @@ import com.google.android.material.textfield.TextInputLayout;
 
 /**
  * Activity responsável pelo login de usuários
- * Implementa validações em tempo real usando Utils e formatação automática
+ * Implementa validações em tempo real usando Utils e autenticação via banco de dados
  */
 public class LoginActivity extends AppCompatActivity {
 
@@ -58,6 +60,29 @@ public class LoginActivity extends AppCompatActivity {
         setupValidators();
         setupClickListeners();
         loadSavedPreferences();
+    }
+
+    /**
+     * Testa conexão com banco de dados (método de debug)
+     */
+    private void testarConexaoBanco() {
+        showToast("Testando conexão com banco...");
+
+        LoginService.testarConexaoAsync(new LoginService.LoginCallback() {
+            @Override
+            public void onSuccess(UsuarioDTO usuario) {
+                runOnUiThread(() -> {
+                    showToast("Conexão OK! Banco acessível.");
+                });
+            }
+
+            @Override
+            public void onError(String mensagem) {
+                runOnUiThread(() -> {
+                    showToast("Erro na conexão: " + mensagem);
+                });
+            }
+        });
     }
 
     /**
@@ -190,7 +215,7 @@ public class LoginActivity extends AppCompatActivity {
     }
 
     /**
-     * Realiza o login do usuário
+     * Realiza o login do usuário via banco de dados
      */
     private void performLogin() {
         // Validação final usando Utils
@@ -203,11 +228,26 @@ public class LoginActivity extends AppCompatActivity {
         String senha = editSenha.getText().toString();
 
         // Mostrar loading
-        btnLogin.setEnabled(false);
-        btnLogin.setText("Entrando...");
+        setLoginButtonLoading(true);
 
-        // Simular chamada de API (substitua pela sua lógica real)
-        simulateApiCall(cpf, senha);
+        // Realizar login via banco de dados
+        LoginService.loginAsync(cpf, senha, new LoginService.LoginCallback() {
+            @Override
+            public void onSuccess(UsuarioDTO usuario) {
+                runOnUiThread(() -> {
+                    setLoginButtonLoading(false);
+                    handleLoginSuccess(usuario);
+                });
+            }
+
+            @Override
+            public void onError(String mensagem) {
+                runOnUiThread(() -> {
+                    setLoginButtonLoading(false);
+                    handleLoginError(mensagem);
+                });
+            }
+        });
     }
 
     /**
@@ -238,49 +278,36 @@ public class LoginActivity extends AppCompatActivity {
     }
 
     /**
-     * Simula chamada de API
+     * Define o estado de loading do botão de login
      */
-    private void simulateApiCall(String cpf, String senha) {
-        // Simular delay de rede
-        new android.os.Handler().postDelayed(() -> {
-            // Resetar botão
-            btnLogin.setEnabled(true);
-            btnLogin.setText("Entrar");
-
-            // Simular sucesso (substitua pela sua lógica real)
-            if (isValidCredentials(cpf, senha)) {
-                handleLoginSuccess(cpf);
-            } else {
-                handleLoginError("CPF ou senha incorretos");
-            }
-        }, 1500);
-    }
-
-    /**
-     * Verifica se as credenciais são válidas
-     */
-    private boolean isValidCredentials(String cpf, String senha) {
-        // Implementar sua lógica de validação aqui
-        // Por enquanto, aceita qualquer CPF válido com senha >= 6 chars
-        return Utils.isCpfValido(cpf) && senha.length() >= 6;
+    private void setLoginButtonLoading(boolean loading) {
+        btnLogin.setEnabled(!loading);
+        btnLogin.setText(loading ? "Entrando..." : "Entrar");
     }
 
     /**
      * Manipula o sucesso do login
      */
-    private void handleLoginSuccess(String cpf) {
-        showToast("Login realizado com sucesso!");
+    private void handleLoginSuccess(UsuarioDTO usuario) {
+        showToast("Bem-vindo, " + usuario.getNomeExibicao() + "!");
+
+        // Limpar dados sensíveis do usuário
+        usuario.clearSensitiveData();
 
         // Salvar CPF se checkbox estiver marcado
         if (checkboxLembrar.isChecked()) {
-            saveCpfPreference(cpf);
+            saveCpfPreference(usuario.getCpf());
         } else {
             clearSavedCpf();
         }
 
-        // Navegar para MainActivity
+        // Navegar para MainActivity passando dados do usuário
         Intent intent = new Intent(this, MainActivity.class);
-        intent.putExtra("user_cpf", cpf);
+        intent.putExtra("user_cpf", usuario.getCpf());
+        intent.putExtra("user_nome", usuario.getNomeExibicao());
+        intent.putExtra("user_email", usuario.getEmail());
+        intent.putExtra("user_telefone", usuario.getTelefone());
+
         startActivity(intent);
         finish();
     }
@@ -291,9 +318,18 @@ public class LoginActivity extends AppCompatActivity {
     private void handleLoginError(String message) {
         showToast(message);
 
-        // Limpar campos em caso de erro
-        editSenha.setText("");
-        editSenha.requestFocus();
+        // Limpar campos em caso de erro específicos
+        if (message.contains("Senha")) {
+            editSenha.setText("");
+            editSenha.requestFocus();
+        } else if (message.contains("CPF")) {
+            editCpf.requestFocus();
+        }
+
+        // Se for erro de conexão, sugerir verificação
+        if (message.contains("conexão") || message.contains("servidor")) {
+            showToast("Verifique sua conexão com a internet");
+        }
     }
 
     /**
@@ -371,7 +407,11 @@ public class LoginActivity extends AppCompatActivity {
         if (rememberCpf) {
             String savedCpf = preferences.getString(KEY_SAVED_CPF, "");
             if (!Utils.isCampoVazio(savedCpf)) {
+                // O CpfMaskWatcher aplicará a máscara automaticamente
                 editCpf.setText(savedCpf);
+
+                // Focar no campo senha se CPF já estiver preenchido
+                editSenha.requestFocus();
             }
         }
     }
