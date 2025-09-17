@@ -1,4 +1,3 @@
--- SISTEMA AUTOMACIA - ATUALIZADO COM HASH+SALT
 USE master;
 GO
 
@@ -19,18 +18,15 @@ SET DATEFORMAT DMY;
 GO
 
 --===============================================================================================
--- CRIPTOGRAFIA (Mantida para documentação médica)
+-- CRIPTOGRAFIA 
 
--- Criar Master Key
 CREATE MASTER KEY ENCRYPTION BY PASSWORD = '@AlAn21220JoRiVi21081/6969!';
 GO
 
--- Criar Certificados para documentação médica
 CREATE CERTIFICATE Cert_Mensag
 WITH SUBJECT = 'Certificado para Mensagens';
 GO
 
--- Criar Symmetric Keys para documentação médica
 CREATE SYMMETRIC KEY EnK_Mensag 
 WITH ALGORITHM = AES_256 
 ENCRYPTION BY CERTIFICATE Cert_Mensag;
@@ -39,24 +35,13 @@ GO
 --===============================================================================================
 -- FUNÇÕES AUXILIARES PARA HASH+SALT
 
--- Função para gerar salt aleatório
-CREATE FUNCTION dbo.GerarSalt()
-RETURNS VARCHAR(64)
-AS
-BEGIN
-    DECLARE @salt VARCHAR(64)
-    SET @salt = CONVERT(VARCHAR(64), NEWID()) + CONVERT(VARCHAR(64), NEWID())
-    RETURN @salt
-END
-GO
-
 -- Função para gerar hash da senha com salt
 CREATE FUNCTION dbo.HashSenha(@senha VARCHAR(256), @salt VARCHAR(64))
 RETURNS VARCHAR(128)
 AS
 BEGIN
     DECLARE @hash VARCHAR(128)
-    -- Usando SHA2_512 para maior segurança
+    -- Usando SHA2_512 para maior seguran�a
     SET @hash = CONVERT(VARCHAR(128), HASHBYTES('SHA2_512', @senha + @salt), 2)
     RETURN @hash
 END
@@ -67,13 +52,19 @@ CREATE FUNCTION dbo.VerificarSenha(@senha VARCHAR(256), @salt VARCHAR(64), @hash
 RETURNS BIT
 AS
 BEGIN
-    DECLARE @hashCalculado VARCHAR(128)
+    DECLARE @hashCalculado VARCHAR(128), @reto Tinyint;
+
     SET @hashCalculado = dbo.HashSenha(@senha, @salt)
     
     IF @hashCalculado = @hashArmazenado
-        RETURN 1
+		BEGIN
+			Set @reto = 1
+		END
     ELSE
-        RETURN 0
+		BEGIN
+			Set @reto = 0
+		END
+	RETURN @reto;
 END
 GO
 
@@ -197,17 +188,20 @@ INSERT INTO Tipo_Funcionario (ID_Tipo_Funcionario, Tipo_Funci) VALUES
 GO
 
 -- Inserir contratante de exemplo com hash+salt
-DECLARE @salt VARCHAR(64) = dbo.GerarSalt();
-DECLARE @hash VARCHAR(128) = dbo.HashSenha('senha', @salt);
+Go
+DECLARE @salt VARCHAR(64) 
+	Set @salt= CONVERT(VARCHAR(64), NEWID()) + CONVERT(VARCHAR(64), NEWID());
+DECLARE @hash VARCHAR(128) 
+	Set @hash= dbo.HashSenha('senha', @salt);
 
 INSERT INTO Contratante (CNPJ, Documentacao, Nome_Contratante, Senha_Hash, Salt_Contratante) VALUES
         ('1', 0x123456, 'Empresa Teste', @hash, @salt);
 GO
 
 --===============================================================================================
--- PROCEDURES ATUALIZADOS
+-- PROCEDURES
 
--- REGISTRAR PACIENTE - ATUALIZADO
+-- REGISTRAR PACIENTE
 CREATE PROCEDURE Registra_Paciente(
         @CPF VARCHAR(11),
         @Senha VARCHAR(256),
@@ -218,10 +212,10 @@ CREATE PROCEDURE Registra_Paciente(
 ) AS 
 BEGIN
         DECLARE
-                @RetornoCPF BIT = 0,
-                @RetornoNull BIT = 0,
-                @RetornoEmail BIT = 1,
-                @RetornoSenha BIT = 1,
+                @RetornoCPF BIT,
+                @RetornoNull BIT,
+                @RetornoEmail BIT,
+                @RetornoSenha BIT,
                 @CPFT VARCHAR(11),
                 @SenhaT VARCHAR(256),
                 @EmailT VARCHAR(100),
@@ -229,6 +223,11 @@ BEGIN
                 @Nome_SocialT VARCHAR(100),
                 @Salt VARCHAR(64),
                 @Hash VARCHAR(128);
+
+		Set @RetornoCPF = 0;
+		Set @RetornoNull = 0;
+		Set @RetornoEmail = 1;
+		Set @RetornoSenha = 1;
 
         BEGIN TRY
                 -- Limpar dados de entrada
@@ -238,7 +237,7 @@ BEGIN
                 SET @NomeT = LTRIM(RTRIM(@Nome));
                 SET @Nome_SocialT = LTRIM(RTRIM(@Nome_Social));
 
-                -- VERIFICAÇÃO APRIMORADA DE CPF DUPLICADO
+                -- VERIFICA��O APRIMORADA DE CPF DUPLICADO
                 IF EXISTS (SELECT 1 FROM Paciente WHERE Paciente_F = @CPFT)
                 BEGIN
                         SELECT 'CPF já cadastrado no sistema' AS 'Registra_Paciente_Retorno';
@@ -251,21 +250,21 @@ BEGIN
                 ELSE
                         SET @RetornoNull = 1;
 
-                -- Validação básica de email
+                -- Valida��o b�sica de email
                 IF @EmailT NOT LIKE '%@%.%' OR LEN(@EmailT) < 6 OR LEN(@EmailT) > 100
                         SET @RetornoEmail = 0;
 
-                -- Validação básica de CPF
+                -- Valida��o b�sica de CPF
                 IF LEN(@CPFT) = 11 AND ISNUMERIC(@CPFT) = 1
                         SET @RetornoCPF = 1;
 
-                -- Validação de senha (mínimo 6 caracteres)
+                -- Valida��o de senha (m�nimo 6 caracteres)
                 IF LEN(@SenhaT) >= 6
                         SET @RetornoSenha = 1;
                 ELSE
                         SET @RetornoSenha = 0;
 
-                -- Verificar se todas as validações passaram
+                -- Verificar se todas as valida��es passaram
                 IF @RetornoNull = 0 OR @RetornoCPF = 0 OR @RetornoEmail = 0 OR @RetornoSenha = 0
                 BEGIN
                         IF (@RetornoNull = 0) 
@@ -273,14 +272,14 @@ BEGIN
                         ELSE IF (@RetornoCPF = 0) 
                                 SELECT 'CPF deve conter exatamente 11 dígitos numéricos' AS 'Registra_Paciente_Retorno';
                         ELSE IF (@RetornoEmail = 0) 
-                                SELECT 'Email inválido - deve conter @ e domínio' AS 'Registra_Paciente_Retorno';
+                                SELECT 'Email inválido' AS 'Registra_Paciente_Retorno';
                         ELSE IF (@RetornoSenha = 0) 
                                 SELECT 'Senha deve conter no mínimo 6 caracteres' AS 'Registra_Paciente_Retorno';
                 END
                 ELSE 
                 BEGIN
                         -- Gerar salt e hash da senha
-                        SET @Salt = dbo.GerarSalt();
+                        SET @Salt = CONVERT(VARCHAR(64), NEWID()) + CONVERT(VARCHAR(64), NEWID());
                         SET @Hash = dbo.HashSenha(@SenhaT, @Salt);
 
                         -- Inserir paciente com senha hasheada
@@ -297,7 +296,7 @@ BEGIN
 END
 GO
 
--- LOGIN PACIENTE - ATUALIZADO
+-- LOGIN PACIENTE
 CREATE PROCEDURE Login_Paciente(
         @CPF VARCHAR(11),
         @Senha VARCHAR(256)
@@ -308,7 +307,7 @@ BEGIN
                 @HashArmazenado VARCHAR(128);
 
         BEGIN TRY
-                -- Verificar se paciente existe e está ativo
+                -- Verificar se paciente existe e est� ativo
                 IF NOT EXISTS (SELECT 1 FROM Paciente WHERE Paciente_F = @CPF AND Ativo = 1)
                 BEGIN
                         SELECT 'CPF não encontrado ou conta inativa' AS 'Login_Paciente_Retorno';
@@ -319,10 +318,10 @@ BEGIN
                 SELECT @SaltArmazenado = Salt_Paciente, @HashArmazenado = Senha_Hash
                 FROM Paciente WHERE Paciente_F = @CPF AND Ativo = 1;
 
-                -- Verificar senha usando função de verificação
+                -- Verificar senha usando fun��o de verifica��o
                 IF dbo.VerificarSenha(@Senha, @SaltArmazenado, @HashArmazenado) = 1
                 BEGIN
-                        SELECT Paciente_F, Email, Nome_Paciente, Nome_Social, Fone, Data_Criacao, Ativo
+                        SELECT Paciente_F, Senha_Hash, Email, Nome_Paciente, Nome_Social, Fone, Data_Criacao, Ativo
                         FROM Paciente WHERE Paciente_F = @CPF;
                 END
                 ELSE
@@ -337,7 +336,7 @@ BEGIN
 END
 GO
 
--- REGISTRAR FUNCIONÁRIO - ATUALIZADO
+-- REGISTRAR FUNCIONÁRIO
 CREATE PROCEDURE Registra_Funcionario(
         @CNPJ VARCHAR(20),
         @ID_Tipo_Funcionario TINYINT,
@@ -349,11 +348,15 @@ BEGIN
         DECLARE
                 @SaltEmpresa VARCHAR(64),
                 @HashEmpresa VARCHAR(128),
-                @Verificado BIT = 1,
-                @Empresa BIT = 0,
-                @VSenha BIT = 0,
+                @Verificado BIT,
+                @Empresa BIT,
+                @VSenha BIT,
                 @SaltFunc VARCHAR(64),
                 @HashFunc VARCHAR(128);
+
+		Set @Verificado = 1;
+		Set @Empresa = 0;
+		Set @VSenha = 0;
 
         BEGIN TRY
                 -- Limpar entrada
@@ -380,21 +383,21 @@ BEGIN
 
                 IF (@Empresa = 1) AND (@Verificado = 1) AND (@VSenha = 1)
                 BEGIN
-                        -- Gerar salt e hash para funcionário
-                        SET @SaltFunc = dbo.GerarSalt();
+                        -- Gerar salt e hash para funcion�rio
+                        SET @SaltFunc = CONVERT(VARCHAR(64), NEWID()) + CONVERT(VARCHAR(64), NEWID());
                         SET @HashFunc = dbo.HashSenha(@Senha_Funcionario, @SaltFunc);
 
                         INSERT INTO Funcionario (ID_Tipo_Funcionario, Nome_Funcionario, Senha_Hash, Salt_Funcionario, CNPJ) 
                         VALUES (@ID_Tipo_Funcionario, @Nome_Funcionario, @HashFunc, @SaltFunc, @CNPJ);
 
-                        SELECT 'Funcionário registrado com sucesso' AS 'Registra_Funcionario_Retorno';
+                        SELECT 'Funcion�rio registrado com sucesso' AS 'Registra_Funcionario_Retorno';
                 END
                 ELSE
                 BEGIN
                         IF (@Empresa = 0) 
                                 SELECT 'Empresa não encontrada' AS 'Registra_Funcionario_Retorno';
                         ELSE IF (@Verificado = 0) 
-                                SELECT 'Preencha todos os campos (senha mín. 6 caracteres)' AS 'Registra_Funcionario_Retorno';
+                                SELECT 'Preencha todos os campos corretamente' AS 'Registra_Funcionario_Retorno';
                         ELSE IF (@VSenha = 0) 
                                 SELECT 'Senha da empresa incorreta' AS 'Registra_Funcionario_Retorno';
                 END
@@ -430,7 +433,7 @@ BEGIN
                 -- Verificar senha
                 IF dbo.VerificarSenha(@Senha_Funcionario, @SaltArmazenado, @HashArmazenado) = 1
                 BEGIN
-                        SELECT Funcionar_Rec, ID_Tipo_Funcionario, CNPJ, Nome_Funcionario, Data_Criacao, Ativo
+                        SELECT Funcionar_Rec, ID_Tipo_Funcionario, Senha_Hash, CNPJ, Nome_Funcionario, Data_Criacao, Ativo
                         FROM Funcionario WHERE Funcionar_Rec = @ID_Funcionario;
                 END
                 ELSE
@@ -445,7 +448,7 @@ BEGIN
 END
 GO
 
--- REGISTRAR RECEITA - ATUALIZADO
+-- REGISTRAR RECEITA
 CREATE PROCEDURE Registra_Receita (
         @ID_Funcionario INT,
         @Tipo_Funcionario_R TINYINT,
@@ -458,18 +461,22 @@ CREATE PROCEDURE Registra_Receita (
 ) AS
 BEGIN
         DECLARE
-                @ID_Funcionario_R BIT = 0,
-                @Senha_Funcionario_R BIT = 0,
-                @CPF_Receita_R BIT = 0,
+                @ID_Funcionario_R BIT,
+                @Senha_Funcionario_R BIT,
+                @CPF_Receita_R BIT,
                 @SaltArmazenado VARCHAR(64),
                 @HashArmazenado VARCHAR(128);
 
+		Set @ID_Funcionario_R = 0;
+		Set @Senha_Funcionario_R = 0;
+		Set @CPF_Receita_R = 0
+
         BEGIN TRY
-                -- Verificar funcionário
+                -- Verificar funcion�rio
                 IF EXISTS (SELECT 1 FROM Funcionario WHERE Funcionar_Rec = @ID_Funcionario AND Ativo = 1)
                         SET @ID_Funcionario_R = 1;
 
-                -- Verificar senha funcionário
+                -- Verificar senha funcion�rio
                 IF @ID_Funcionario_R = 1
                 BEGIN
                         SELECT @SaltArmazenado = Salt_Funcionario, @HashArmazenado = Senha_Hash
@@ -487,7 +494,7 @@ BEGIN
                 IF @Limite_Baixas = 0
                         SET @Limite_Baixas = NULL;
 
-                -- Verificações finais e inserção
+                -- Verifica��es finais e inser��o
                 IF (@ID_Funcionario_R = 1) AND (@Senha_Funcionario_R = 1) AND (@Tipo_Funcionario_R = 2) AND (@CPF_Receita_R = 1)
                 BEGIN
                         INSERT INTO Receita (Funcionar_Rec, Data_Validade, Medicamento, Detalhes, Limite_Baixas, Paciente_F, Valido, Baixas) 
@@ -514,7 +521,7 @@ BEGIN
 END
 GO
 
--- VER RECEITA (sem alteração necessária)
+-- VER RECEITA
 CREATE PROCEDURE Ver_Receita (
         @CPF_Receita VARCHAR(11)
 ) AS
@@ -535,7 +542,7 @@ BEGIN
 END
 GO
 
--- ALTERAR RECEITA (dar baixa) - ATUALIZADO
+-- ALTERAR RECEITA (dar baixa)
 CREATE PROCEDURE Altera_Receita (
         @ID_Funcionario_Alt INT,
         @Senha_Funcionario_Alt VARCHAR(256),
@@ -551,7 +558,7 @@ BEGIN
                 @Baixas_Atual TINYINT;
 
         BEGIN TRY
-                -- Verificações básicas
+                -- Verifica��es b�sicas
                 IF NOT EXISTS (SELECT 1 FROM Funcionario WHERE Funcionar_Rec = @ID_Funcionario_Alt AND Ativo = 1)
                 BEGIN
                         SELECT 'Funcionário não encontrado ou inativo' AS 'Retorno_Altera_Receita';
@@ -570,7 +577,7 @@ BEGIN
                         RETURN;
                 END
 
-                -- Verificar senha funcionário
+                -- Verificar senha funcion�rio
                 SELECT @SaltArmazenado = Salt_Funcionario, @HashArmazenado = Senha_Hash, @Tipo_Funcionario_Alt = ID_Tipo_Funcionario
                 FROM Funcionario WHERE Funcionar_Rec = @ID_Funcionario_Alt;
 
@@ -582,7 +589,7 @@ BEGIN
 
                 IF @Tipo_Funcionario_Alt != 1
                 BEGIN
-                        SELECT 'Funcionário não tem permissão para dar baixas' AS 'Retorno_Altera_Receita';
+                        SELECT 'Funcionório não tem permissão para dar baixas' AS 'Retorno_Altera_Receita';
                         RETURN;
                 END
 
@@ -607,7 +614,7 @@ BEGIN
 END
 GO
 
--- INSERIR HISTÓRICO - ATUALIZADO
+-- INSERIR HISTÓRICO
 CREATE PROCEDURE Insere_Historico(
         @CPF_Rec VARCHAR(11),
         @Senha_Paciente_Rec VARCHAR(256),
@@ -647,15 +654,11 @@ BEGIN
 END
 GO
 
--- VER HISTÓRICO (PACIENTE) - ATUALIZADO
-CREATE PROCEDURE Ver_Historico_Paciente (
-        @CPF_V_Historico_Pac VARCHAR(11),
-        @Senha_V_Historico_Pac VARCHAR(256)
+-- VER HISTÓRICO
+CREATE PROCEDURE Ver_Historico (
+        @CPF_V_Historico_Pac VARCHAR(11)
 ) AS
 BEGIN
-        DECLARE 
-                @SaltArmazenado VARCHAR(64),
-                @HashArmazenado VARCHAR(128);
 
         BEGIN TRY
                 IF NOT EXISTS (SELECT 1 FROM Paciente WHERE Paciente_F = @CPF_V_Historico_Pac AND Ativo = 1)
@@ -663,22 +666,13 @@ BEGIN
                         SELECT 'CPF não encontrado ou conta inativa' AS 'Retorno_Ver_Histórico';
                         RETURN;
                 END
-
-                -- Obter salt e hash do paciente
-                SELECT @SaltArmazenado = Salt_Paciente, @HashArmazenado = Senha_Hash
-                FROM Paciente WHERE Paciente_F = @CPF_V_Historico_Pac;
-
-                IF dbo.VerificarSenha(@Senha_V_Historico_Pac, @SaltArmazenado, @HashArmazenado) = 1
-                BEGIN
+				ELSE
+					BEGIN
                         SELECT ID_Historico, Registro_Medico, Data_Registro 
                         FROM Historico_Medico 
                         WHERE Paciente_F = @CPF_V_Historico_Pac
                         ORDER BY Data_Registro DESC;
-                END
-                ELSE
-                BEGIN
-                        SELECT 'Senha incorreta' AS 'Retorno_Ver_Histórico';
-                END
+					END
 
         END TRY
         BEGIN CATCH
@@ -687,7 +681,7 @@ BEGIN
 END
 GO
 
--- ENVIAR MENSAGEM (PACIENTE) - Mantém criptografia para mensagens
+-- ENVIAR MENSAGEM (PACIENTE)
 CREATE PROCEDURE Envia_Mensagem_P (
         @ID_Receptor INT,
         @ID_Mensageiro VARCHAR(11),
@@ -727,7 +721,7 @@ BEGIN
 END
 GO
 
--- ENVIAR MENSAGEM (FUNCIONÁRIO) - Mantém criptografia para mensagens
+-- ENVIAR MENSAGEM (FUNCIONÁRIO)
 CREATE PROCEDURE Envia_Mensagem_F (
         @ID_Receptor VARCHAR(11),
         @ID_Mensageiro INT,
@@ -767,7 +761,7 @@ BEGIN
 END
 GO
 
--- ALTERAR PACIENTE - ATUALIZADO
+-- ALTERAR PACIENTE
 CREATE PROCEDURE Alt_Paciente(
         @CPF_Alt_P VARCHAR(11),
         @Senha_Alt_P VARCHAR(256),
@@ -777,15 +771,17 @@ CREATE PROCEDURE Alt_Paciente(
 ) AS 
 BEGIN
         DECLARE 
-                @RetornoEmail BIT = 1,
+                @RetornoEmail BIT,
                 @SaltArmazenado VARCHAR(64),
                 @HashArmazenado VARCHAR(128),
                 @EmailT VARCHAR(100);
 
+		Set @RetornoEmail = 1;
+
         BEGIN TRY
                 SET @EmailT = LTRIM(RTRIM(REPLACE(@Email_Alt_P, ' ', '')));
 
-                -- Validação básica de email
+                -- Valida��o b�sica de email
                 IF @EmailT NOT LIKE '%@%.%' OR LEN(@EmailT) < 6 OR LEN(@EmailT) > 100
                         SET @RetornoEmail = 0;
 
@@ -812,7 +808,7 @@ BEGIN
                         RETURN;
                 END
 
-                -- Realizar alterações
+                -- Realizar altera��es
                 UPDATE Paciente SET 
                         Email = @EmailT,
                         Nome_Paciente = LTRIM(RTRIM(@Nome_Alt_P)),
@@ -828,7 +824,7 @@ BEGIN
 END
 GO
 
--- MOSTRAR CHAT - Mantém descriptografia para mensagens
+-- MOSTRAR CHAT
 CREATE PROCEDURE Mostra_Chat(
         @CPF_M_Chat VARCHAR(11),
         @ID_Funcionario_M_Chat INT
@@ -872,19 +868,20 @@ BEGIN
 END
 GO
 
--- ALTERAR SENHA PACIENTE - ATUALIZADO
+-- ALTERAR SENHA PACIENTE
 CREATE PROCEDURE Alt_Senha_P(
         @Alt_CPF VARCHAR(11),
-        @Senha_Atual VARCHAR(256),
         @Nova_Senha VARCHAR(256)
 ) AS
 BEGIN
         DECLARE 
-                @Alt_Senha_R BIT = 0,
+                @Alt_Senha_R BIT,
                 @SaltArmazenado VARCHAR(64),
                 @HashArmazenado VARCHAR(128),
                 @NovoSalt VARCHAR(64),
                 @NovoHash VARCHAR(128);
+
+		Set @Alt_Senha_R = 0;
 
         BEGIN TRY
                 IF NOT EXISTS (SELECT 1 FROM Paciente WHERE Paciente_F = @Alt_CPF AND Ativo = 1)
@@ -897,12 +894,6 @@ BEGIN
                 SELECT @SaltArmazenado = Salt_Paciente, @HashArmazenado = Senha_Hash
                 FROM Paciente WHERE Paciente_F = @Alt_CPF;
 
-                IF dbo.VerificarSenha(@Senha_Atual, @SaltArmazenado, @HashArmazenado) = 0
-                BEGIN
-                        SELECT 'Senha atual incorreta' AS 'Alt_Senha_Retorno';
-                        RETURN;
-                END
-
                 -- Validar nova senha
                 IF LEN(LTRIM(RTRIM(@Nova_Senha))) >= 6
                         SET @Alt_Senha_R = 1;
@@ -910,7 +901,7 @@ BEGIN
                 IF @Alt_Senha_R = 1
                 BEGIN
                         -- Gerar novo salt e hash
-                        SET @NovoSalt = dbo.GerarSalt();
+                        SET @NovoSalt = CONVERT(VARCHAR(64), NEWID()) + CONVERT(VARCHAR(64), NEWID());
                         SET @NovoHash = dbo.HashSenha(@Nova_Senha, @NovoSalt);
 
                         UPDATE Paciente 
@@ -931,7 +922,7 @@ BEGIN
 END
 GO
 
--- DESATIVAR FUNCIONÁRIO - ATUALIZADO
+-- DESATIVAR FUNCIONÁRIO
 CREATE PROCEDURE Desativa_Funcionario(
         @CNPJ_Contratante VARCHAR(20),
         @Senha_Contratante VARCHAR(256),
@@ -941,10 +932,15 @@ BEGIN
         DECLARE
                 @SaltEmpresa VARCHAR(64),
                 @HashEmpresa VARCHAR(128),
-                @Empresa_Existe BIT = 0,
-                @Senha_Valida BIT = 0,
-                @Funcionario_Existe BIT = 0,
-                @Funcionario_Pertence BIT = 0;
+                @Empresa_Existe BIT,
+                @Senha_Valida BIT,
+                @Funcionario_Existe BIT,
+                @Funcionario_Pertence BIT;
+
+		Set @Empresa_Existe = 0;
+		Set @Senha_Valida = 0;
+		Set @Funcionario_Existe = 0;
+		Set @Funcionario_Pertence = 0;
 
         BEGIN TRY
                 -- Limpar entrada
@@ -964,15 +960,15 @@ BEGIN
                                 SET @Senha_Valida = 1;
                 END
 
-                -- Verificar se funcionário existe e está ativo
+                -- Verificar se funcion�rio existe e est� ativo
                 IF EXISTS (SELECT 1 FROM Funcionario WHERE Funcionar_Rec = @ID_Funcionario AND Ativo = 1)
                         SET @Funcionario_Existe = 1;
 
-                -- Verificar se funcionário pertence à empresa
+                -- Verificar se funcion�rio pertence � empresa
                 IF @Funcionario_Existe = 1 AND EXISTS (SELECT 1 FROM Funcionario WHERE Funcionar_Rec = @ID_Funcionario AND CNPJ = @CNPJ_Contratante)
                         SET @Funcionario_Pertence = 1;
 
-                -- Executar desativação se todas as validações passarem
+                -- Executar desativa��o se todas as valida��es passarem
                 IF (@Empresa_Existe = 1) AND (@Senha_Valida = 1) AND (@Funcionario_Existe = 1) AND (@Funcionario_Pertence = 1)
                 BEGIN
                         UPDATE Funcionario 
@@ -1000,7 +996,7 @@ BEGIN
 END
 GO
 
--- REATIVAR FUNCIONÁRIO - ATUALIZADO
+-- REATIVAR FUNCIONÁRIO
 CREATE PROCEDURE Reativa_Funcionario(
         @CNPJ_Contratante VARCHAR(20),
         @Senha_Contratante VARCHAR(256),
@@ -1010,10 +1006,15 @@ BEGIN
         DECLARE
                 @SaltEmpresa VARCHAR(64),
                 @HashEmpresa VARCHAR(128),
-                @Empresa_Existe BIT = 0,
-                @Senha_Valida BIT = 0,
-                @Funcionario_Existe BIT = 0,
-                @Funcionario_Pertence BIT = 0;
+                @Empresa_Existe BIT,
+                @Senha_Valida BIT,
+                @Funcionario_Existe BIT,
+                @Funcionario_Pertence BIT;
+
+		Set @Empresa_Existe = 0;
+		Set @Senha_Valida = 0;
+		Set @Funcionario_Pertence = 0;
+		Set @Funcionario_Existe = 0;
 
         BEGIN TRY
                 -- Limpar entrada
@@ -1033,15 +1034,15 @@ BEGIN
                                 SET @Senha_Valida = 1;
                 END
 
-                -- Verificar se funcionário existe e está inativo
+                -- Verificar se funcion�rio existe e est� inativo
                 IF EXISTS (SELECT 1 FROM Funcionario WHERE Funcionar_Rec = @ID_Funcionario AND Ativo = 0)
                         SET @Funcionario_Existe = 1;
 
-                -- Verificar se funcionário pertence à empresa
+                -- Verificar se funcion�rio pertence � empresa
                 IF @Funcionario_Existe = 1 AND EXISTS (SELECT 1 FROM Funcionario WHERE Funcionar_Rec = @ID_Funcionario AND CNPJ = @CNPJ_Contratante)
                         SET @Funcionario_Pertence = 1;
 
-                -- Executar reativação se todas as validações passarem
+                -- Executar reativa��o se todas as valida��es passarem
                 IF (@Empresa_Existe = 1) AND (@Senha_Valida = 1) AND (@Funcionario_Existe = 1) AND (@Funcionario_Pertence = 1)
                 BEGIN
                         UPDATE Funcionario 
@@ -1069,18 +1070,21 @@ BEGIN
 END
 GO
 
--- LISTAR FUNCIONÁRIOS DA EMPRESA - ATUALIZADO
+-- LISTAR FUNCIONÁRIOS DA EMPRESA
 CREATE PROCEDURE Lista_Funcionarios_Empresa(
         @CNPJ_Contratante VARCHAR(20),
         @Senha_Contratante VARCHAR(256),
-        @Mostrar_Inativos BIT = 0  -- 0 = só ativos, 1 = todos
+        @Mostrar_Inativos BIT  -- 0 = são ativos, 1 = todos
 ) AS
 BEGIN
         DECLARE
                 @SaltEmpresa VARCHAR(64),
                 @HashEmpresa VARCHAR(128),
-                @Empresa_Existe BIT = 0,
-                @Senha_Valida BIT = 0;
+                @Empresa_Existe BIT,
+                @Senha_Valida BIT;
+
+		Set @Empresa_Existe = 0;
+		Set @Senha_Valida = 0;
 
         BEGIN TRY
                 -- Limpar entrada
@@ -1100,7 +1104,7 @@ BEGIN
                                 SET @Senha_Valida = 1;
                 END
 
-                -- Listar funcionários se validações passarem
+                -- Listar funcion�rios se valida��es passarem
                 IF (@Empresa_Existe = 1) AND (@Senha_Valida = 1)
                 BEGIN
                         SELECT 
@@ -1133,7 +1137,7 @@ BEGIN
 END
 GO
 
--- DESATIVAR PACIENTE - ATUALIZADO
+-- DESATIVAR PACIENTE
 CREATE PROCEDURE Desativa_Paciente(
         @CPF_Paciente VARCHAR(11),
         @Senha_Paciente VARCHAR(256)
@@ -1142,14 +1146,17 @@ BEGIN
         DECLARE
                 @SaltArmazenado VARCHAR(64),
                 @HashArmazenado VARCHAR(128),
-                @Paciente_Existe BIT = 0,
-                @Senha_Valida BIT = 0;
+                @Paciente_Existe BIT,
+                @Senha_Valida BIT;
+
+		Set @Paciente_Existe = 0;
+		Set @Senha_Valida = 0;
 
         BEGIN TRY
                 -- Limpar entrada
                 SET @CPF_Paciente = LTRIM(RTRIM(REPLACE(@CPF_Paciente, ' ', '')));
 
-                -- Verificar se paciente existe e está ativo
+                -- Verificar se paciente existe e est� ativo
                 IF EXISTS (SELECT 1 FROM Paciente WHERE Paciente_F = @CPF_Paciente AND Ativo = 1)
                         SET @Paciente_Existe = 1;
 
@@ -1163,7 +1170,7 @@ BEGIN
                                 SET @Senha_Valida = 1;
                 END
 
-                -- Executar desativação se todas as validações passarem
+                -- Executar desativa��o se todas as valida��es passarem
                 IF (@Paciente_Existe = 1) AND (@Senha_Valida = 1)
                 BEGIN
                         -- Desativar paciente
@@ -1193,46 +1200,45 @@ BEGIN
 END
 GO
 
--- REATIVAR PACIENTE (sem alteração necessária)
+-- REATIVAR PACIENTE
 CREATE PROCEDURE Reativa_Paciente(
         @CPF_Paciente VARCHAR(11),
-        @Email_Paciente VARCHAR(100),
-        @Nome_Completo VARCHAR(100)
+        @Email_Paciente VARCHAR(100)
 ) AS
 BEGIN
         DECLARE
-                @Paciente_Existe BIT = 0,
-                @Email_Valido BIT = 0,
-                @Dados_Conferem BIT = 0,
-                @Nome_Armazenado VARCHAR(100),
+                @Paciente_Existe BIT,
+                @Email_Valido BIT,
+                @Dados_Conferem BIT,
                 @Email_Armazenado VARCHAR(100);
+
+		Set @Paciente_Existe = 0;
+		Set @Email_Valido = 0;
+		Set @Dados_Conferem = 0;
 
         BEGIN TRY
                 -- Limpar entrada
                 SET @CPF_Paciente = LTRIM(RTRIM(REPLACE(@CPF_Paciente, ' ', '')));
                 SET @Email_Paciente = LTRIM(RTRIM(REPLACE(@Email_Paciente, ' ', '')));
-                SET @Nome_Completo = LTRIM(RTRIM(@Nome_Completo));
 
-                -- Validação básica de email
+                -- Valida��o b�sica de email
                 IF @Email_Paciente LIKE '%@%.%' AND LEN(@Email_Paciente) >= 6 AND LEN(@Email_Paciente) <= 100
                         SET @Email_Valido = 1;
 
-                -- Verificar se paciente existe e está inativo
+                -- Verificar se paciente existe e est� inativo
                 IF EXISTS (SELECT 1 FROM Paciente WHERE Paciente_F = @CPF_Paciente AND Ativo = 0)
                         SET @Paciente_Existe = 1;
 
-                -- Verificar se os dados conferem (segurança adicional)
+                -- Verificar se os dados conferem (seguran�a adicional)
                 IF @Paciente_Existe = 1
                 BEGIN
-                        SELECT @Nome_Armazenado = Nome_Paciente, @Email_Armazenado = Email
-                        FROM Paciente WHERE Paciente_F = @CPF_Paciente;
-
-                        -- Verificar se nome e email correspondem
-                        IF @Nome_Armazenado = @Nome_Completo AND @Email_Armazenado = @Email_Paciente
+                        SELECT @Email_Armazenado = Email FROM Paciente WHERE Paciente_F = @CPF_Paciente;
+                        -- Verificar se email corresponde
+                        IF  @Email_Armazenado = @Email_Paciente
                                 SET @Dados_Conferem = 1;
                 END
 
-                -- Executar reativação se todas as validações passarem
+                -- Executar reativa��o se todas as valida��es passarem
                 IF (@Paciente_Existe = 1) AND (@Email_Valido = 1) AND (@Dados_Conferem = 1)
                 BEGIN
                         -- Reativar paciente
@@ -1240,7 +1246,7 @@ BEGIN
                         SET Ativo = 1 
                         WHERE Paciente_F = @CPF_Paciente;
 
-                        SELECT 'Paciente reativado com sucesso. Use a opção de alterar senha se necessário.' AS 'Retorno_Reativa_Paciente';
+                        SELECT 'Paciente reativado com sucesso.' AS 'Retorno_Reativa_Paciente';
                 END
                 ELSE
                 BEGIN
@@ -1259,7 +1265,7 @@ BEGIN
 END
 GO
 
--- ALTERAR SENHA FUNCIONÁRIO - ATUALIZADO
+-- ALTERAR SENHA FUNCIONÁRIO
 CREATE PROCEDURE Alt_Funcionario(
         @ID_Funcionario INT,
         @Nova_Senha VARCHAR(256),
@@ -1270,13 +1276,19 @@ BEGIN
         DECLARE
                 @SaltEmpresa VARCHAR(64),
                 @HashEmpresa VARCHAR(128),
-                @Empresa_Existe BIT = 0,
-                @Senha_Valida BIT = 0,
-                @Funcionario_Existe BIT = 0,
-                @Funcionario_Pertence BIT = 0,
-                @Nova_Senha_Valida BIT = 0,
+                @Empresa_Existe BIT,
+                @Senha_Valida BIT,
+                @Funcionario_Existe BIT,
+                @Funcionario_Pertence BIT,
+                @Nova_Senha_Valida BIT,
                 @NovoSalt VARCHAR(64),
                 @NovoHash VARCHAR(128);
+
+		Set @Empresa_Existe = 0;
+		Set @Senha_Valida = 0;
+		Set @Funcionario_Existe = 0;
+		Set @Funcionario_Pertence = 0;
+		Set @Nova_Senha_Valida = 0;
 
         BEGIN TRY
                 -- Limpar entrada
@@ -1301,19 +1313,19 @@ BEGIN
                                 SET @Senha_Valida = 1;
                 END
 
-                -- Verificar se funcionário existe e está ativo
+                -- Verificar se funcion�rio existe e est� ativo
                 IF EXISTS (SELECT 1 FROM Funcionario WHERE Funcionar_Rec = @ID_Funcionario AND Ativo = 1)
                         SET @Funcionario_Existe = 1;
 
-                -- Verificar se funcionário pertence à empresa
+                -- Verificar se funcion�rio pertence � empresa
                 IF @Funcionario_Existe = 1 AND EXISTS (SELECT 1 FROM Funcionario WHERE Funcionar_Rec = @ID_Funcionario AND CNPJ = @CNPJ_Contratante)
                         SET @Funcionario_Pertence = 1;
 
-                -- Executar alteração da senha se todas as validações passarem
+                -- Executar altera��o da senha se todas as valida��es passarem
                 IF (@Empresa_Existe = 1) AND (@Senha_Valida = 1) AND (@Funcionario_Existe = 1) AND (@Funcionario_Pertence = 1) AND (@Nova_Senha_Valida = 1)
                 BEGIN
                         -- Gerar novo salt e hash
-                        SET @NovoSalt = dbo.GerarSalt();
+                        SET @NovoSalt = CONVERT(VARCHAR(64), NEWID()) + CONVERT(VARCHAR(64), NEWID());
                         SET @NovoHash = dbo.HashSenha(@Nova_Senha, @NovoSalt);
 
                         UPDATE Funcionario 
@@ -1329,7 +1341,7 @@ BEGIN
                         ELSE IF (@Senha_Valida = 0) 
                                 SELECT 'Senha da empresa incorreta' AS 'Retorno_Alt_Funcionario';
                         ELSE IF (@Funcionario_Existe = 0) 
-                                SELECT 'Funcionário não encontrado ou está inativo' AS 'Retorno_Alt_Funcionario';
+                                SELECT 'Funcionário não encontrado ou est� inativo' AS 'Retorno_Alt_Funcionario';
                         ELSE IF (@Funcionario_Pertence = 0) 
                                 SELECT 'Funcionário não pertence a esta empresa' AS 'Retorno_Alt_Funcionario';
                         ELSE IF (@Nova_Senha_Valida = 0) 
@@ -1338,7 +1350,7 @@ BEGIN
 
         END TRY
         BEGIN CATCH
-                SELECT 'Erro ao alterar senha do funcionário' AS 'Retorno_Alt_Funcionario';
+                SELECT 'Erro ao alterar senha do funcion�rio' AS 'Retorno_Alt_Funcionario';
         END CATCH
 END
 GO
@@ -1373,6 +1385,9 @@ BEGIN
 END
 GO
 
+--===============================================================================================
+--TESTES
+
 -- PROCEDURE: Atualizar receitas vencidas
 CREATE PROCEDURE Atualiza_Receita AS 
 BEGIN
@@ -1391,232 +1406,96 @@ BEGIN
 END
 GO
 
--- PROCEDURE: Recuperar Senha Paciente (Nova)
-CREATE PROCEDURE Recuperar_Senha_Paciente(
-        @CPF VARCHAR(11),
-        @Email VARCHAR(100),
-        @Nome_Completo VARCHAR(100),
-        @Nova_Senha VARCHAR(256)
-) AS
-BEGIN
-        DECLARE
-                @Paciente_Existe BIT = 0,
-                @Email_Valido BIT = 0,
-                @Dados_Conferem BIT = 0,
-                @Senha_Valida BIT = 0,
-                @Nome_Armazenado VARCHAR(100),
-                @Email_Armazenado VARCHAR(100),
-                @NovoSalt VARCHAR(64),
-                @NovoHash VARCHAR(128);
-
-        BEGIN TRY
-                -- Limpar entrada
-                SET @CPF = LTRIM(RTRIM(REPLACE(@CPF, ' ', '')));
-                SET @Email = LTRIM(RTRIM(REPLACE(@Email, ' ', '')));
-                SET @Nome_Completo = LTRIM(RTRIM(@Nome_Completo));
-                SET @Nova_Senha = LTRIM(RTRIM(@Nova_Senha));
-
-                -- Validações básicas
-                IF @Email LIKE '%@%.%' AND LEN(@Email) >= 6 AND LEN(@Email) <= 100
-                        SET @Email_Valido = 1;
-
-                IF LEN(@Nova_Senha) >= 6
-                        SET @Senha_Valida = 1;
-
-                -- Verificar se paciente existe e está ativo
-                IF EXISTS (SELECT 1 FROM Paciente WHERE Paciente_F = @CPF AND Ativo = 1)
-                        SET @Paciente_Existe = 1;
-
-                -- Verificar se os dados conferem
-                IF @Paciente_Existe = 1
-                BEGIN
-                        SELECT @Nome_Armazenado = Nome_Paciente, @Email_Armazenado = Email
-                        FROM Paciente WHERE Paciente_F = @CPF;
-
-                        IF @Nome_Armazenado = @Nome_Completo AND @Email_Armazenado = @Email
-                                SET @Dados_Conferem = 1;
-                END
-
-                -- Executar recuperação se todas as validações passarem
-                IF (@Paciente_Existe = 1) AND (@Email_Valido = 1) AND (@Dados_Conferem = 1) AND (@Senha_Valida = 1)
-                BEGIN
-                        -- Gerar novo salt e hash
-                        SET @NovoSalt = dbo.GerarSalt();
-                        SET @NovoHash = dbo.HashSenha(@Nova_Senha, @NovoSalt);
-
-                        -- Atualizar senha
-                        UPDATE Paciente 
-                        SET Senha_Hash = @NovoHash, Salt_Paciente = @NovoSalt
-                        WHERE Paciente_F = @CPF;
-
-                        SELECT 'Senha recuperada com sucesso' AS 'Retorno_Recuperar_Senha';
-                END
-                ELSE
-                BEGIN
-                        IF (@Paciente_Existe = 0) 
-                                SELECT 'CPF não encontrado ou conta inativa' AS 'Retorno_Recuperar_Senha';
-                        ELSE IF (@Email_Valido = 0) 
-                                SELECT 'Email inválido' AS 'Retorno_Recuperar_Senha';
-                        ELSE IF (@Dados_Conferem = 0) 
-                                SELECT 'Dados não conferem com o cadastro' AS 'Retorno_Recuperar_Senha';
-                        ELSE IF (@Senha_Valida = 0) 
-                                SELECT 'Nova senha deve conter no mínimo 6 caracteres' AS 'Retorno_Recuperar_Senha';
-                END
-
-        END TRY
-        BEGIN CATCH
-                SELECT 'Erro ao recuperar senha' AS 'Retorno_Recuperar_Senha';
-        END CATCH
-END
+-- Teste 1: Registrar Paciente
+EXEC Registra_Paciente '54856098802', 'Alanzoca', 'algumEmail@gmail.com', 'Alan', 'Talvez', '(55) +11 975793636';
 GO
 
---===============================================================================================
--- TESTES ATUALIZADOS
+-- Teste 2: Login Paciente (Retorna as informaões e senha criptografada)
+EXEC Login_Paciente '54856098802', 'Alanzoca';
+GO
 
-PRINT '=== INICIANDO TESTES DO SISTEMA AUTOMACIA ATUALIZADO ===';
+-- Teste 3: Registrar Funcionário
+EXEC Registra_Funcionario '1', 1, 'Wanderley', 'senha123', 'senha';
+GO
 
--- Teste 1: Registrar Paciente com validação aprimorada de CPF duplicado
-PRINT 'Teste 1: Registrar Paciente';
-EXEC Registra_Paciente '54856098802', 'MinhaSenh@123', 'teste@email.com', 'João Silva', 'João', '(11) 99999-9999';
-
--- Teste 1b: Tentar registrar mesmo CPF novamente (deve falhar)
-PRINT 'Teste 1b: Tentar registrar CPF duplicado';
-EXEC Registra_Paciente '54856098802', 'OutraSenha456', 'outro@email.com', 'Outro Nome', 'Outro', '(11) 88888-8888';
-
--- Teste 2: Login Paciente com hash+salt
-PRINT 'Teste 2: Login Paciente';
-EXEC Login_Paciente '54856098802', 'MinhaSenh@123';
-
--- Teste 2b: Login com senha incorreta
-PRINT 'Teste 2b: Login com senha incorreta';
-EXEC Login_Paciente '54856098802', 'SenhaErrada';
-
--- Teste 3: Registrar Funcionário com hash+salt
-PRINT 'Teste 3: Registrar Funcionário';
-EXEC Registra_Funcionario '1', 2, 'Dr. Carlos Médico', 'senhaDoMedico123', 'senha';
-
--- Teste 4: Login Funcionário
-PRINT 'Teste 4: Login Funcionário';
-EXEC Login_Funcionario 1, 'senhaDoMedico123';
+-- Teste 4: Login Funcionário (Retorna as informaões e senha criptografada)
+EXEC Login_Funcionario 1, 'senha123';
+GO
 
 -- Teste 5: Registrar Receita
-PRINT 'Teste 5: Registrar Receita';
-EXEC Registra_Receita 1, 2, 'senhaDoMedico123', '31-12-2025', '54856098802', 'Dipirona 500mg', 'Tomar 1 comprimido a cada 6 horas', 3;
+EXEC Registra_Receita 1, 2, 'senha123', '19-12-2025', '54856098802', 'Dorflex', 'Usar 3x ao dia', 3;
+GO
 
 -- Teste 6: Ver Receita
-PRINT 'Teste 6: Ver Receita';
 EXEC Ver_Receita '54856098802';
+GO
 
--- Teste 7: Registrar funcionário de farmácia para teste de baixa
-PRINT 'Teste 7: Registrar Funcionário de Farmácia';
-EXEC Registra_Funcionario '1', 1, 'Maria Farmacêutica', 'senhaFarmacia456', 'senha';
+-- Teste 7: Alterar Receita (dar baixa)
+EXEC Altera_Receita 1, 'senha123', '54856098802', 1;
+GO
 
--- Teste 8: Login do funcionário da farmácia
-PRINT 'Teste 8: Login Funcionário Farmácia';
-EXEC Login_Funcionario 2, 'senhaFarmacia456';
+-- Teste 8: Enviar Mensagem (Paciente)
+EXEC Envia_Mensagem_P 1, '54856098802', 'Mensagem Teste1';
+GO
 
--- Teste 9: Dar baixa na receita
-PRINT 'Teste 9: Dar baixa na receita';
-EXEC Altera_Receita 2, 'senhaFarmacia456', '54856098802', 1;
+-- Teste 9: Enviar Mensagem (Funcionário)
+EXEC Envia_Mensagem_F '54856098802', 1, 'Mensagem Teste2';
+GO
 
--- Teste 10: Enviar Mensagem (Paciente)
-PRINT 'Teste 10: Enviar Mensagem do Paciente';
-EXEC Envia_Mensagem_P 1, '54856098802', 'Olá doutor, gostaria de tirar uma dúvida sobre o medicamento.';
+-- Teste 10: Alterar dados do Paciente
+EXEC Alt_Paciente '54856098802', 'Alanzoca', 'algumEmail@gmail.com', 'Alan2', 'Talvez2';
+GO
 
--- Teste 11: Enviar Mensagem (Funcionário)
-PRINT 'Teste 11: Enviar Mensagem do Funcionário';
-EXEC Envia_Mensagem_F '54856098802', 1, 'Olá! Pode fazer sua pergunta que eu te ajudo.';
-
--- Teste 12: Mostrar Chat
-PRINT 'Teste 12: Mostrar Chat';
+-- Teste 11: Mostrar Chat
 EXEC Mostra_Chat '54856098802', 1;
+GO
 
--- Teste 13: Alterar dados do Paciente
-PRINT 'Teste 13: Alterar dados do Paciente';
-EXEC Alt_Paciente '54856098802', 'MinhaSenh@123', 'novoemail@teste.com', 'João Silva Santos', 'João Santos';
+-- Teste 12: Alterar Senha do Paciente
+EXEC Alt_Senha_P '54856098802', 'Alanzocaaa';
+GO
 
--- Teste 14: Alterar Senha do Paciente
-PRINT 'Teste 14: Alterar Senha do Paciente';
-EXEC Alt_Senha_P '54856098802', 'MinhaSenh@123', 'NovaSenhaSegura789';
-
--- Teste 15: Testar login com nova senha
-PRINT 'Teste 15: Login com nova senha';
-EXEC Login_Paciente '54856098802', 'NovaSenhaSegura789';
-
--- Teste 16: Listar Funcionários da Empresa
-PRINT 'Teste 16: Listar Funcionários';
-EXEC Lista_Funcionarios_Empresa '1', 'senha', 1;
-
--- Teste 17: Desativar Funcionário
-PRINT 'Teste 17: Desativar Funcionário';
-EXEC Desativa_Funcionario '1', 'senha', 1;
-
--- Teste 18: Reativar Funcionário
-PRINT 'Teste 18: Reativar Funcionário';
-EXEC Reativa_Funcionario '1', 'senha', 1;
-
--- Teste 19: Alterar senha do Funcionário
-PRINT 'Teste 19: Alterar senha do Funcionário';
-EXEC Alt_Funcionario 1, 'NovaSenhaMedico999', '1', 'senha';
-
--- Teste 20: Testar nova procedure de recuperar senha
-PRINT 'Teste 20: Recuperar Senha do Paciente';
-EXEC Recuperar_Senha_Paciente '54856098802', 'novoemail@teste.com', 'João Silva Santos', 'SenhaRecuperada123';
-
--- Teste 21: Atualizar Receitas Vencidas
-PRINT 'Teste 21: Atualizar Receitas Vencidas';
+-- Teste 13: Atualizar Receitas
 EXEC Atualiza_Receita;
+GO
 
--- Teste 22: Desativar Paciente
-PRINT 'Teste 22: Desativar Paciente';
-EXEC Desativa_Paciente '54856098802', 'SenhaRecuperada123';
+--Teste 14: Desativar Funcionario
+EXEC Desativa_Funcionario '1', 'senha', '1';
+GO
 
--- Teste 23: Reativar Paciente
-PRINT 'Teste 23: Reativar Paciente';
-EXEC Reativa_Paciente '54856098802', 'novoemail@teste.com', 'João Silva Santos';
+--Teste 15: Listar Funcionarios (Menos os Desativados)
+EXEC Lista_Funcionarios_Empresa '1', 'senha', 0;
+GO
 
---===============================================================================================
--- VERIFICAÇÕES FINAIS
+--Teste 16: Reativa Funcionario
+EXEC Reativa_Funcionario '1', 'senha', '1';
+GO
 
-PRINT '=== VERIFICAÇÕES FINAIS ===';
+--Teste 17: Listar Funcionarios (Todos)
+EXEC Lista_Funcionarios_Empresa '1', 'senha', 1;
+GO
 
--- Ver dados inseridos
-SELECT 'Contratantes' as Tabela, COUNT(*) as Total FROM Contratante
-UNION ALL
-SELECT 'Pacientes', COUNT(*) FROM Paciente
-UNION ALL
-SELECT 'Funcionarios', COUNT(*) FROM Funcionario
-UNION ALL
-SELECT 'Receitas', COUNT(*) FROM Receita
-UNION ALL
-SELECT 'Mensagens', COUNT(*) FROM Mensagem
-UNION ALL
-SELECT 'Historico_Medico', COUNT(*) FROM Historico_Medico;
+--Teste 18: Desativar Paciente
+EXEC Desativa_Paciente '54856098802', 'Alanzocaaa';
+GO
 
--- Verificar algumas funções de hash
-PRINT 'Testando funções de hash:';
-SELECT 
-        'Teste Salt' AS Tipo,
-        dbo.GerarSalt() AS Valor
-UNION ALL
-SELECT 
-        'Teste Hash',
-        dbo.HashSenha('teste123', 'salt_exemplo')
-UNION ALL
-SELECT 
-        'Verificação Senha',
-        CASE 
-                WHEN dbo.VerificarSenha('teste123', 'salt_exemplo', dbo.HashSenha('teste123', 'salt_exemplo')) = 1 
-                THEN 'PASSOU' 
-                ELSE 'FALHOU' 
-        END;
+--Teste 19: Reativa Paciente
+EXEC Reativa_Paciente '54856098802', 'algumEmail@gmail.com';
+GO
 
-PRINT '=== SISTEMA AUTOMACIA ATUALIZADO COM SUCESSO ===';
-PRINT 'Principais melhorias implementadas:';
-PRINT '1. Hash + Salt para todas as senhas (SHA2_512)';
-PRINT '2. Validação aprimorada de CPF duplicado no registro de pacientes';
-PRINT '3. Funções auxiliares para geração e verificação de hash';
-PRINT '4. Mensagens de erro mais descritivas em todos os procedures';
-PRINT '5. Procedure adicional para recuperação de senha';
-PRINT '6. Manutenção da criptografia simétrica apenas para mensagens e documentos médicos';
-PRINT '7. Melhor tratamento de erros e validações de entrada';
+--Teste 20: Altera senha de Funcionário
+EXEC Alt_Funcionario 1, 'novaSenha123', '1', 'senha';
+GO
+--Teste 20.2 Verificar alteração
+EXEC Login_Funcionario 1, 'novaSenha123';
+GO
+
+--Teste 21 Insere Historico
+Declare @Teste VarBinary;
+Set @Teste = CONVERT(VARBINARY(MAX), 'Histórico');
+EXEC Insere_Historico '54856098802', 'Alanzocaaa', @Teste;
+GO
+
+--Teste 22 Ver Historico
+EXEC Ver_Historico '54856098802';
+
+--TÁ FUNCIONANDO PRR!!!
