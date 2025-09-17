@@ -1,5 +1,7 @@
 [versions]
 agp = "8.9.0"
+androidMail = "1.6.7"
+androidActivation = "1.6.7"
 circleimageview = "3.1.0"
 jtdsVersion = "1.3.1"
 junit = "4.13.2"
@@ -14,12 +16,13 @@ lifecycleLivedataKtx = "2.6.1"
 lifecycleViewmodelKtx = "2.6.1"
 coordinatorlayout = "1.3.0"
 kotlin-stdlib = "2.1.0"
-mssqlJdbcVersion = "12.4.1.jre8"
 nafisbottomnav = "5.0"
 socketIoClient = "2.0.0"
 swiperefreshlayout = "1.1.0"
 
 [libraries]
+android-activation = { module = "com.sun.mail:android-activation", version.ref = "androidActivation" }
+android-mail = { module = "com.sun.mail:android-mail", version.ref = "androidMail" }
 circleimageview = { module = "de.hdodenhof:circleimageview", version.ref = "circleimageview" }
 junit = { group = "junit", name = "junit", version.ref = "junit" }
 ext-junit = { group = "androidx.test.ext", name = "junit", version.ref = "junitVersion" }

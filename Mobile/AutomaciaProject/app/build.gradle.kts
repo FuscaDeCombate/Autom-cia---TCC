@@ -34,6 +34,23 @@ android {
         viewBinding = true
         dataBinding = true
     }
+
+    packaging {
+        resources {
+            excludes.addAll(
+                listOf(
+                    "META-INF/NOTICE.md",
+                    "META-INF/NOTICE",
+                    "META-INF/NOTICE.txt",
+                    "META-INF/LICENSE",
+                    "META-INF/LICENSE.txt",
+                    "META-INF/LICENSE.md",
+                    "META-INF/DEPENDENCIES",
+                    "META-INF/DEPENDENCIES.txt"
+                )
+            )
+        }
+    }
 }
 
 dependencies {
@@ -48,9 +65,11 @@ dependencies {
     implementation(libs.coordinatorlayout)
     implementation(libs.swiperefreshlayout)
     implementation(libs.circleimageview)
-    implementation (libs.nafisbottomnav)
+    implementation(libs.nafisbottomnav)
     implementation(libs.socket.io.client)
     implementation(libs.net.jtds)
+    implementation(libs.android.mail)
+    implementation(libs.android.activation)
     implementation(libs.kotlin.stdlib.jdk7)
     testImplementation(libs.junit)
     androidTestImplementation(libs.ext.junit)

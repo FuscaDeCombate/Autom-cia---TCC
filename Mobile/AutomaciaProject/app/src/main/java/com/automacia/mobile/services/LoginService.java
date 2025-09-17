@@ -229,27 +229,6 @@ public class LoginService {
     }
 
     /**
-     * Gera hash MD5 da senha
-     */
-    private static String generateMD5Hash(String input) {
-        try {
-            MessageDigest md = MessageDigest.getInstance("MD5");
-            md.update(input.getBytes());
-            byte[] digest = md.digest();
-
-            StringBuilder sb = new StringBuilder();
-            for (byte b : digest) {
-                sb.append(String.format("%02x", b));
-            }
-            return sb.toString();
-
-        } catch (NoSuchAlgorithmException e) {
-            Log.e(TAG, "MD5 não disponível", e);
-            return null;
-        }
-    }
-
-    /**
      * Classe para encapsular resultado do login
      */
     private static class LoginResult {

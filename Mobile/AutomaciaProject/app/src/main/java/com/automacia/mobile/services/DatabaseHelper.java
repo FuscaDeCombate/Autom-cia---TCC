@@ -5,6 +5,8 @@ import android.util.Log;
 
 import java.sql.Connection;
 import java.sql.DriverManager;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.Locale;
 
@@ -70,15 +72,57 @@ public class DatabaseHelper {
         }
     }
 
+    /**
+     * Testa a conexão com o banco executando uma query simples
+     * Substitui o metodo isValid() que causa AbstractMethodError no Android
+     */
     public static boolean testConnection() {
+        Connection connection = null;
+        PreparedStatement statement = null;
+        ResultSet resultSet = null;
+
         try {
-            Connection connection = getConnection();
-            boolean isValid = connection != null && connection.isValid(5);
-            closeConnection(connection);
-            return isValid;
-        } catch (SQLException e) {
-            Log.e(TAG, "Teste de conexão via jTDS falhou", e);
+            connection = getConnection();
+            if (connection == null || connection.isClosed()) {
+                Log.d(TAG, "Conexão nula ou fechada");
+                return false;
+            }
+
+            // Testa com uma query simples que funciona no SQL Server
+            String testQuery = "SELECT 1 as test_result";
+            statement = connection.prepareStatement(testQuery);
+            resultSet = statement.executeQuery();
+
+            boolean hasResult = resultSet.next();
+            if (hasResult) {
+                int result = resultSet.getInt("test_result");
+                Log.d(TAG, "Teste de conexão bem-sucedido. Resultado: " + result);
+                return true;
+            }
+
+            Log.d(TAG, "Query executada mas sem resultado");
             return false;
+
+        } catch (SQLException e) {
+            Log.e(TAG, "Teste de conexão via jTDS falhou - SQL Error: " + e.getMessage(), e);
+            return false;
+        } catch (Exception e) {
+            Log.e(TAG, "Teste de conexão via jTDS falhou - Erro geral", e);
+            return false;
+        } finally {
+            // Fecha recursos na ordem correta
+            try {
+                if (resultSet != null) {
+                    resultSet.close();
+                }
+                if (statement != null) {
+                    statement.close();
+                }
+            } catch (SQLException e) {
+                Log.e(TAG, "Erro ao fechar recursos do teste", e);
+            } finally {
+                closeConnection(connection);
+            }
         }
     }
 }

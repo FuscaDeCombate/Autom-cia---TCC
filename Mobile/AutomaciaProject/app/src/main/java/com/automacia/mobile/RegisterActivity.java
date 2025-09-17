@@ -5,6 +5,7 @@ import android.os.Bundle;
 import android.text.Editable;
 import android.text.TextWatcher;
 import android.view.View;
+import android.widget.ProgressBar;
 import android.widget.Toast;
 
 import androidx.activity.EdgeToEdge;
@@ -14,6 +15,7 @@ import androidx.core.view.ViewCompat;
 import androidx.core.view.WindowInsetsCompat;
 
 import com.automacia.mobile.models.UsuarioDTO;
+import com.automacia.mobile.services.RegisterService;
 import com.automacia.mobile.utils.Utils;
 import com.automacia.mobile.watchers.CpfMaskWatcher;
 import com.automacia.mobile.watchers.TelefoneMaskWatcher;
@@ -23,7 +25,7 @@ import com.google.android.material.textfield.TextInputLayout;
 
 /**
  * Activity responsável pelo cadastro de novos usuários
- * Implementa validações em tempo real e formatação automática
+ * Implementa validações em tempo real, formatação automática e integração com banco de dados
  */
 public class RegisterActivity extends AppCompatActivity {
 
@@ -34,8 +36,12 @@ public class RegisterActivity extends AppCompatActivity {
     // Botões e controles
     private MaterialButton btnCadastrar, btnGoogle, btnFacebook;
     private View txtLogin;
+    private ProgressBar progressBar;
 
-    // Flags de validação
+    // Services
+    private RegisterService registerService;
+
+    // Flags de validação (somente validações locais)
     private boolean isNomeValido = false;
     private boolean isCpfValido = false;
     private boolean isEmailValido = false;
@@ -49,16 +55,19 @@ public class RegisterActivity extends AppCompatActivity {
         EdgeToEdge.enable(this);
         setContentView(R.layout.activity_register);
 
+        // Inicializa o service
+        registerService = new RegisterService();
+
         setupWindowInsets();
         setupGradientBackground();
         initializeViews();
         setupValidators();
         setupClickListeners();
+
+        // Testa conexão inicial
+        testarConexaoInicial();
     }
 
-    /**
-     * Configura as margens para telas edge-to-edge
-     */
     private void setupWindowInsets() {
         ViewCompat.setOnApplyWindowInsetsListener(findViewById(R.id.main), (v, insets) -> {
             Insets systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars());
@@ -67,19 +76,12 @@ public class RegisterActivity extends AppCompatActivity {
         });
     }
 
-    /**
-     * Aplica o gradiente de fundo
-     */
     private void setupGradientBackground() {
         View mainView = findViewById(R.id.main);
         Utils.applyGradientBackground(mainView);
     }
 
-    /**
-     * Inicializa todas as views
-     */
     private void initializeViews() {
-        // TextInputLayouts
         layoutNome = findViewById(R.id.layoutNome);
         layoutCPF = findViewById(R.id.layoutCPF);
         layoutEmail = findViewById(R.id.layoutEmail);
@@ -87,7 +89,6 @@ public class RegisterActivity extends AppCompatActivity {
         layoutSenha = findViewById(R.id.layoutSenha);
         layoutConSenha = findViewById(R.id.layoutConSenha);
 
-        // EditTexts
         editNomeC = findViewById(R.id.editNomeC);
         editCPF = findViewById(R.id.editCPF);
         editEmail = findViewById(R.id.editEmail);
@@ -95,16 +96,33 @@ public class RegisterActivity extends AppCompatActivity {
         editSenha = findViewById(R.id.editSenha);
         editConSenha = findViewById(R.id.editConSenha);
 
-        // Botões
         btnCadastrar = findViewById(R.id.btnRegistrar);
         btnGoogle = findViewById(R.id.btnGoogle);
         btnFacebook = findViewById(R.id.btnFacebook);
         txtLogin = findViewById(R.id.txtLogin);
+
+        progressBar = findViewById(R.id.progressBar);
+        if (progressBar != null) {
+            progressBar.setVisibility(View.GONE);
+        }
     }
 
-    /**
-     * Configura os validadores em tempo real para todos os campos
-     */
+    private void testarConexaoInicial() {
+        registerService.testarConexao(new RegisterService.CheckExistenceCallback() {
+            @Override
+            public void onResult(boolean ok, String field) {
+                // Conexão OK
+            }
+
+            @Override
+            public void onError(String error) {
+                Toast.makeText(RegisterActivity.this,
+                        "Problema de conexão: " + error,
+                        Toast.LENGTH_LONG).show();
+            }
+        });
+    }
+
     private void setupValidators() {
         setupNomeValidator();
         setupCpfValidator();
@@ -114,13 +132,10 @@ public class RegisterActivity extends AppCompatActivity {
         setupConfirmacaoSenhaValidator();
     }
 
-    /**
-     * Validador para o campo Nome
-     */
     private void setupNomeValidator() {
         editNomeC.addTextChangedListener(new TextWatcher() {
-            @Override
-            public void beforeTextChanged(CharSequence s, int start, int count, int after) {}
+            @Override public void beforeTextChanged(CharSequence s, int start, int count, int after) {}
+            @Override public void afterTextChanged(Editable s) {}
 
             @Override
             public void onTextChanged(CharSequence s, int start, int before, int count) {
@@ -129,68 +144,52 @@ public class RegisterActivity extends AppCompatActivity {
                 isNomeValido = (erro == null);
                 updateButtonState();
             }
-
-            @Override
-            public void afterTextChanged(Editable s) {}
         });
     }
 
-    /**
-     * Validador para o campo CPF com máscara e validação
-     */
     private void setupCpfValidator() {
         // Aplica máscara de CPF
         editCPF.addTextChangedListener(new CpfMaskWatcher(editCPF));
 
-        // Validação do CPF
         editCPF.addTextChangedListener(new TextWatcher() {
-            @Override
-            public void beforeTextChanged(CharSequence s, int start, int count, int after) {}
+            @Override public void beforeTextChanged(CharSequence s, int start, int count, int after) {}
+            @Override public void afterTextChanged(Editable s) {}
 
             @Override
             public void onTextChanged(CharSequence s, int start, int before, int count) {
-                String erro = Utils.validarCpf(s.toString());
+                String cpfText = s.toString();
+                String erro = Utils.validarCpf(cpfText);
                 layoutCPF.setError(erro);
-                isCpfValido = (erro == null && Utils.extrairNumeros(s.toString()).length() == 11);
+
+                String cpfNumeros = Utils.extrairNumeros(cpfText);
+                // validação local: formato e tamanho
+                isCpfValido = (erro == null && cpfNumeros.length() == 11);
                 updateButtonState();
             }
-
-            @Override
-            public void afterTextChanged(Editable s) {}
         });
     }
 
-    /**
-     * Validador para o campo Email
-     */
     private void setupEmailValidator() {
         editEmail.addTextChangedListener(new TextWatcher() {
-            @Override
-            public void beforeTextChanged(CharSequence s, int start, int count, int after) {}
+            @Override public void beforeTextChanged(CharSequence s, int start, int count, int after) {}
+            @Override public void afterTextChanged(Editable s) {}
 
             @Override
             public void onTextChanged(CharSequence s, int start, int before, int count) {
-                String erro = Utils.validarEmail(s.toString());
+                String emailText = s.toString().trim();
+                String erro = Utils.validarEmail(emailText);
                 layoutEmail.setError(erro);
                 isEmailValido = (erro == null);
                 updateButtonState();
             }
-
-            @Override
-            public void afterTextChanged(Editable s) {}
         });
     }
 
-    /**
-     * Validador para o campo Telefone com máscara
-     */
     private void setupTelefoneValidator() {
-        // Aplica máscara de telefone
         editTelefone.addTextChangedListener(new TelefoneMaskWatcher(editTelefone));
-
         editTelefone.addTextChangedListener(new TextWatcher() {
-            @Override
-            public void beforeTextChanged(CharSequence s, int start, int count, int after) {}
+            @Override public void beforeTextChanged(CharSequence s, int start, int count, int after) {}
+            @Override public void afterTextChanged(Editable s) {}
 
             @Override
             public void onTextChanged(CharSequence s, int start, int before, int count) {
@@ -201,19 +200,13 @@ public class RegisterActivity extends AppCompatActivity {
                 isTelefoneValido = (erro == null && telefoneNumeros.length() >= 10 && telefoneNumeros.length() <= 11);
                 updateButtonState();
             }
-
-            @Override
-            public void afterTextChanged(Editable s) {}
         });
     }
 
-    /**
-     * Validador para o campo Senha
-     */
     private void setupSenhaValidator() {
         editSenha.addTextChangedListener(new TextWatcher() {
-            @Override
-            public void beforeTextChanged(CharSequence s, int start, int count, int after) {}
+            @Override public void beforeTextChanged(CharSequence s, int start, int count, int after) {}
+            @Override public void afterTextChanged(Editable s) {}
 
             @Override
             public void onTextChanged(CharSequence s, int start, int before, int count) {
@@ -221,41 +214,28 @@ public class RegisterActivity extends AppCompatActivity {
                 layoutSenha.setError(erro);
                 isSenhaValida = (erro == null);
 
-                //Revalida confirmação de senha
                 if (!Utils.isCampoVazio(editConSenha.getText().toString())) {
                     validarConfirmacaoSenha();
                 }
 
                 updateButtonState();
             }
-
-            @Override
-            public void afterTextChanged(Editable s) {}
         });
     }
 
-    /**
-     * Validador para o campo Confirmação de Senha
-     */
     private void setupConfirmacaoSenhaValidator() {
         editConSenha.addTextChangedListener(new TextWatcher() {
-            @Override
-            public void beforeTextChanged(CharSequence s, int start, int count, int after) {}
+            @Override public void beforeTextChanged(CharSequence s, int start, int count, int after) {}
+            @Override public void afterTextChanged(Editable s) {}
 
             @Override
             public void onTextChanged(CharSequence s, int start, int before, int count) {
                 validarConfirmacaoSenha();
                 updateButtonState();
             }
-
-            @Override
-            public void afterTextChanged(Editable s) {}
         });
     }
 
-    /**
-     * Valida se a confirmação da senha está correta
-     */
     private void validarConfirmacaoSenha() {
         String senha = editSenha.getText().toString();
         String confirmacao = editConSenha.getText().toString();
@@ -265,9 +245,6 @@ public class RegisterActivity extends AppCompatActivity {
         isConfirmacaoValida = (erro == null);
     }
 
-    /**
-     * Atualiza o estado do botão baseado nas validações
-     */
     private void updateButtonState() {
         boolean todosValidos = isNomeValido && isCpfValido && isEmailValido &&
                 isTelefoneValido && isSenhaValida && isConfirmacaoValida;
@@ -276,9 +253,6 @@ public class RegisterActivity extends AppCompatActivity {
         btnCadastrar.setAlpha(todosValidos ? 1.0f : 0.5f);
     }
 
-    /**
-     * Configura os listeners dos botões
-     */
     private void setupClickListeners() {
         btnCadastrar.setOnClickListener(v -> realizarCadastro());
 
@@ -290,110 +264,141 @@ public class RegisterActivity extends AppCompatActivity {
 
         btnGoogle.setOnClickListener(v -> {
             Toast.makeText(this, "Login com Google em desenvolvimento", Toast.LENGTH_SHORT).show();
-            // TODO: Implementar login com Google
         });
 
         btnFacebook.setOnClickListener(v -> {
             Toast.makeText(this, "Login com Facebook em desenvolvimento", Toast.LENGTH_SHORT).show();
-            // TODO: Implementar login com Facebook
         });
     }
 
-    /**
-     * Realiza o cadastro do usuário
-     */
     private void realizarCadastro() {
         if (!validarTodosOsCampos()) {
             return;
         }
 
-        // Desabilita o botão para evitar cliques duplos
-        btnCadastrar.setEnabled(false);
-        btnCadastrar.setText("Cadastrando...");
-
         // Coleta os dados
         UsuarioDTO usuario = coletarDadosUsuario();
 
-        // TODO: Implementar chamada para API/Banco de dados
-        // Por enquanto, simula sucesso
-        simularCadastro(usuario);
+        // Chama o service para registrar
+        registerService.registrarUsuario(usuario, new RegisterService.RegisterCallback() {
+            @Override
+            public void onSuccess(String message) {
+                Toast.makeText(RegisterActivity.this, message, Toast.LENGTH_LONG).show();
+
+                // Redireciona para login com email preenchido
+                Intent intent = new Intent(RegisterActivity.this, LoginActivity.class);
+                intent.putExtra("email", usuario.getEmail());
+                intent.putExtra("cadastro_sucesso", true);
+                startActivity(intent);
+                finish();
+            }
+
+            @Override
+            public void onError(String error) {
+                Toast.makeText(RegisterActivity.this, error, Toast.LENGTH_LONG).show();
+            }
+
+            @Override
+            public void onLoading(boolean isLoading) {
+                btnCadastrar.setEnabled(!isLoading);
+                btnCadastrar.setText(isLoading ? "Cadastrando..." : "Cadastrar");
+
+                if (progressBar != null) {
+                    progressBar.setVisibility(isLoading ? View.VISIBLE : View.GONE);
+                }
+
+                btnGoogle.setEnabled(!isLoading);
+                btnFacebook.setEnabled(!isLoading);
+                txtLogin.setEnabled(!isLoading);
+            }
+        });
     }
 
-    /**
-     * Coleta todos os dados do formulário
-     */
     private UsuarioDTO coletarDadosUsuario() {
         UsuarioDTO usuario = new UsuarioDTO();
         usuario.setNome(editNomeC.getText().toString().trim());
-        usuario.setCpf(editCPF.getText().toString().replaceAll("[^\\d]", ""));
+        usuario.setCpf(Utils.extrairNumeros(editCPF.getText().toString()));
         usuario.setEmail(editEmail.getText().toString().trim().toLowerCase());
-        usuario.setTelefone(editTelefone.getText().toString().replaceAll("[^\\d]", ""));
+        usuario.setTelefone(Utils.extrairNumeros(editTelefone.getText().toString()));
         usuario.setSenha(editSenha.getText().toString());
+
+        // Nome social é opcional - se não preenchido, fica vazio
+        String nomeSocial = editNomeC.getText().toString().trim();
+        usuario.setNomeSocial(nomeSocial.isEmpty() ? "" : nomeSocial);
+
         return usuario;
     }
 
-    /**
-     * Simula o processo de cadastro
-     */
-    private void simularCadastro(UsuarioDTO usuario) {
-        // Simula delay de rede
-        btnCadastrar.postDelayed(() -> {
-            Toast.makeText(this, "Cadastro realizado com sucesso!", Toast.LENGTH_LONG).show();
-
-            // Redireciona para login
-            Intent intent = new Intent(this, LoginActivity.class);
-            intent.putExtra("email", usuario.getEmail());
-            startActivity(intent);
-            finish();
-        }, 1500);
-    }
-
-    /**
-     * Validação final de todos os campos
-     */
     private boolean validarTodosOsCampos() {
-        // Utiliza a função de validação mútipla do Utils
-        String primeiroErro = Utils.validarCampo(
-                Utils.validarNome(editNomeC.getText().toString()),
-                Utils.validarNome(editCPF.getText().toString()),
-                Utils.validarEmail(editEmail.getText().toString()),
-                Utils.validarTelefone(editTelefone.getText().toString()),
-                Utils.validarSenha(editSenha.getText().toString()),
-                Utils.validarConfirmacaoSenha(editSenha.getText().toString(), editConSenha.getText().toString())
-        );
+        boolean todosValidos = true;
 
-        if (primeiroErro != null) {
-            // Aplica os erros individualmente para exibição
-            layoutNome.setError(Utils.validarNome(editNomeC.getText().toString()));
-            layoutCPF.setError(Utils.validarCpf(editCPF.getText().toString()));
-            layoutEmail.setError(Utils.validarEmail(editEmail.getText().toString()));
-            layoutTelefone.setError(Utils.validarTelefone(editTelefone.getText().toString()));
-            layoutSenha.setError(Utils.validarSenha(editSenha.getText().toString()));
-            layoutConSenha.setError(Utils.validarConfirmacaoSenha(editSenha.getText().toString(), editConSenha.getText().toString()));
-            return false;
+        String erroNome = Utils.validarNome(editNomeC.getText().toString());
+        if (erroNome != null) {
+            layoutNome.setError(erroNome);
+            todosValidos = false;
         }
 
-        // Validações adicionais específicas
+        String erroCpf = Utils.validarCpf(editCPF.getText().toString());
         String cpfNumeros = Utils.extrairNumeros(editCPF.getText().toString());
-        if (cpfNumeros.length() != 11) {
-            layoutCPF.setError("CPF deve ter 11 dígitos");
-            return false;
+        if (erroCpf != null || cpfNumeros.length() != 11) {
+            layoutCPF.setError(erroCpf != null ? erroCpf : "CPF deve ter 11 dígitos");
+            todosValidos = false;
         }
 
-        String telefonesNumeros = Utils.extrairNumeros(editTelefone.getText().toString());
-        if (telefonesNumeros.length() < 10 || telefonesNumeros.length() > 11) {
-            layoutTelefone.setError("Telefone deve ter entre 10 a 11 dígitos");
-            return false;
+        String erroEmail = Utils.validarEmail(editEmail.getText().toString());
+        if (erroEmail != null) {
+            layoutEmail.setError(erroEmail);
+            todosValidos = false;
         }
 
-        return true;
+        String erroTelefone = Utils.validarTelefone(editTelefone.getText().toString());
+        String telefoneNumeros = Utils.extrairNumeros(editTelefone.getText().toString());
+        if (erroTelefone != null || telefoneNumeros.length() < 10 || telefoneNumeros.length() > 11) {
+            layoutTelefone.setError(erroTelefone != null ? erroTelefone : "Telefone deve ter entre 10 e 11 dígitos");
+            todosValidos = false;
+        }
+
+        String erroSenha = Utils.validarSenha(editSenha.getText().toString());
+        if (erroSenha != null) {
+            layoutSenha.setError(erroSenha);
+            todosValidos = false;
+        }
+
+        String erroConfirmacao = Utils.validarConfirmacaoSenha(
+                editSenha.getText().toString(),
+                editConSenha.getText().toString()
+        );
+        if (erroConfirmacao != null) {
+            layoutConSenha.setError(erroConfirmacao);
+            todosValidos = false;
+        }
+
+        return todosValidos;
     }
 
     @Override
     protected void onResume() {
         super.onResume();
-        // Reabilita o botão caso tenha sido desabilitado
-        btnCadastrar.setEnabled(true);
-        btnCadastrar.setText("Cadastrar");
+        if (btnCadastrar != null) {
+            updateButtonState();
+            btnCadastrar.setText("Cadastrar");
+        }
+    }
+
+    @Override
+    protected void onDestroy() {
+        super.onDestroy();
+        if (registerService != null) {
+            registerService.shutdown();
+        }
+    }
+
+    @Override
+    public void onBackPressed() {
+        if (btnCadastrar != null && !btnCadastrar.isEnabled()) {
+            Toast.makeText(this, "Aguarde o cadastro ser processado", Toast.LENGTH_SHORT).show();
+            return;
+        }
+        super.onBackPressed();
     }
 }
