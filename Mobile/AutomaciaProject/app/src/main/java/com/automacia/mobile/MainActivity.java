@@ -138,7 +138,7 @@ public class MainActivity extends AppCompatActivity {
      */
     private void initFragments() {
         // Cria instâncias dos fragments
-        homeFragment = new HomeFragment();
+        homeFragment = HomeFragment.newInstance(usuario);
         chatFragment = ChatFragment.newInstance(usuario);
         notifFragment = new NotificationFragment();
         prefFragment = new PreferencesFragment();
