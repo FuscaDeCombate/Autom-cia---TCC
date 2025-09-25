@@ -60,36 +60,34 @@
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:layout_gravity="center"
-                    android:text="Digite seu CPF para receber um código de verificação no seu email"
+                    android:text="Digite seu email para receber um código de verificação"
                     android:textSize="14sp"
                     android:textColor="@color/text_secondary"
                     android:textAlignment="center"
                     android:layout_marginBottom="32dp" />
 
-                <!-- Campo CPF -->
+                <!-- Campo Email -->
                 <com.google.android.material.textfield.TextInputLayout
-                    android:id="@+id/layoutCpf"
+                    android:id="@+id/layoutEmail"
                     style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:layout_marginBottom="24dp"
-                    android:hint="CPF"
+                    android:hint="Email"
                     app:boxStrokeColor="@color/primary"
                     app:hintTextColor="@color/primary"
                     app:errorEnabled="true"
                     app:expandedHintEnabled="true">
 
                     <com.google.android.material.textfield.TextInputEditText
-                        android:id="@+id/editCpf"
+                        android:id="@+id/editEmail"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:inputType="number"
+                        android:inputType="textEmailAddress"
                         android:importantForAutofill="yes"
-                        android:autofillHints="username"
+                        android:autofillHints="emailAddress"
                         android:textColor="@color/text_primary"
-                        android:drawableStart="@drawable/ic_person"
                         android:drawableTint="@color/primary"
-                        android:maxLength="14"
                         android:maxLines="1" />
                 </com.google.android.material.textfield.TextInputLayout>
 

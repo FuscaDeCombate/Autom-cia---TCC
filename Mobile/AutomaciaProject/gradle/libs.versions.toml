@@ -1,8 +1,11 @@
 [versions]
 agp = "8.9.0"
+googleServices = "4.4.0"
 androidMail = "1.6.7"
 androidActivation = "1.6.7"
 circleimageview = "3.1.0"
+firebaseBom = "32.2.3"
+firebaseAuth = "22.1.0"
 jtdsVersion = "1.3.1"
 junit = "4.13.2"
 junitVersion = "1.2.1"
@@ -24,6 +27,8 @@ swiperefreshlayout = "1.1.0"
 android-activation = { module = "com.sun.mail:android-activation", version.ref = "androidActivation" }
 android-mail = { module = "com.sun.mail:android-mail", version.ref = "androidMail" }
 circleimageview = { module = "de.hdodenhof:circleimageview", version.ref = "circleimageview" }
+firebase-auth = { module = "com.google.firebase:firebase-auth", version.ref = "firebaseAuth" }
+firebase-bom = { module = "com.google.firebase:firebase-bom", version.ref = "firebaseBom" }
 junit = { group = "junit", name = "junit", version.ref = "junit" }
 ext-junit = { group = "androidx.test.ext", name = "junit", version.ref = "junitVersion" }
 espresso-core = { group = "androidx.test.espresso", name = "espresso-core", version.ref = "espressoCore" }
@@ -43,4 +48,4 @@ swiperefreshlayout = { module = "androidx.swiperefreshlayout:swiperefreshlayout"
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }
-
+google-services = { id = "com.google.gms.google-services", version.ref = "googleServices" }

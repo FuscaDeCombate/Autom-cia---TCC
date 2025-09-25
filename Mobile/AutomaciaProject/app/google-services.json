@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "897837676738",
+    "project_id": "automacia-4ec6b",
+    "storage_bucket": "automacia-4ec6b.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:897837676738:android:1bdea96cb234380cde635b",
+        "android_client_info": {
+          "package_name": "com.automacia.mobile"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBURTeiGQxM1yWDCSIMrx3yuXiZhtuUOnE"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

@@ -1,10 +1,14 @@
 package com.automacia.mobile.fragments;
 
+import android.animation.ObjectAnimator;
+import android.content.ClipData;
+import android.content.ClipboardManager;
 import android.content.Context;
 import android.os.Bundle;
 import android.os.CountDownTimer;
 import android.os.Handler;
 import android.os.Looper;
+import android.os.Vibrator;
 import android.text.Editable;
 import android.text.TextWatcher;
 import android.view.KeyEvent;
@@ -19,7 +23,6 @@ import androidx.annotation.Nullable;
 import androidx.fragment.app.Fragment;
 
 import com.automacia.mobile.R;
-import com.automacia.mobile.utils.Utils;
 import com.google.android.material.button.MaterialButton;
 import com.google.android.material.textfield.TextInputEditText;
 import com.google.android.material.textfield.TextInputLayout;
@@ -30,10 +33,17 @@ import com.google.android.material.textfield.TextInputLayout;
  */
 public class VerifyCodeFragment extends Fragment {
 
+    // Constantes
     private static final String ARG_EMAIL = "email";
     private static final String ARG_CODE = "verification_code";
     private static final long COUNTDOWN_TIME = 300000; // 5 minutos em milliseconds
     private static final long COUNTDOWN_INTERVAL = 1000; // 1 segundo
+    private static final int CODE_LENGTH = 6;
+    private static final int COUNTDOWN_MINUTES = 5;
+    private static final int VERIFICATION_DELAY_MS = 1500;
+    private static final int AUTO_SUBMIT_DELAY_MS = 500;
+    private static final int VIBRATION_DURATION_MS = 100;
+    private static final int ERROR_ANIMATION_DURATION_MS = 600;
 
     // Views - campos individuais
     private TextInputEditText editCodigo1, editCodigo2, editCodigo3, editCodigo4, editCodigo5, editCodigo6;
@@ -58,6 +68,7 @@ public class VerifyCodeFragment extends Fragment {
 
     // Validação
     private boolean isCodeValid = false;
+    private boolean isVerifying = false;
 
     /**
      * Interface para comunicação com a Activity
@@ -110,6 +121,8 @@ public class VerifyCodeFragment extends Fragment {
 
         initializeViews(view);
         setupCodeInputs();
+        setupPasteHandling();
+        setupAccessibility();
         setupClickListeners();
         updateDescriptionText();
         startCountdown();
@@ -217,6 +230,63 @@ public class VerifyCodeFragment extends Fragment {
     }
 
     /**
+     * Configura tratamento de colar (paste) no código
+     */
+    private void setupPasteHandling() {
+        editCodigo1.setOnLongClickListener(v -> {
+            if (getContext() == null) return false;
+
+            // Interceptar paste para distribuir entre os campos
+            ClipboardManager clipboard = (ClipboardManager) getContext().getSystemService(Context.CLIPBOARD_SERVICE);
+            if (clipboard != null && clipboard.hasPrimaryClip()) {
+                ClipData.Item item = clipboard.getPrimaryClip().getItemAt(0);
+                if (item != null && item.getText() != null) {
+                    String pastedText = item.getText().toString().replaceAll("\\D", ""); // Só números
+
+                    if (pastedText.length() == CODE_LENGTH) {
+                        distributeCodeToFields(pastedText);
+                        Toast.makeText(getContext(), "Código colado automaticamente", Toast.LENGTH_SHORT).show();
+                        return true;
+                    } else {
+                        Toast.makeText(getContext(), "Código deve ter " + CODE_LENGTH + " dígitos", Toast.LENGTH_SHORT).show();
+                    }
+                }
+            }
+            return false;
+        });
+    }
+
+    /**
+     * Distribui o código colado entre os campos
+     */
+    private void distributeCodeToFields(String code) {
+        for (int i = 0; i < Math.min(code.length(), codeInputs.length); i++) {
+            codeInputs[i].setText(String.valueOf(code.charAt(i)));
+        }
+        // Foca no último campo preenchido
+        if (code.length() <= codeInputs.length) {
+            codeInputs[Math.min(code.length() - 1, codeInputs.length - 1)].requestFocus();
+        }
+        validateCode();
+    }
+
+    /**
+     * Configura acessibilidade
+     */
+    private void setupAccessibility() {
+        for (int i = 0; i < codeInputs.length; i++) {
+            codeInputs[i].setContentDescription("Dígito " + (i + 1) + " do código de verificação");
+            codeLayouts[i].setHint("Dígito " + (i + 1));
+        }
+
+        txtDescricao.setContentDescription("Instruções: Digite o código de " + CODE_LENGTH +
+                " dígitos enviado para " + (email != null ? maskEmail(email) : "seu email"));
+
+        btnVerificarCodigo.setContentDescription("Verificar código de recuperação");
+        btnReenviarCodigo.setContentDescription("Reenviar código de verificação");
+    }
+
+    /**
      * Configura os listeners dos botões
      */
     private void setupClickListeners() {
@@ -236,12 +306,18 @@ public class VerifyCodeFragment extends Fragment {
     }
 
     /**
-     * Valida o código completo
+     * Valida o código completo com auto-submit
      */
     private void validateCode() {
         String fullCode = getFullCode();
-        isCodeValid = !Utils.isCampoVazio(fullCode) && fullCode.length() == 6 && fullCode.matches("\\d{6}");
+        isCodeValid = fullCode.length() == CODE_LENGTH &&
+                fullCode.matches("\\d{" + CODE_LENGTH + "}");
         updateButtonState();
+
+        // Auto-submit quando código completo, válido e não está verificando
+        if (isCodeValid && btnVerificarCodigo.isEnabled() && !isVerifying) {
+            new Handler(Looper.getMainLooper()).postDelayed(this::verifyCode, AUTO_SUBMIT_DELAY_MS);
+        }
     }
 
     /**
@@ -266,13 +342,28 @@ public class VerifyCodeFragment extends Fragment {
     }
 
     /**
-     * Mostra erro visual nos campos
+     * Mostra erro visual nos campos com animação e vibração
      */
     private void showCodeError(String message) {
+        // Animação sutil de shake nos campos
         for (TextInputLayout layout : codeLayouts) {
             layout.setError(" "); // Espaço para mostrar cor de erro sem texto
+
+            // Adicionar animação de shake
+            ObjectAnimator.ofFloat(layout, "translationX", 0, 25, -25, 25, -25, 15, -15, 6, -6, 0)
+                    .setDuration(ERROR_ANIMATION_DURATION_MS)
+                    .start();
         }
+
         layoutCodigo.setError(message); // Mensagem no campo oculto para compatibilidade
+
+        // Vibração tátil
+        if (getContext() != null) {
+            Vibrator vibrator = (Vibrator) getContext().getSystemService(Context.VIBRATOR_SERVICE);
+            if (vibrator != null && vibrator.hasVibrator()) {
+                vibrator.vibrate(VIBRATION_DURATION_MS);
+            }
+        }
     }
 
     /**
@@ -291,7 +382,7 @@ public class VerifyCodeFragment extends Fragment {
     private void updateDescriptionText() {
         if (email != null) {
             String emailMascarado = maskEmail(email);
-            String descricao = "Digite o código de 6 dígitos enviado para " + emailMascarado;
+            String descricao = "Digite o código de " + CODE_LENGTH + " dígitos enviado para " + emailMascarado;
             txtDescricao.setText(descricao);
         }
     }
@@ -300,8 +391,9 @@ public class VerifyCodeFragment extends Fragment {
      * Atualiza o estado do botão de verificar
      */
     private void updateButtonState() {
-        btnVerificarCodigo.setEnabled(isCodeValid);
-        btnVerificarCodigo.setAlpha(isCodeValid ? 1.0f : 0.6f);
+        boolean enabled = isCodeValid && !isVerifying;
+        btnVerificarCodigo.setEnabled(enabled);
+        btnVerificarCodigo.setAlpha(enabled ? 1.0f : 0.6f);
     }
 
     /**
@@ -330,6 +422,7 @@ public class VerifyCodeFragment extends Fragment {
                 txtCountdown.setVisibility(View.GONE);
                 btnReenviarCodigo.setEnabled(true);
                 btnReenviarCodigo.setAlpha(1.0f);
+                btnReenviarCodigo.setContentDescription("Reenviar código de verificação - disponível agora");
             }
         };
 
@@ -343,11 +436,16 @@ public class VerifyCodeFragment extends Fragment {
         String codigoInserido = getFullCode();
 
         if (!isCodeValid) {
-            showCodeError("Código deve ter 6 dígitos");
+            showCodeError("Código deve ter " + CODE_LENGTH + " dígitos");
             return;
         }
 
+        if (isVerifying) {
+            return; // Evita múltiplas verificações simultâneas
+        }
+
         // Mostrar loading
+        isVerifying = true;
         btnVerificarCodigo.setEnabled(false);
         btnVerificarCodigo.setText("Verificando...");
 
@@ -360,6 +458,8 @@ public class VerifyCodeFragment extends Fragment {
      */
     private void simulateCodeVerification(String code) {
         new Handler(Looper.getMainLooper()).postDelayed(() -> {
+            isVerifying = false;
+
             if (code.equals(expectedCode)) {
                 // Código correto
                 Toast.makeText(getContext(), "Código verificado com sucesso!", Toast.LENGTH_SHORT).show();
@@ -370,14 +470,14 @@ public class VerifyCodeFragment extends Fragment {
             } else {
                 // Código incorreto
                 showCodeError("Código incorreto. Tente novamente.");
-                btnVerificarCodigo.setEnabled(true);
                 btnVerificarCodigo.setText("Verificar Código");
+                updateButtonState();
 
                 // Limpa os campos e redefine foco
                 clearAllFields();
                 Toast.makeText(getContext(), "Código incorreto", Toast.LENGTH_SHORT).show();
             }
-        }, 1500); // 1.5 segundos de delay
+        }, VERIFICATION_DELAY_MS);
     }
 
     /**
@@ -411,7 +511,7 @@ public class VerifyCodeFragment extends Fragment {
         }
 
         String maskedUsername = username.substring(0, 2) +
-                "*".repeat(username.length() - 2);
+                "*".repeat(Math.max(0, username.length() - 2));
 
         return maskedUsername + "@" + domain;
     }
@@ -421,6 +521,7 @@ public class VerifyCodeFragment extends Fragment {
         super.onDestroyView();
         if (countDownTimer != null) {
             countDownTimer.cancel();
+            countDownTimer = null;
         }
     }
 

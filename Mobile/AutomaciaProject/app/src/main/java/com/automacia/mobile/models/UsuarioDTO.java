@@ -1,12 +1,15 @@
 package com.automacia.mobile.models;
 
+import java.io.Serializable;
 import java.util.Date;
 
 /**
  * DTO para representar um usuário/paciente do sistema
  * Mapeia os campos da tabela Paciente do banco de dados
  */
-public class UsuarioDTO {
+public class UsuarioDTO implements Serializable {
+    private static final long serialVersionUID = 1L;
+
     private String cpf;           // Paciente_F
     private String nome;          // Nome_Paciente
     private String nomeSocial;    // Nome_Social

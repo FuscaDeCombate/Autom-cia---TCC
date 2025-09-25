@@ -26,16 +26,17 @@ public class ForgotPasswordActivity extends AppCompatActivity implements
         VerifyCodeFragment.OnCodeVerifiedListener,
         ResetPasswordFragment.OnPasswordResetListener {
 
-    // Constantes para identificar os fragments
-    public static final String FRAGMENT_SEND_CODE = "send_code";
-    public static final String FRAGMENT_VERIFY_CODE = "verify_code";
-    public static final String FRAGMENT_RESET_PASSWORD = "reset_password";
+    // Tags dos fragments
+    private static final String FRAGMENT_SEND_CODE = "send_code";
+    private static final String FRAGMENT_VERIFY_CODE = "verify_code";
+    private static final String FRAGMENT_RESET_PASSWORD = "reset_password";
 
-    // Views
+    // Títulos das telas
+    private static final String TITLE_RECOVER_PASSWORD = "Recuperar Senha";
+    private static final String TITLE_VERIFY_CODE = "Verificar Código";
+    private static final String TITLE_NEW_PASSWORD = "Nova Senha";
+
     private MaterialToolbar toolbar;
-
-    // Dados compartilhados entre fragments
-    private String userCpf;
     private String userEmail;
     private String verificationCode;
 
@@ -48,70 +49,41 @@ public class ForgotPasswordActivity extends AppCompatActivity implements
         setupWindowInsets();
         initializeViews();
         setupToolbar();
-        handleIntentData();
         showSendCodeFragment();
     }
 
-    /**
-     * Configura as margens para telas edge-to-edge
-     */
     private void setupWindowInsets() {
-        ViewCompat.setOnApplyWindowInsetsListener(findViewById(R.id.main), (v, insets) -> {
+        View mainView = findViewById(R.id.main);
+        ViewCompat.setOnApplyWindowInsetsListener(mainView, (v, insets) -> {
             Insets systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars());
             v.setPadding(systemBars.left, systemBars.top, systemBars.right, systemBars.bottom);
             return insets;
         });
-
-        View mainView = findViewById(R.id.main);
         Utils.applyGradientBackground(mainView);
     }
 
-    /**
-     * Inicializa as views
-     */
     private void initializeViews() {
         toolbar = findViewById(R.id.toolbar);
     }
 
-    /**
-     * Configura a toolbar
-     */
     private void setupToolbar() {
         setSupportActionBar(toolbar);
         if (getSupportActionBar() != null) {
             getSupportActionBar().setDisplayHomeAsUpEnabled(true);
-            getSupportActionBar().setTitle("Recuperar Senha");
+            getSupportActionBar().setTitle(TITLE_RECOVER_PASSWORD);
         }
-
-        toolbar.setNavigationOnClickListener(v -> onBackPressed());
+        toolbar.setNavigationOnClickListener(v -> handleBackNavigation());
     }
 
-    /**
-     * Processa dados vindos da intent
-     */
-    private void handleIntentData() {
-        String cpfPrefill = getIntent().getStringExtra("cpf_prefill");
-        if (cpfPrefill != null && !cpfPrefill.isEmpty()) {
-            userCpf = cpfPrefill;
-        }
-    }
-
-    /**
-     * Mostra o primeiro fragment (enviar código)
-     */
     private void showSendCodeFragment() {
-        SendCodeFragment fragment = SendCodeFragment.newInstance(userCpf);
-        replaceFragment(fragment, FRAGMENT_SEND_CODE, false);
-        updateToolbarTitle("Recuperar Senha");
+        SendCodeFragment fragment = SendCodeFragment.newInstance();
+        replaceFragment(fragment, FRAGMENT_SEND_CODE);
+        updateToolbarTitle(TITLE_RECOVER_PASSWORD);
     }
 
-    /**
-     * Substitui o fragment atual com animação suave
-     */
-    private void replaceFragment(Fragment fragment, String tag, boolean addToBackStack) {
+    private void replaceFragment(Fragment fragment, String tag) {
         FragmentTransaction transaction = getSupportFragmentManager().beginTransaction();
 
-        // Animações personalizadas
         transaction.setCustomAnimations(
                 R.anim.slide_in_right,
                 R.anim.slide_out_left,
@@ -121,89 +93,69 @@ public class ForgotPasswordActivity extends AppCompatActivity implements
 
         transaction.replace(R.id.fragment_container, fragment, tag);
 
-        if (addToBackStack) {
+        // Adiciona ao back stack apenas se não for o primeiro fragment
+        if (!FRAGMENT_SEND_CODE.equals(tag)) {
             transaction.addToBackStack(tag);
         }
 
         transaction.commit();
     }
 
-    /**
-     * Atualiza o título da toolbar
-     */
     private void updateToolbarTitle(String title) {
         if (getSupportActionBar() != null) {
             getSupportActionBar().setTitle(title);
         }
     }
 
-    // Interface callbacks dos fragments
-
-    @Override
-    public void onCodeSent(String cpf, String email, String code) {
-        this.userCpf = cpf;
-        this.userEmail = email;
-        this.verificationCode = code;
-
-        // Navega para o fragment de verificação
-        VerifyCodeFragment fragment = VerifyCodeFragment.newInstance(email, code);
-        replaceFragment(fragment, FRAGMENT_VERIFY_CODE, true);
-        updateToolbarTitle("Verificar Código");
-    }
-
     @Override
     public void onCodeVerified() {
-        // Navega para o fragment de redefinir senha
-        ResetPasswordFragment fragment = ResetPasswordFragment.newInstance(userCpf);
-        replaceFragment(fragment, FRAGMENT_RESET_PASSWORD, true);
-        updateToolbarTitle("Nova Senha");
+        ResetPasswordFragment fragment = ResetPasswordFragment.newInstance(userEmail);
+        replaceFragment(fragment, FRAGMENT_RESET_PASSWORD);
+        updateToolbarTitle(TITLE_NEW_PASSWORD);
     }
 
     @Override
     public void onResendCodeRequested() {
-        // Volta para o fragment de enviar código mantendo os dados
-        SendCodeFragment fragment = SendCodeFragment.newInstance(userCpf);
-        replaceFragment(fragment, FRAGMENT_SEND_CODE, false);
-        updateToolbarTitle("Recuperar Senha");
+        // Limpa o back stack e volta para o primeiro fragment
+        getSupportFragmentManager().popBackStack(null, androidx.fragment.app.FragmentManager.POP_BACK_STACK_INCLUSIVE);
+        showSendCodeFragment();
     }
 
     @Override
     public void onPasswordReset() {
-        // Senha redefinida com sucesso - volta para login
         setResult(RESULT_OK);
         finish();
         overridePendingTransition(R.anim.slide_in_left, R.anim.slide_out_right);
     }
 
-    @Override
-    public void onBackPressed() {
+    private void handleBackNavigation() {
         Fragment currentFragment = getSupportFragmentManager().findFragmentById(R.id.fragment_container);
 
         if (currentFragment instanceof ResetPasswordFragment) {
-            // Se estiver na tela de redefinir senha, volta para verificar código
             getSupportFragmentManager().popBackStack();
-            updateToolbarTitle("Verificar Código");
+            updateToolbarTitle(TITLE_VERIFY_CODE);
         } else if (currentFragment instanceof VerifyCodeFragment) {
-            // Se estiver na tela de verificar código, volta para enviar código
             getSupportFragmentManager().popBackStack();
-            updateToolbarTitle("Recuperar Senha");
+            updateToolbarTitle(TITLE_RECOVER_PASSWORD);
         } else {
-            // Se estiver na primeira tela, sai da activity
-            super.onBackPressed();
+            finish();
             overridePendingTransition(R.anim.slide_in_left, R.anim.slide_out_right);
         }
     }
 
-    // Getters para os fragments acessarem os dados compartilhados
-    public String getUserCpf() {
-        return userCpf;
+    @Override
+    public void onBackPressed() {
+        super.onBackPressed();
+        handleBackNavigation();
     }
 
-    public String getUserEmail() {
-        return userEmail;
-    }
+    @Override
+    public void onCodeSent(String email, String code) {
+        this.userEmail = email;
+        this.verificationCode = code;
 
-    public String getVerificationCode() {
-        return verificationCode;
+        VerifyCodeFragment fragment = VerifyCodeFragment.newInstance(email, code);
+        replaceFragment(fragment, FRAGMENT_VERIFY_CODE);
+        updateToolbarTitle(TITLE_VERIFY_CODE);
     }
 }

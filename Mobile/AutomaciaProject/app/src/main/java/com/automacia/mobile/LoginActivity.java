@@ -46,7 +46,6 @@ public class LoginActivity extends AppCompatActivity {
     // Flags de validação
     private boolean isCpfValid = false;
     private boolean isSenhaValid = false;
-
     private static final int FORGOT_PASSWORD_REQUEST = 1001;
 
     @Override
@@ -303,10 +302,9 @@ public class LoginActivity extends AppCompatActivity {
 
         // Navegar para MainActivity passando dados do usuário
         Intent intent = new Intent(this, MainActivity.class);
-        intent.putExtra("user_cpf", usuario.getCpf());
-        intent.putExtra("user_nome", usuario.getNomeExibicao());
-        intent.putExtra("user_email", usuario.getEmail());
-        intent.putExtra("user_telefone", usuario.getTelefone());
+
+        MyApp app = (MyApp) getApplicationContext();
+        app.setUsuarioLogado(usuario); // Salva usuario na aplicação globalmente
 
         startActivity(intent);
         finish();
@@ -353,14 +351,6 @@ public class LoginActivity extends AppCompatActivity {
      */
     private void handleForgotPassword() {
         Intent intent = new Intent(getBaseContext(), ForgotPasswordActivity.class);
-
-        // Passa o CPF preenchido se houver (para facilitar o processo)
-        String cpfAtual = editCpf.getText().toString().trim();
-        if (!Utils.isCampoVazio(cpfAtual)) {
-            String cpfNumeros = Utils.extrairNumeros(cpfAtual);
-            intent.putExtra("cpf_prefil", cpfNumeros);
-        }
-
         startActivity(intent);
         // Adiciona animação e transição suave
         overridePendingTransition(R.anim.slide_in_right, R.anim.slide_out_left);

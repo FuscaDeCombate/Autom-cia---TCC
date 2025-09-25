@@ -1,11 +1,11 @@
 package com.automacia.mobile.fragments;
 
 import android.content.Context;
+import android.os.AsyncTask;
 import android.os.Bundle;
-import android.os.Handler;
-import android.os.Looper;
 import android.text.Editable;
 import android.text.TextWatcher;
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -17,10 +17,16 @@ import androidx.annotation.Nullable;
 import androidx.fragment.app.Fragment;
 
 import com.automacia.mobile.R;
+import com.automacia.mobile.services.DatabaseHelper;
 import com.automacia.mobile.utils.Utils;
 import com.google.android.material.button.MaterialButton;
 import com.google.android.material.textfield.TextInputEditText;
 import com.google.android.material.textfield.TextInputLayout;
+
+import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.SQLException;
 
 /**
  * Fragment responsável por redefinir a senha
@@ -28,7 +34,15 @@ import com.google.android.material.textfield.TextInputLayout;
  */
 public class ResetPasswordFragment extends Fragment {
 
-    private static final String ARG_CPF = "cpf";
+    // Constantes
+    private static final String TAG = "ResetPasswordFragment";
+    private static final String ARG_EMAIL = "email";
+    private static final int PASSWORD_RESET_DELAY_MS = 2000;
+    private static final String ERROR_GENERIC = "Erro interno. Tente novamente.";
+    private static final String ERROR_INVALID_CPF = "CPF Inválido";
+    private static final String ERROR_INVALID_PASSWORD = "Senha Inválida";
+    private static final String ERROR_INVALID_INFO = "Informações Inválidas";
+    private static final String SUCCESS_MESSAGE = "Senha alterada com sucesso";
 
     // Views
     private TextInputEditText editNovaSenha, editConfirmarSenha;
@@ -40,11 +54,12 @@ public class ResetPasswordFragment extends Fragment {
     private OnPasswordResetListener listener;
 
     // Dados
-    private String cpf;
+    private String email;
 
     // Validação
     private boolean isNovaSenhaValid = false;
     private boolean isConfirmacaoValid = false;
+    private boolean isResetting = false;
 
     /**
      * Interface para comunicação com a Activity
@@ -56,10 +71,10 @@ public class ResetPasswordFragment extends Fragment {
     /**
      * Método factory para criar instância do fragment
      */
-    public static ResetPasswordFragment newInstance(String cpf) {
+    public static ResetPasswordFragment newInstance(String email) {
         ResetPasswordFragment fragment = new ResetPasswordFragment();
         Bundle args = new Bundle();
-        args.putString(ARG_CPF, cpf);
+        args.putString(ARG_EMAIL, email);
         fragment.setArguments(args);
         return fragment;
     }
@@ -78,7 +93,7 @@ public class ResetPasswordFragment extends Fragment {
     public void onCreate(@Nullable Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         if (getArguments() != null) {
-            cpf = getArguments().getString(ARG_CPF);
+            email = getArguments().getString(ARG_EMAIL);
         }
     }
 
@@ -95,6 +110,7 @@ public class ResetPasswordFragment extends Fragment {
         initializeViews(view);
         setupValidators();
         setupClickListeners();
+        setupAccessibility();
     }
 
     /**
@@ -109,6 +125,16 @@ public class ResetPasswordFragment extends Fragment {
         txtDescricao = view.findViewById(R.id.txtDescricao);
 
         updateButtonState();
+    }
+
+    /**
+     * Configura acessibilidade
+     */
+    private void setupAccessibility() {
+        editNovaSenha.setContentDescription("Nova senha - digite sua nova senha");
+        editConfirmarSenha.setContentDescription("Confirmar senha - digite novamente sua nova senha");
+        btnRedefinirSenha.setContentDescription("Redefinir senha");
+        txtDescricao.setContentDescription("Instruções para redefinição de senha");
     }
 
     /**
@@ -178,7 +204,7 @@ public class ResetPasswordFragment extends Fragment {
      * Atualiza o estado do botão
      */
     private void updateButtonState() {
-        boolean isEnabled = isNovaSenhaValid && isConfirmacaoValid;
+        boolean isEnabled = isNovaSenhaValid && isConfirmacaoValid && !isResetting;
         btnRedefinirSenha.setEnabled(isEnabled);
         btnRedefinirSenha.setAlpha(isEnabled ? 1.0f : 0.6f);
     }
@@ -193,14 +219,19 @@ public class ResetPasswordFragment extends Fragment {
             return;
         }
 
+        if (isResetting) {
+            return; // Evita múltiplas execuções
+        }
+
         String novaSenha = editNovaSenha.getText().toString();
 
         // Mostrar loading
+        isResetting = true;
         btnRedefinirSenha.setEnabled(false);
         btnRedefinirSenha.setText("Redefinindo...");
 
-        // Simular chamada de API
-        simulatePasswordReset(cpf, novaSenha);
+        // Executar redefinição de senha no banco
+        new ResetPasswordTask().execute(email, novaSenha);
     }
 
     /**
@@ -227,18 +258,121 @@ public class ResetPasswordFragment extends Fragment {
     }
 
     /**
-     * Simula a redefinição da senha
+     * AsyncTask para buscar CPF pelo email e alterar senha
      */
-    private void simulatePasswordReset(String cpf, String novaSenha) {
-        new Handler(Looper.getMainLooper()).postDelayed(() -> {
-            // Simular sucesso na redefinição
-            Toast.makeText(getContext(), "Senha redefinida com sucesso!", Toast.LENGTH_LONG).show();
+    private class ResetPasswordTask extends AsyncTask<String, Void, String> {
 
-            if (listener != null) {
-                listener.onPasswordReset();
+        @Override
+        protected String doInBackground(String... params) {
+            String emailParam = params[0];
+            String novaSenha = params[1];
+
+            Connection connection = null;
+            PreparedStatement stmtBuscarCpf = null;
+            PreparedStatement stmtAlterarSenha = null;
+            ResultSet resultSet = null;
+
+            try {
+                // Conectar ao banco
+                connection = DatabaseHelper.getConnection();
+                if (connection == null) {
+                    return ERROR_GENERIC;
+                }
+
+                // 1. Buscar CPF pelo email
+                String queryBuscarCpf = "SELECT Paciente_F FROM Paciente WHERE Email = ? AND Ativo = 1";
+                stmtBuscarCpf = connection.prepareStatement(queryBuscarCpf);
+                stmtBuscarCpf.setString(1, emailParam);
+                resultSet = stmtBuscarCpf.executeQuery();
+
+                String cpf = null;
+                if (resultSet.next()) {
+                    cpf = resultSet.getString("Paciente_F");
+                }
+
+                if (cpf == null) {
+                    return "Email não encontrado";
+                }
+
+                // Fechar resources da primeira query
+                resultSet.close();
+                stmtBuscarCpf.close();
+
+                // 2. Executar procedure de alteração de senha
+                String callProcedure = "{CALL Alt_Senha_P(?, ?)}";
+                stmtAlterarSenha = connection.prepareCall(callProcedure);
+                stmtAlterarSenha.setString(1, cpf);
+                stmtAlterarSenha.setString(2, novaSenha);
+
+                ResultSet procedureResult = stmtAlterarSenha.executeQuery();
+
+                String resultado = ERROR_GENERIC;
+                if (procedureResult.next()) {
+                    resultado = procedureResult.getString("Alt_Senha_Retorno");
+                }
+
+                procedureResult.close();
+                return resultado;
+
+            } catch (SQLException e) {
+                Log.e(TAG, "Erro SQL ao redefinir senha", e);
+                return ERROR_GENERIC;
+            } catch (Exception e) {
+                Log.e(TAG, "Erro geral ao redefinir senha", e);
+                return ERROR_GENERIC;
+            } finally {
+                // Limpar resources
+                try {
+                    if (resultSet != null) resultSet.close();
+                    if (stmtBuscarCpf != null) stmtBuscarCpf.close();
+                    if (stmtAlterarSenha != null) stmtAlterarSenha.close();
+                } catch (SQLException e) {
+                    Log.e(TAG, "Erro ao fechar resources", e);
+                }
+                DatabaseHelper.closeConnection(connection);
             }
+        }
 
-        }, 2000); // 2 segundos de delay
+        @Override
+        protected void onPostExecute(String resultado) {
+            isResetting = false;
+            btnRedefinirSenha.setText("Redefinir Senha");
+            updateButtonState();
+
+            if (getContext() == null) return;
+
+            // Processar resultado da procedure
+            if (SUCCESS_MESSAGE.equals(resultado)) {
+                Toast.makeText(getContext(), "Senha redefinida com sucesso!", Toast.LENGTH_LONG).show();
+
+                if (listener != null) {
+                    listener.onPasswordReset();
+                }
+            } else {
+                // Mostrar erro específico
+                String mensagemErro;
+                switch (resultado) {
+                    case ERROR_INVALID_CPF:
+                        mensagemErro = "Email não encontrado em nossa base de dados";
+                        break;
+                    case ERROR_INVALID_PASSWORD:
+                        mensagemErro = "A senha deve ter pelo menos 6 caracteres";
+                        break;
+                    case ERROR_INVALID_INFO:
+                        mensagemErro = "Dados inválidos. Tente novamente";
+                        break;
+                    case "Email não encontrado":
+                        mensagemErro = "Email não encontrado. Verifique se está correto";
+                        break;
+                    default:
+                        mensagemErro = "Erro ao redefinir senha. Tente novamente";
+                        break;
+                }
+
+                Toast.makeText(getContext(), mensagemErro, Toast.LENGTH_LONG).show();
+                Log.e(TAG, "Erro na redefinição: " + resultado);
+            }
+        }
     }
 
     @Override

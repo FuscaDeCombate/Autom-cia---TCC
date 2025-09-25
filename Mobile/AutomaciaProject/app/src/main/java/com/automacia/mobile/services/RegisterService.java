@@ -1,68 +1,244 @@
 package com.automacia.mobile.services;
 
+import android.content.Context;
 import android.os.Handler;
 import android.os.Looper;
 import android.util.Log;
 
 import com.automacia.mobile.models.UsuarioDTO;
+import com.google.firebase.FirebaseApp;
+import com.google.firebase.auth.FirebaseAuth;
+import com.google.firebase.auth.FirebaseUser;
+import com.google.firebase.auth.ActionCodeSettings;
 
 import java.sql.Connection;
 import java.sql.PreparedStatement;
-import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
 /**
  * Service responsável pelas operações de cadastro de usuários
+ * Utiliza Firebase Authentication para autenticação e verificação de email
  * Implementa operações assíncronas para não bloquear a UI
- * Utiliza PreparedStatement para evitar SQL Injection
- * Integrado com EmailService para envio de confirmações
  */
 public class RegisterService {
 
     private static final String TAG = "RegisterService";
     private final ExecutorService executor;
     private final Handler mainHandler;
-    private final EmailService emailService;
+    private FirebaseAuth firebaseAuth;
 
-    public RegisterService() {
+    // URL de fallback - pode ser qualquer URL válida ou o domínio do seu Firebase Hosting
+    private static final String FALLBACK_URL = "https://automacia-4ec6b.firebaseapp.com";
+
+    public RegisterService(Context context) {
         executor = Executors.newSingleThreadExecutor();
         mainHandler = new Handler(Looper.getMainLooper());
-        emailService = new EmailService();
+        initializeFirebase(context);
     }
 
-    /**
-     * Interface para callback do resultado do cadastro
-     */
+    private void initializeFirebase(Context context) {
+        try {
+            FirebaseApp.getInstance();
+            firebaseAuth = FirebaseAuth.getInstance();
+        } catch (IllegalStateException e) {
+            Log.d(TAG, "Inicializando Firebase...");
+            FirebaseApp.initializeApp(context);
+            firebaseAuth = FirebaseAuth.getInstance();
+        }
+    }
+
+    // Callbacks
     public interface RegisterCallback {
+        void onSuccess(String message);
+        void onError(String error);
+        void onLoading(boolean isLoading);
+        void onEmailVerificationSent(String email);
+    }
+
+    public interface CheckExistenceCallback {
+        void onResult(boolean ok, String field);
+        void onError(String error);
+    }
+
+    public interface DatabaseCallback {
         void onSuccess(String message);
         void onError(String error);
         void onLoading(boolean isLoading);
     }
 
     /**
-     * Interface para callback de verificação de existência / status simples
+     * Cria ActionCodeSettings para links de verificação
      */
-    public interface CheckExistenceCallback {
-        void onResult(boolean ok, String field);
-        void onError(String error);
+    private ActionCodeSettings criarActionCodeSettings() {
+        return ActionCodeSettings.newBuilder()
+                .setUrl(FALLBACK_URL) // URL de fallback
+                .setHandleCodeInApp(true)
+                .setAndroidPackageName(
+                        "com.automacia.mobile", // Seu package name
+                        true, // installIfNotAvailable
+                        null  // minimumVersion
+                )
+                .build();
     }
 
     /**
-     * Registra um novo usuário usando PreparedStatement para evitar SQL Injection
-     * Integrado com EmailService para envio automático de confirmação
-     * @param usuario Dados do usuário a ser cadastrado
-     * @param callback Callback para retorno do resultado
+     * Registra um novo usuário usando Firebase Authentication
+     * O Firebase gerará automaticamente o link de verificação correto
      */
     public void registrarUsuario(UsuarioDTO usuario, RegisterCallback callback) {
-        // Indica início do loading
+        if (firebaseAuth == null) {
+            callback.onError("Firebase não está inicializado");
+            return;
+        }
+
+        mainHandler.post(() -> callback.onLoading(true));
+
+        firebaseAuth.createUserWithEmailAndPassword(usuario.getEmail(), usuario.getSenha())
+                .addOnCompleteListener(task -> {
+                    if (task.isSuccessful()) {
+                        FirebaseUser firebaseUser = firebaseAuth.getCurrentUser();
+                        if (firebaseUser != null) {
+                            ActionCodeSettings actionCodeSettings = criarActionCodeSettings();
+
+                            // O Firebase enviará automaticamente o email com o link correto
+                            firebaseUser.sendEmailVerification(actionCodeSettings)
+                                    .addOnCompleteListener(emailTask -> {
+                                        mainHandler.post(() -> callback.onLoading(false));
+
+                                        if (emailTask.isSuccessful()) {
+                                            Log.d(TAG, "Link de verificação enviado automaticamente pelo Firebase para: " + usuario.getEmail());
+                                            mainHandler.post(() -> {
+                                                callback.onEmailVerificationSent(usuario.getEmail());
+                                                callback.onSuccess("Link de verificação enviado! Verifique sua caixa de entrada.");
+                                            });
+                                        } else {
+                                            Log.e(TAG, "Erro ao enviar link de verificação", emailTask.getException());
+                                            mainHandler.post(() ->
+                                                    callback.onError("Erro ao enviar email de confirmação. Tente novamente.")
+                                            );
+                                        }
+                                    });
+                        }
+                    } else {
+                        String errorMessage = mapearErroFirebase(task.getException());
+                        Log.e(TAG, "Erro ao criar conta Firebase", task.getException());
+                        mainHandler.post(() -> {
+                            callback.onLoading(false);
+                            callback.onError(errorMessage);
+                        });
+                    }
+                });
+    }
+
+    /**
+     * Reenvia link de verificação
+     */
+    public void reenviarLinkVerificacao(RegisterCallback callback) {
+        if (firebaseAuth == null) {
+            callback.onError("Firebase não está inicializado");
+            return;
+        }
+
+        FirebaseUser currentUser = firebaseAuth.getCurrentUser();
+        if (currentUser != null) {
+            ActionCodeSettings actionCodeSettings = criarActionCodeSettings();
+
+            currentUser.sendEmailVerification(actionCodeSettings)
+                    .addOnCompleteListener(task -> {
+                        if (task.isSuccessful()) {
+                            Log.d(TAG, "Link de verificação reenviado automaticamente pelo Firebase");
+                            mainHandler.post(() -> {
+                                callback.onEmailVerificationSent(currentUser.getEmail());
+                                callback.onSuccess("Link de verificação reenviado! Verifique sua caixa de entrada.");
+                            });
+                        } else {
+                            Log.e(TAG, "Erro ao reenviar verificação", task.getException());
+                            mainHandler.post(() ->
+                                    callback.onError("Erro ao reenviar link de verificação")
+                            );
+                        }
+                    });
+        } else {
+            callback.onError("Usuário não está logado");
+        }
+    }
+
+    /**
+     * Processa link recebido no app via deep link
+     */
+    public void processarLinkVerificacao(String linkRecebido, RegisterCallback callback) {
+        if (firebaseAuth == null) {
+            callback.onError("Firebase não está inicializado");
+            return;
+        }
+
+        if (firebaseAuth.isSignInWithEmailLink(linkRecebido)) {
+            FirebaseUser currentUser = firebaseAuth.getCurrentUser();
+
+            if (currentUser != null) {
+                currentUser.reload().addOnCompleteListener(task -> {
+                    if (task.isSuccessful()) {
+                        if (currentUser.isEmailVerified()) {
+                            mainHandler.post(() -> callback.onSuccess("Email verificado com sucesso!"));
+                        } else {
+                            mainHandler.post(() -> callback.onError("Email ainda não foi verificado."));
+                        }
+                    } else {
+                        Log.e(TAG, "Erro ao recarregar usuário", task.getException());
+                        mainHandler.post(() -> callback.onError("Erro ao verificar status do email"));
+                    }
+                });
+            } else {
+                callback.onError("Usuário não está logado");
+            }
+        } else {
+            callback.onError("Link de verificação inválido");
+        }
+    }
+
+    /**
+     * Processa a verificação de email de um usuário
+     * Corrigido para não usar isSignInWithEmailLink (que é para login por link mágico)
+     */
+    public void processarLinkVerificacao(RegisterCallback callback) {
+        if (firebaseAuth == null) {
+            callback.onError("Firebase não está inicializado");
+            return;
+        }
+
+        FirebaseUser currentUser = firebaseAuth.getCurrentUser();
+        if (currentUser != null) {
+            currentUser.reload().addOnCompleteListener(task -> {
+                if (task.isSuccessful()) {
+                    if (currentUser.isEmailVerified()) {
+                        Log.d(TAG, "Email verificado com sucesso para: " + currentUser.getEmail());
+                        mainHandler.post(() -> callback.onSuccess("Email verificado com sucesso!"));
+                    } else {
+                        Log.d(TAG, "Email ainda não verificado para: " + currentUser.getEmail());
+                        mainHandler.post(() -> callback.onError("Email ainda não foi verificado."));
+                    }
+                } else {
+                    Log.e(TAG, "Erro ao recarregar usuário", task.getException());
+                    mainHandler.post(() -> callback.onError("Erro ao verificar status do email"));
+                }
+            });
+        } else {
+            callback.onError("Usuário não está logado");
+        }
+    }
+
+    /**
+     * Completa o registro no banco de dados após verificação do email
+     * MÉTODO RESTAURADO que estava faltando
+     */
+    public void completarRegistroNoBanco(UsuarioDTO usuario, DatabaseCallback callback) {
         mainHandler.post(() -> callback.onLoading(true));
 
         executor.execute(() -> {
             Connection connection = null;
             PreparedStatement preparedStatement = null;
-            ResultSet resultSet = null;
 
             try {
                 // Obtém conexão com o banco
@@ -77,286 +253,88 @@ public class RegisterService {
                 preparedStatement.setString(2, usuario.getSenha());
                 preparedStatement.setString(3, usuario.getEmail());
                 preparedStatement.setString(4, usuario.getNome());
-                preparedStatement.setString(5, usuario.getNomeSocial() != null ? usuario.getNomeSocial() : "");
+                preparedStatement.setString(5, usuario.getNomeSocial() != null ? usuario.getNomeSocial() : usuario.getNome());
                 preparedStatement.setString(6, usuario.getTelefone());
 
                 Log.d(TAG, "Executando procedure de cadastro para CPF: " + usuario.getCpf());
 
-                // Executa a query
-                resultSet = preparedStatement.executeQuery();
+                // Executa a procedure
+                boolean hasResultSet = preparedStatement.execute();
 
-                // Verifica se há resultado e processa
-                if (resultSet != null && resultSet.next()) {
-                    String resultado = resultSet.getString("Registra_Paciente_Retorno");
-                    Log.d(TAG, "Resultado da procedure: " + resultado);
-
-                    if ("Registro Concluido".equalsIgnoreCase(resultado)) {
-                        // Sucesso no cadastro - envia email de confirmação
-                        enviarEmailConfirmacao(usuario.getNome(), usuario.getEmail(), callback, usuario);
-                    } else {
-                        // Erro retornado pela procedure
-                        String errorMessage = mapearMensagemErro(resultado);
-                        mainHandler.post(() -> {
-                            callback.onLoading(false);
-                            callback.onError(errorMessage);
-                        });
-                    }
+                if (hasResultSet) {
+                    // Se houve um ResultSet, pode ter retornado dados (erro ou sucesso)
+                    Log.d(TAG, "Procedure executada com sucesso");
                 } else {
-                    // Não há resultado - cadastro executado mas sem retorno
-                    Log.w(TAG, "Procedure executada mas sem resultado. Tentando enviar email mesmo assim.");
-
-                    // Como a procedure pode ter executado com sucesso mesmo sem retorno,
-                    // tentamos enviar o email e considerar sucesso
-                    enviarEmailConfirmacao(usuario.getNome(), usuario.getEmail(), callback, usuario);
+                    // Se não houve ResultSet, a procedure foi executada normalmente
+                    Log.d(TAG, "Cadastro realizado com sucesso no banco");
                 }
+
+                mainHandler.post(() -> {
+                    callback.onLoading(false);
+                    callback.onSuccess("Cadastro realizado com sucesso!");
+                });
 
             } catch (SQLException e) {
-                Log.e(TAG, "Erro SQL durante cadastro", e);
-                mainHandler.post(() -> {
-                    callback.onLoading(false);
-                    String errorMessage = mapearErroSQL(e);
-                    callback.onError(errorMessage);
-                });
-            } catch (Exception e) {
-                Log.e(TAG, "Erro geral durante cadastro", e);
-                mainHandler.post(() -> {
-                    callback.onLoading(false);
-                    callback.onError("Erro de conexão. Verifique sua internet e tente novamente.");
-                });
-            } finally {
-                // Fecha recursos de forma segura
-                closeResources(resultSet, preparedStatement, connection);
-            }
-        });
-    }
+                Log.e(TAG, "Erro SQL ao cadastrar usuário", e);
+                String errorMessage = "Erro no cadastro: ";
 
-    /**
-     * Envia email de confirmação após cadastro bem-sucedido
-     * @param nome Nome do usuário
-     * @param email Email do usuário
-     * @param callback Callback original do registro
-     * @param usuario Dados do usuário para limpeza posterior
-     */
-    private void enviarEmailConfirmacao(String nome, String email, RegisterCallback callback, UsuarioDTO usuario) {
-        emailService.enviarEmailConfirmacao(nome, email, new EmailService.EmailCallback() {
-            @Override
-            public void onSuccess() {
-                // Email enviado com sucesso
-                mainHandler.post(() -> {
-                    callback.onLoading(false);
-                    // Limpa dados sensíveis após sucesso completo
-                    usuario.clearSensitiveData();
-                    callback.onSuccess("Cadastro realizado com sucesso! Verifique seu email para confirmar.");
-                });
-            }
-
-            @Override
-            public void onError(String error) {
-                // Erro no envio do email, mas cadastro foi realizado
-                Log.w(TAG, "Cadastro realizado mas falha no envio de email: " + error);
-                mainHandler.post(() -> {
-                    callback.onLoading(false);
-                    // Limpa dados sensíveis mesmo com erro no email
-                    usuario.clearSensitiveData();
-                    callback.onSuccess("Cadastro realizado com sucesso! Houve um problema no envio do email de confirmação, mas você já pode fazer login.");
-                });
-            }
-        });
-    }
-
-    /**
-     * Verifica se um CPF já existe no sistema
-     * @param cpf CPF a ser verificado
-     * @param callback Callback para retorno do resultado
-     */
-    public void verificarCpfExistente(String cpf, CheckExistenceCallback callback) {
-        executor.execute(() -> {
-            Connection connection = null;
-            PreparedStatement preparedStatement = null;
-            ResultSet resultSet = null;
-
-            try {
-                connection = DatabaseHelper.getConnection();
-                String sql = "SELECT COUNT(*) as total FROM Pacientes WHERE cpf = ?";
-                preparedStatement = connection.prepareStatement(sql);
-                preparedStatement.setString(1, cpf);
-
-                resultSet = preparedStatement.executeQuery();
-
-                if (resultSet.next()) {
-                    int count = resultSet.getInt("total");
-                    boolean existe = count > 0;
-
-                    mainHandler.post(() -> callback.onResult(existe, "CPF"));
+                if (e.getMessage().contains("UNIQUE")) {
+                    errorMessage += "CPF ou email já cadastrado";
+                } else if (e.getMessage().contains("CHECK")) {
+                    errorMessage += "Dados inválidos";
                 } else {
-                    mainHandler.post(() -> callback.onError("Erro ao verificar CPF"));
+                    errorMessage += e.getMessage();
                 }
 
-            } catch (Exception e) {
-                Log.e(TAG, "Erro ao verificar CPF existente", e);
-                mainHandler.post(() -> callback.onError("Erro ao verificar CPF: " + e.getMessage()));
-            } finally {
-                closeResources(resultSet, preparedStatement, connection);
-            }
-        });
-    }
-
-    /**
-     * Verifica se um email já existe no sistema
-     * @param email Email a ser verificado
-     * @param callback Callback para retorno do resultado
-     */
-    public void verificarEmailExistente(String email, CheckExistenceCallback callback) {
-        executor.execute(() -> {
-            Connection connection = null;
-            PreparedStatement preparedStatement = null;
-            ResultSet resultSet = null;
-
-            try {
-                connection = DatabaseHelper.getConnection();
-                String sql = "SELECT COUNT(*) as total FROM Pacientes WHERE email = ?";
-                preparedStatement = connection.prepareStatement(sql);
-                preparedStatement.setString(1, email);
-
-                resultSet = preparedStatement.executeQuery();
-
-                if (resultSet.next()) {
-                    int count = resultSet.getInt("total");
-                    boolean existe = count > 0;
-
-                    mainHandler.post(() -> callback.onResult(existe, "Email"));
-                } else {
-                    mainHandler.post(() -> callback.onError("Erro ao verificar email"));
-                }
-
-            } catch (Exception e) {
-                Log.e(TAG, "Erro ao verificar email existente", e);
-                mainHandler.post(() -> callback.onError("Erro ao verificar email: " + e.getMessage()));
-            } finally {
-                closeResources(resultSet, preparedStatement, connection);
-            }
-        });
-    }
-
-    /**
-     * Testa a conexão com o banco de dados
-     * @param callback Callback para retorno do resultado
-     */
-    public void testarConexao(CheckExistenceCallback callback) {
-        executor.execute(() -> {
-            try {
-                boolean isConnected = DatabaseHelper.testConnection();
+                final String finalErrorMessage = errorMessage;
                 mainHandler.post(() -> {
-                    if (isConnected) {
-                        callback.onResult(true, "Conexão");
-                    } else {
-                        callback.onError("Falha na conexão com o servidor");
-                    }
+                    callback.onLoading(false);
+                    callback.onError(finalErrorMessage);
                 });
+
             } catch (Exception e) {
-                Log.e(TAG, "Erro ao testar conexão", e);
-                mainHandler.post(() -> callback.onError("Erro ao testar conexão: " + e.getMessage()));
+                Log.e(TAG, "Erro geral ao cadastrar usuário", e);
+                mainHandler.post(() -> {
+                    callback.onLoading(false);
+                    callback.onError("Erro interno: " + e.getMessage());
+                });
+
+            } finally {
+                // Fecha recursos
+                try {
+                    if (preparedStatement != null) preparedStatement.close();
+                    if (connection != null) connection.close();
+                } catch (SQLException e) {
+                    Log.e(TAG, "Erro ao fechar recursos", e);
+                }
             }
         });
     }
 
-    /**
-     * Fecha recursos de banco de dados de forma segura
-     * @param resultSet ResultSet para fechar
-     * @param statement PreparedStatement para fechar
-     * @param connection Connection para fechar
-     */
-    private void closeResources(ResultSet resultSet, PreparedStatement statement, Connection connection) {
-        try {
-            if (resultSet != null) resultSet.close();
-            if (statement != null) statement.close();
-            DatabaseHelper.closeConnection(connection);
-        } catch (SQLException e) {
-            Log.e(TAG, "Erro ao fechar recursos", e);
+    // ======================================
+    // Utilitários de erros e shutdown
+    // ======================================
+    private String mapearErroFirebase(Exception exception) {
+        if (exception == null) return "Erro desconhecido";
+        String errorMessage = exception.getMessage();
+        if (errorMessage == null) return "Erro de autenticação";
+
+        if (errorMessage.contains("email-already-in-use")) {
+            return "Este email já está cadastrado";
+        } else if (errorMessage.contains("invalid-email")) {
+            return "Email inválido";
+        } else if (errorMessage.contains("weak-password")) {
+            return "A senha deve ter pelo menos 6 caracteres";
+        } else if (errorMessage.contains("network-request-failed")) {
+            return "Erro de conexão. Verifique sua internet";
+        } else {
+            return "Erro durante o cadastro: " + errorMessage;
         }
     }
 
-    /**
-     * Mapeia mensagens de erro da procedure para mensagens mais amigáveis
-     * @param mensagemProcedure Mensagem retornada pela procedure
-     * @return Mensagem amigável para o usuário
-     */
-    private String mapearMensagemErro(String mensagemProcedure) {
-        if (mensagemProcedure == null) return "Erro desconhecido";
-
-        switch (mensagemProcedure) {
-            case "CPF já cadastrado":
-                return "Este CPF já está cadastrado no sistema";
-
-            case "Digite algo":
-                return "Por favor, preencha todos os campos obrigatórios";
-
-            case "CPF Inválido":
-                return "CPF informado é inválido";
-
-            case "Email Inválido":
-                return "Email informado é inválido";
-
-            case "Senha Inválida":
-                return "A senha deve ter pelo menos 6 caracteres";
-
-            case "Informações inválidas":
-                return "Dados informados são inválidos. Verifique e tente novamente";
-
-            default:
-                return "Erro durante o cadastro: " + mensagemProcedure;
-        }
-    }
-
-    /**
-     * Mapeia erros SQL para mensagens mais amigáveis
-     * @param e Exceção SQL
-     * @return Mensagem amigável para o usuário
-     */
-    private String mapearErroSQL(SQLException e) {
-        int errorCode = e.getErrorCode();
-
-        // Códigos de erro específicos do SQL Server
-        switch (errorCode) {
-            case 2: // Cannot open database
-            case 4060: // Invalid database name
-                return "Erro de conexão com o banco de dados";
-
-            case 18456: // Login failed
-                return "Erro de autenticação no servidor";
-
-            case 2547:
-            case 2601: // Duplicate key
-                return "CPF ou email já cadastrado no sistema";
-
-            case 8152: // String or binary data would be truncated
-                return "Dados muito longos para os campos";
-
-            case -2: // Timeout
-                return "Tempo limite de conexão excedido. Tente novamente";
-
-            default:
-                String msg = e.getMessage() != null ? e.getMessage().toLowerCase() : "";
-                if (msg.contains("timeout")) {
-                    return "Conexão lenta. Tente novamente";
-                } else if (msg.contains("connection")) {
-                    return "Problema de conexão. Verifique sua internet";
-                } else {
-                    return "Erro no servidor. Tente novamente em alguns minutos";
-                }
-        }
-    }
-
-    /**
-     * Libera recursos do service
-     * Deve ser chamado quando não precisar mais do service
-     */
     public void shutdown() {
         if (executor != null && !executor.isShutdown()) {
             executor.shutdown();
-        }
-        if (emailService != null) {
-            emailService.shutdown();
         }
     }
 }

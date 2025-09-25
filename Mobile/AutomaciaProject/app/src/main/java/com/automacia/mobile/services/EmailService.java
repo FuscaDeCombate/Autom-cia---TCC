@@ -18,8 +18,7 @@ import javax.mail.internet.InternetAddress;
 import javax.mail.internet.MimeMessage;
 
 /**
- * Service responsável pelo envio de emails de confirmação
- * Utiliza JavaMail API para envio via SMTP
+ * Service responsável pelo envio de emails de código de recuperação de senha
  */
 public class EmailService {
 
@@ -27,7 +26,7 @@ public class EmailService {
     private final ExecutorService executor;
     private final Handler mainHandler;
 
-    // Configurações SMTP (configure conforme seu provedor)
+    // Configurações SMTP
     private static final String SMTP_HOST = "smtp.gmail.com";
     private static final String SMTP_PORT = "587";
     private static final String EMAIL_FROM = "tomazturbando878@gmail.com";
@@ -48,72 +47,40 @@ public class EmailService {
     }
 
     /**
-     * Envia email de confirmação para o usuário
-     * @param nome Nome do usuário
+     * Envia código de recuperação de senha por email
      * @param email Email do destinatário
+     * @param code Código de verificação de 6 dígitos
      * @param callback Callback para retorno do resultado
      */
-    public void enviarEmailConfirmacao(String nome, String email, EmailCallback callback) {
+    public void enviarCodigoRecuperacao(String email, String code, EmailCallback callback) {
         executor.execute(() -> {
             try {
-                // Gera código de confirmação (6 dígitos)
-                String codigoConfirmacao = gerarCodigoConfirmacao();
-
-                // Prepara o conteúdo do email
-                String assunto = "Confirme seu cadastro - Automacia";
-                String corpo = criarCorpoEmailConfirmacao(nome, codigoConfirmacao);
-
-                // Envia o email
-                boolean sucesso = enviarEmail(email, assunto, corpo);
-
-                mainHandler.post(() -> {
-                    if (sucesso) {
-                        Log.d(TAG, "Email de confirmação enviado para: " + email);
-                        callback.onSuccess();
-                    } else {
-                        callback.onError("Falha ao enviar email de confirmação");
-                    }
-                });
-
-            } catch (Exception e) {
-                Log.e(TAG, "Erro ao enviar email de confirmação", e);
-                mainHandler.post(() -> callback.onError("Erro interno ao enviar email: " + e.getMessage()));
-            }
-        });
-    }
-
-    /**
-     * Envia email de boas-vindas após confirmação
-     * @param nome Nome do usuário
-     * @param email Email do destinatário
-     * @param callback Callback para retorno do resultado
-     */
-    public void enviarEmailBoasVindas(String nome, String email, EmailCallback callback) {
-        executor.execute(() -> {
-            try {
-                String assunto = "Bem-vindo ao Automacia!";
-                String corpo = criarCorpoEmailBoasVindas(nome);
+                String assunto = "Código de Recuperação de Senha - Automacia";
+                String corpo = criarCorpoEmailCodigoRecuperacao(code);
 
                 boolean sucesso = enviarEmail(email, assunto, corpo);
 
                 mainHandler.post(() -> {
                     if (sucesso) {
-                        Log.d(TAG, "Email de boas-vindas enviado para: " + email);
-                        callback.onSuccess();
+                        Log.d(TAG, "Código de recuperação enviado para: " + email);
+                        if (callback != null) callback.onSuccess();
                     } else {
-                        callback.onError("Falha ao enviar email de boas-vindas");
+                        Log.w(TAG, "Falha ao enviar código de recuperação para: " + email);
+                        if (callback != null) callback.onError("Falha ao enviar código de recuperação");
                     }
                 });
 
             } catch (Exception e) {
-                Log.e(TAG, "Erro ao enviar email de boas-vindas", e);
-                mainHandler.post(() -> callback.onError("Erro interno ao enviar email: " + e.getMessage()));
+                Log.e(TAG, "Erro ao enviar código de recuperação", e);
+                mainHandler.post(() -> {
+                    if (callback != null) callback.onError("Erro interno ao enviar email: " + e.getMessage());
+                });
             }
         });
     }
 
     /**
-     * Metodo principal para envio de email usando JavaMail API
+     * Método principal para envio de email usando JavaMail API
      * @param destinatario Email do destinatário
      * @param assunto Assunto do email
      * @param corpo Corpo do email (HTML)
@@ -147,7 +114,7 @@ public class EmailService {
             // Enviar
             Transport.send(message);
 
-            Log.d(TAG, "Email enviado com sucesso via JavaMail para: " + destinatario);
+            Log.d(TAG, "Email enviado com sucesso para: " + destinatario);
             return true;
 
         } catch (MessagingException e) {
@@ -160,117 +127,95 @@ public class EmailService {
     }
 
     /**
-     * Gera código de confirmação aleatório de 6 dígitos
-     * @return Código de confirmação
-     */
-    private String gerarCodigoConfirmacao() {
-        return String.format("%06d", (int) (Math.random() * 1000000));
-    }
-
-    /**
-     * Cria o corpo do email de confirmação
-     * @param nome Nome do usuário
-     * @param codigo Código de confirmação
+     * Cria o corpo do email de código de recuperação
+     * @param code Código de verificação de 6 dígitos
      * @return HTML do email
      */
-    private String criarCorpoEmailConfirmacao(String nome, String codigo) {
+    private String criarCorpoEmailCodigoRecuperacao(String code) {
         return String.format(
                 "<html>" +
-                        "<body style='font-family: Arial, sans-serif; line-height: 1.6; color: #333;'>" +
-                        "<div style='max-width: 600px; margin: 0 auto; padding: 20px;'>" +
-                        "<div style='text-align: center; margin-bottom: 30px;'>" +
-                        "<h1 style='color: #2c3e50; margin-bottom: 10px;'>Automacia</h1>" +
-                        "<p style='color: #7f8c8d; font-size: 16px;'>Plataforma de Saúde Digital</p>" +
-                        "</div>" +
-                        "<div style='background: linear-gradient(135deg, #667eea 0%%, #764ba2 100%%); " +
-                        "padding: 30px; border-radius: 10px; color: white; text-align: center; margin-bottom: 30px;'>" +
-                        "<h2 style='margin: 0 0 15px 0;'>Olá, %s!</h2>" +
-                        "<p style='margin: 0; font-size: 18px;'>Confirme seu cadastro para começar a usar o Automacia</p>" +
-                        "</div>" +
-                        "<div style='background: #f8f9fa; padding: 20px; border-radius: 8px; margin-bottom: 30px;'>" +
-                        "<h3 style='color: #2c3e50; margin-bottom: 15px;'>Seu código de confirmação:</h3>" +
-                        "<div style='background: white; padding: 15px; border-radius: 5px; text-align: center; " +
-                        "border: 2px dashed #667eea; margin: 15px 0;'>" +
-                        "<span style='font-size: 32px; font-weight: bold; color: #667eea; letter-spacing: 5px;'>%s</span>" +
-                        "</div>" +
-                        "<p style='color: #7f8c8d; font-size: 14px; margin: 10px 0 0 0;'>" +
-                        "Digite este código no aplicativo para confirmar seu email</p>" +
-                        "</div>" +
-                        "<div style='margin-bottom: 30px;'>" +
-                        "<h3 style='color: #2c3e50;'>O que você pode fazer com o Automacia:</h3>" +
-                        "<ul style='color: #555; padding-left: 20px;'>" +
-                        "<li>Gerenciar seus agendamentos médicos</li>" +
-                        "<li>Acessar seu histórico de consultas</li>" +
-                        "<li>Receber lembretes de medicamentos</li>" +
-                        "<li>Consultar resultados de exames</li>" +
-                        "</ul>" +
-                        "</div>" +
-                        "<div style='text-align: center; margin-top: 30px; padding-top: 20px; " +
-                        "border-top: 1px solid #eee; color: #7f8c8d; font-size: 14px;'>" +
-                        "<p>Se você não fez este cadastro, pode ignorar este email.</p>" +
-                        "<p>Este código expira em 15 minutos.</p>" +
-                        "<br>" +
-                        "<p>© 2025 Automacia - Plataforma de Saúde Digital</p>" +
-                        "</div>" +
-                        "</div>" +
-                        "</body>" +
-                        "</html>",
-                nome, codigo
-        );
-    }
+                        "<body style='font-family: Arial, sans-serif; line-height: 1.6; color: #333; margin: 0; padding: 0;'>" +
+                        "<div style='max-width: 600px; margin: 0 auto; padding: 0;'>" +
 
-    /**
-     * Cria o corpo do email de boas-vindas
-     * @param nome Nome do usuário
-     * @return HTML do email
-     */
-    private String criarCorpoEmailBoasVindas(String nome) {
-        return String.format(
-                "<html>" +
-                        "<body style='font-family: Arial, sans-serif; line-height: 1.6; color: #333;'>" +
-                        "<div style='max-width: 600px; margin: 0 auto; padding: 20px;'>" +
+                        "<!-- Header -->" +
+                        "<div style='background: linear-gradient(135deg, #001A6E 0%%, #001447 100%%); " +
+                        "padding: 40px 30px; text-align: center; color: white;'>" +
+                        "<h1 style='color: white; margin: 0 0 10px 0; font-size: 32px; font-weight: bold;'>Automacia</h1>" +
+                        "<p style='color: #E8EFFF; font-size: 16px; margin: 0; opacity: 0.9;'>Plataforma de Saúde Digital</p>" +
+                        "</div>" +
+
+                        "<!-- Main Content -->" +
+                        "<div style='background: white; padding: 40px 30px;'>" +
+
+                        "<!-- Icon & Title -->" +
                         "<div style='text-align: center; margin-bottom: 30px;'>" +
-                        "<h1 style='color: #2c3e50; margin-bottom: 10px;'>Automacia</h1>" +
-                        "<p style='color: #7f8c8d; font-size: 16px;'>Plataforma de Saúde Digital</p>" +
+                        "<div style='background: #E8EFFF; width: 80px; height: 80px; border-radius: 50%%; " +
+                        "margin: 0 auto 20px; display: flex; align-items: center; justify-content: center;'>" +
+                        "<span style='font-size: 36px;'>🔐</span>" +
                         "</div>" +
-                        "<div style='background: linear-gradient(135deg, #667eea 0%%, #764ba2 100%%); " +
-                        "padding: 30px; border-radius: 10px; color: white; text-align: center; margin-bottom: 30px;'>" +
-                        "<h2 style='margin: 0 0 15px 0;'>Bem-vindo, %s! 🎉</h2>" +
-                        "<p style='margin: 0; font-size: 18px;'>Seu cadastro foi confirmado com sucesso!</p>" +
-                        "</div>" +
-                        "<div style='margin-bottom: 30px;'>" +
-                        "<h3 style='color: #2c3e50;'>Primeiros passos:</h3>" +
-                        "<ol style='color: #555; padding-left: 20px;'>" +
-                        "<li><strong>Complete seu perfil:</strong> Adicione informações médicas importantes</li>" +
-                        "<li><strong>Explore o app:</strong> Conheça todas as funcionalidades disponíveis</li>" +
-                        "<li><strong>Agende sua primeira consulta:</strong> Encontre profissionais qualificados</li>" +
-                        "<li><strong>Configure lembretes:</strong> Nunca mais esqueça seus medicamentos</li>" +
-                        "</ol>" +
-                        "</div>" +
-                        "<div style='background: #f8f9fa; padding: 20px; border-radius: 8px; margin-bottom: 30px;'>" +
-                        "<h4 style='color: #2c3e50; margin-bottom: 15px;'>💡 Dica importante:</h4>" +
-                        "<p style='color: #555; margin: 0;'>" +
-                        "Mantenha sempre seus dados atualizados para receber o melhor atendimento. " +
-                        "Você pode editar suas informações a qualquer momento no app." +
+                        "<h2 style='color: #001447; margin: 0 0 10px 0; font-size: 28px;'>Código de Recuperação</h2>" +
+                        "<p style='color: #666666; margin: 0; font-size: 16px;'>" +
+                        "Use o código abaixo para recuperar sua senha" +
                         "</p>" +
                         "</div>" +
-                        "<div style='text-align: center; margin-bottom: 30px;'>" +
-                        "<a href='#' style='display: inline-block; background: linear-gradient(135deg, #667eea 0%%, #764ba2 100%%); " +
-                        "color: white; padding: 15px 30px; text-decoration: none; border-radius: 25px; font-weight: bold;'>" +
-                        "Abrir o App Automacia" +
-                        "</a>" +
+
+                        "<!-- Verification Code -->" +
+                        "<div style='background: linear-gradient(135deg, #001A6E 0%%, #001447 100%%); " +
+                        "padding: 30px; border-radius: 15px; text-align: center; margin-bottom: 30px; " +
+                        "box-shadow: 0 8px 32px rgba(0, 26, 110, 0.2);'>" +
+                        "<p style='color: #E8EFFF; margin: 0 0 15px 0; font-size: 16px; opacity: 0.9;'>" +
+                        "Seu código de verificação é:" +
+                        "</p>" +
+                        "<div style='background: white; padding: 20px; border-radius: 10px; margin: 0 auto; " +
+                        "display: inline-block; min-width: 200px;'>" +
+                        "<span style='font-size: 36px; font-weight: bold; color: #001447; letter-spacing: 8px;'>%s</span>" +
                         "</div>" +
-                        "<div style='text-align: center; margin-top: 30px; padding-top: 20px; " +
-                        "border-top: 1px solid #eee; color: #7f8c8d; font-size: 14px;'>" +
-                        "<p>Precisa de ajuda? Entre em contato conosco:</p>" +
-                        "<p>📧 suporte@automacia.com.br | 📱 (11) 9999-9999</p>" +
-                        "<br>" +
-                        "<p>© 2025 Automacia - Plataforma de Saúde Digital</p>" +
                         "</div>" +
+
+                        "<!-- Instructions -->" +
+                        "<div style='background: #E8EFFF; padding: 25px; border-radius: 10px; margin-bottom: 30px;'>" +
+                        "<h3 style='color: #001447; margin: 0 0 15px 0; font-size: 18px;'>📱 Como usar:</h3>" +
+                        "<ol style='color: #666666; margin: 0; padding-left: 20px;'>" +
+                        "<li style='margin-bottom: 8px;'>Digite o código na tela de verificação</li>" +
+                        "<li style='margin-bottom: 8px;'>Crie uma nova senha segura</li>" +
+                        "<li>Faça login com sua nova senha</li>" +
+                        "</ol>" +
+                        "</div>" +
+
+                        "<!-- Security Warning -->" +
+                        "<div style='background: #FFEBEA; border: 1px solid #FF2514; padding: 20px; " +
+                        "border-radius: 10px; margin-bottom: 30px;'>" +
+                        "<h4 style='color: #CC1D10; margin: 0 0 10px 0; font-size: 16px;'>⚠️ Importante:</h4>" +
+                        "<ul style='color: #CC1D10; margin: 0; padding-left: 20px; font-size: 14px;'>" +
+                        "<li style='margin-bottom: 5px;'>Este código expira em 15 minutos</li>" +
+                        "<li style='margin-bottom: 5px;'>Não compartilhe este código com ninguém</li>" +
+                        "<li>Se você não solicitou esta recuperação, ignore este email</li>" +
+                        "</ul>" +
+                        "</div>" +
+
+                        "<!-- Support Info -->" +
+                        "<div style='background: #f8f9fa; padding: 20px; border-radius: 10px; " +
+                        "text-align: center; margin-bottom: 20px;'>" +
+                        "<h4 style='color: #001447; margin-bottom: 15px; font-size: 16px;'>💬 Precisa de ajuda?</h4>" +
+                        "<p style='color: #666666; margin-bottom: 10px; font-size: 14px;'>" +
+                        "Nossa equipe está sempre pronta para ajudar:" +
+                        "</p>" +
+                        "<p style='color: #001A6E; font-weight: bold; margin: 5px 0; font-size: 14px;'>📧 suporte@automacia.com.br</p>" +
+                        "<p style='color: #001A6E; font-weight: bold; margin: 5px 0; font-size: 14px;'>📱 (11) 9999-9999</p>" +
+                        "</div>" +
+
+                        "</div>" +
+
+                        "<!-- Footer -->" +
+                        "<div style='background: #1F1F1F; padding: 25px 30px; text-align: center;'>" +
+                        "<p style='color: #757575; margin: 5px 0; font-size: 12px;'>© 2025 Automacia - Plataforma de Saúde Digital</p>" +
+                        "<p style='color: #757575; margin: 5px 0; font-size: 12px;'>Cuidando da sua saúde com tecnologia e segurança</p>" +
+                        "</div>" +
+
                         "</div>" +
                         "</body>" +
                         "</html>",
-                nome
+                code
         );
     }
 

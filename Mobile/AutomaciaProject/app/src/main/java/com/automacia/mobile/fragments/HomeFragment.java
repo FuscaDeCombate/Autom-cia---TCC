@@ -16,6 +16,7 @@ import android.widget.Toast;
 
 import com.automacia.mobile.R;
 import com.automacia.mobile.adapters.PrescriptionAdapter;
+import com.automacia.mobile.models.UsuarioDTO;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -25,7 +26,7 @@ import de.hdodenhof.circleimageview.CircleImageView;
 public class HomeFragment extends Fragment {
 
     // Views
-    private TextView tvUserName, tvCpf, tvBirthDate, tvPrescriptionStatus;
+    private TextView tvUserName, tvCpf, tvPrescriptionStatus;
     private CircleImageView ivProfile;
     private ImageButton btnHelp, btnLogout;
     private RecyclerView rvPrescriptions;
@@ -33,15 +34,39 @@ public class HomeFragment extends Fragment {
     private CardView cardAllergies, cardMedicalHistory;
     private CardView[] quickActionCards = new CardView[7];
 
-    // Dados do usuário (normalmente viriam de uma API ou banco de dados)
-    private User currentUser;
+    // Dados do usuário
+    private UsuarioDTO currentUser;
     private List<Prescription> prescriptionList;
     private PrescriptionAdapter prescriptionAdapter;
+
+    // Constantes para argumentos
+    private static final String ARG_USUARIO = "usuario";
+
+    /**
+     * Factory method para criar uma instância do Fragment com usuário
+     */
+    public static HomeFragment newInstance(UsuarioDTO usuario) {
+        HomeFragment fragment = new HomeFragment();
+        Bundle args = new Bundle();
+        args.putSerializable(ARG_USUARIO, usuario);
+        fragment.setArguments(args);
+        return fragment;
+    }
 
     @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup container,
                              Bundle savedInstanceState) {
         View view = inflater.inflate(R.layout.fragment_home, container, false);
+
+        // Recuperar usuário dos argumentos
+        if (getArguments() != null) {
+            currentUser = (UsuarioDTO) getArguments().getSerializable(ARG_USUARIO);
+        }
+
+        // Se não tiver usuário nos argumentos, tentar buscar de outro local
+        if (currentUser == null) {
+            currentUser = getUserFromSession(); // Método para buscar de SharedPreferences ou outro local
+        }
 
         initViews(view);
         setupUserData();
@@ -60,7 +85,6 @@ public class HomeFragment extends Fragment {
         ivProfile = view.findViewById(R.id.iv_profile);
         tvUserName = view.findViewById(R.id.tv_user_name);
         tvCpf = view.findViewById(R.id.tv_cpf);
-        tvBirthDate = view.findViewById(R.id.tv_birth_date);
         tvPrescriptionStatus = view.findViewById(R.id.tv_prescription_status);
 
         // Botões de ação principais
@@ -94,20 +118,15 @@ public class HomeFragment extends Fragment {
     }
 
     private void setupUserData() {
-        // Aqui você carregaria os dados do usuário logado
-        // Por enquanto, vamos usar dados fictícios
-        currentUser = new User(
-                "João Silva Santos",
-                "123.456.789-00",
-                "15/03/1985",
-                "joao.silva@email.com",
-                "(11) 99999-9999"
-        );
+        if (currentUser == null) {
+            // Fallback: criar usuário vazio ou mostrar erro
+            Toast.makeText(getContext(), "Erro ao carregar dados do usuário", Toast.LENGTH_LONG).show();
+            return;
+        }
 
-        // Atualizar UI com dados do usuário
-        tvUserName.setText(currentUser.getName());
-        tvCpf.setText(currentUser.getCpf());
-        tvBirthDate.setText(currentUser.getBirthDate());
+        // Atualizar UI com dados do usuário real
+        tvUserName.setText(currentUser.getNomeExibicao()); // Usa nome social ou nome normal
+        tvCpf.setText(formatCpf(currentUser.getCpf())); // Formata o CPF
 
         // Status das receitas (normalmente viria de uma API)
         updatePrescriptionStatus();
@@ -148,10 +167,43 @@ public class HomeFragment extends Fragment {
         }
     }
 
+    /**
+     * Método para buscar usuário de sessão (SharedPreferences, Singleton, etc.)
+     * Implementar conforme a arquitetura do projeto
+     */
+    private UsuarioDTO getUserFromSession() {
+        // TODO: Implementar busca do usuário da sessão
+        // Exemplo com SharedPreferences:
+        // SharedPreferences prefs = getContext().getSharedPreferences("user_session", Context.MODE_PRIVATE);
+        // String cpf = prefs.getString("user_cpf", null);
+        // if (cpf != null) {
+        //     // Buscar usuário completo do banco ou cache
+        // }
+
+        // Por enquanto retorna null
+        return null;
+    }
+
+    /**
+     * Formata CPF para exibição (xxx.xxx.xxx-xx)
+     */
+    private String formatCpf(String cpf) {
+        if (cpf == null || cpf.length() != 11) {
+            return cpf; // Retorna original se não tiver 11 dígitos
+        }
+
+        return cpf.substring(0, 3) + "." +
+                cpf.substring(3, 6) + "." +
+                cpf.substring(6, 9) + "-" +
+                cpf.substring(9, 11);
+    }
+
     private void updatePrescriptionStatus() {
         // Aqui você faria uma chamada para a API para obter o status atual
-        String status = "Você possui 2 receitas válidas.\n" +
-                "1 receita foi enviada para a farmácia X.\n" +
+        // Por enquanto usando dados fictícios
+        String status = "Bem-vindo, " + (currentUser != null ? currentUser.getNomeExibicao() : "Usuário") + "!\n" +
+                "Você possui 2 receitas válidas.\n" +
+                "1 receita foi enviada para a farmácia.\n" +
                 "Última atualização: 14/04/2025.";
         tvPrescriptionStatus.setText(status);
     }
@@ -159,7 +211,8 @@ public class HomeFragment extends Fragment {
     private List<Prescription> createSamplePrescriptions() {
         List<Prescription> prescriptions = new ArrayList<>();
 
-        // TODO: pegar as receitas diretamente do banco
+        // TODO: pegar as receitas diretamente do banco usando o CPF do usuário atual
+        // String cpfUsuario = currentUser != null ? currentUser.getCpf() : null;
 
         prescriptions.add(new Prescription(
                 "1",
@@ -209,7 +262,11 @@ public class HomeFragment extends Fragment {
     private void logout() {
         Toast.makeText(getContext(), "Fazendo logout...", Toast.LENGTH_SHORT).show();
         // Aqui você implementaria a lógica de logout
-        // Exemplo: limpar dados de sessão e voltar para tela de login
+        // Limpar dados de sessão e voltar para tela de login
+        if (currentUser != null) {
+            currentUser.clearSensitiveData();
+        }
+        // TODO: Limpar SharedPreferences, voltar para LoginActivity
     }
 
     private void sendPrescription() {
@@ -266,8 +323,12 @@ public class HomeFragment extends Fragment {
 
     private void openContact() {
         try {
+            // Usar telefone do usuário se disponível, senão usar padrão
+            String phoneNumber = currentUser != null && currentUser.getTelefone() != null ?
+                    currentUser.getTelefone() : "+5511999999999";
+
             Intent intent = new Intent(Intent.ACTION_DIAL);
-            intent.setData(Uri.parse("tel:+5511999999999"));
+            intent.setData(Uri.parse("tel:" + phoneNumber));
             startActivity(intent);
         } catch (Exception e) {
             Toast.makeText(getContext(), "Não foi possível abrir o discador", Toast.LENGTH_SHORT).show();
@@ -279,30 +340,7 @@ public class HomeFragment extends Fragment {
         // Aqui você abriria a tela de FAQ
     }
 
-    // Classes modelo
-    public static class User {
-        private String name;
-        private String cpf;
-        private String birthDate;
-        private String email;
-        private String phone;
-
-        public User(String name, String cpf, String birthDate, String email, String phone) {
-            this.name = name;
-            this.cpf = cpf;
-            this.birthDate = birthDate;
-            this.email = email;
-            this.phone = phone;
-        }
-
-        // Getters
-        public String getName() { return name; }
-        public String getCpf() { return cpf; }
-        public String getBirthDate() { return birthDate; }
-        public String getEmail() { return email; }
-        public String getPhone() { return phone; }
-    }
-
+    // Classes modelo (mantidas para compatibilidade)
     public static class Prescription {
         private String id;
         private String title;

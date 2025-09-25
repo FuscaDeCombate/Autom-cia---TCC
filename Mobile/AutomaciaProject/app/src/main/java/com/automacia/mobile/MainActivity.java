@@ -17,6 +17,7 @@ import com.automacia.mobile.fragments.HomeFragment;
 import com.automacia.mobile.fragments.NotificationFragment;
 import com.automacia.mobile.fragments.PreferencesFragment;
 import com.automacia.mobile.fragments.UserFragment;
+import com.automacia.mobile.models.UsuarioDTO;
 import com.nafis.bottomnavigation.NafisBottomNavigation;
 
 import kotlin.Unit;
@@ -47,6 +48,9 @@ public class MainActivity extends AppCompatActivity {
     // Fragment atualmente visível
     private Fragment activeFragment;
 
+    // Dados do Usuario
+    private UsuarioDTO usuario;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -59,6 +63,7 @@ public class MainActivity extends AppCompatActivity {
 
         setupWindowInsets();
         setupNafisBottomNavigation();
+        setupUserDTO();
 
         // Carrega fragments iniciais apenas se não houver estado salvo
         if (savedInstanceState == null) {
@@ -119,6 +124,14 @@ public class MainActivity extends AppCompatActivity {
         });
     }
 
+    /***
+     * Inicializa os dados do usuario pelo objeto UsuarioDTO salvo no MyApp
+     */
+    private void setupUserDTO() {
+        MyApp app = (MyApp) getApplicationContext();
+        usuario = app.getUsuarioLogado();
+    }
+
     /**
      * Inicializa todos os fragments e os adiciona ao FragmentManager
      * Usa estratégia show/hide para melhor performance
@@ -126,7 +139,7 @@ public class MainActivity extends AppCompatActivity {
     private void initFragments() {
         // Cria instâncias dos fragments
         homeFragment = new HomeFragment();
-        chatFragment = new ChatFragment();
+        chatFragment = ChatFragment.newInstance(usuario);
         notifFragment = new NotificationFragment();
         prefFragment = new PreferencesFragment();
         userFragment = new UserFragment();

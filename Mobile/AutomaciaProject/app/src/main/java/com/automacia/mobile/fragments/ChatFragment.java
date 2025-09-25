@@ -3,10 +3,10 @@ package com.automacia.mobile.fragments;
 import android.app.NotificationChannel;
 import android.app.NotificationManager;
 import android.content.Context;
-import android.content.SharedPreferences;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.Handler;
+import android.os.Looper;
 import android.text.Editable;
 import android.text.TextWatcher;
 import android.util.Log;
@@ -39,6 +39,7 @@ public class ChatFragment extends Fragment {
 
     private static final String TAG = "ChatFragment";
     private static final String CHANNEL_ID = "chat_notifications";
+    private static final String ARG_USUARIO = "usuario";
 
     // Views
     private RecyclerView rvMensagens;
@@ -55,24 +56,39 @@ public class ChatFragment extends Fragment {
     private NotificationManager notificationManager;
 
     // Controle de digitação
-    private Handler digitandoHandler = new Handler();
+    private Handler digitandoHandler;
     private Runnable pararDigitando;
     private boolean estaDigitando = false;
+
+    // Controle de estado
+    private boolean isInitialized = false;
+    private boolean shouldReconnectOnResume = false;
+    private boolean mensagensCarregadas = false;
 
     public ChatFragment() {
         // Required empty public constructor
     }
 
-    public static ChatFragment newInstance() {
-        return new ChatFragment();
+    public static ChatFragment newInstance(UsuarioDTO usuario) {
+        ChatFragment fragment = new ChatFragment();
+        Bundle args = new Bundle();
+        args.putSerializable(ARG_USUARIO, usuario);
+        fragment.setArguments(args);
+        return fragment;
     }
 
     @Override
     public void onCreate(@Nullable Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
 
-        // Carregar dados do usuário logado
-        carregarUsuarioLogado();
+        // Inicializar handler
+        digitandoHandler = new Handler(Looper.getMainLooper());
+
+        // Carregar dados do usuário
+        if (!carregarUsuarioArguments()) {
+            Log.e(TAG, "Não foi possível carregar dados do usuário");
+            return;
+        }
 
         // Criar canal de notificação
         criarCanalNotificacao();
@@ -87,10 +103,45 @@ public class ChatFragment extends Fragment {
     public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
         super.onViewCreated(view, savedInstanceState);
 
+        if (usuarioLogado == null) {
+            mostrarErroUsuario();
+            return;
+        }
+
         inicializarViews(view);
         configurarRecyclerView();
         configurarListeners();
         inicializarChatManager();
+
+        isInitialized = true;
+    }
+
+    @Override
+    public void onDestroyView() {
+        super.onDestroyView();
+        isInitialized = false;
+
+        // Limpar callbacks pendentes
+        if (digitandoHandler != null && pararDigitando != null) {
+            digitandoHandler.removeCallbacks(pararDigitando);
+            pararDigitando = null;
+        }
+    }
+
+    private boolean carregarUsuarioArguments() {
+        if (getArguments() != null) {
+            usuarioLogado = (UsuarioDTO) getArguments().getSerializable(ARG_USUARIO);
+            return usuarioLogado != null && isUsuarioValido(usuarioLogado);
+        }
+        return false;
+    }
+
+    private boolean isUsuarioValido(UsuarioDTO usuario) {
+        return usuario != null &&
+                usuario.getCpf() != null &&
+                !usuario.getCpf().trim().isEmpty() &&
+                usuario.getNome() != null &&
+                !usuario.getNome().trim().isEmpty();
     }
 
     private void inicializarViews(View view) {
@@ -105,7 +156,7 @@ public class ChatFragment extends Fragment {
     private void configurarRecyclerView() {
         adapter = new MensagemAdapter();
         LinearLayoutManager layoutManager = new LinearLayoutManager(getContext());
-        layoutManager.setStackFromEnd(true); // Começar do final da lista
+        layoutManager.setStackFromEnd(true);
 
         rvMensagens.setLayoutManager(layoutManager);
         rvMensagens.setAdapter(adapter);
@@ -121,34 +172,14 @@ public class ChatFragment extends Fragment {
             return true;
         });
 
-        // Indicador de digitação
+        // Indicador de digitação centralizado
         etMensagem.addTextChangedListener(new TextWatcher() {
             @Override
             public void beforeTextChanged(CharSequence s, int start, int count, int after) {}
 
             @Override
             public void onTextChanged(CharSequence s, int start, int before, int count) {
-                if (!estaDigitando && s.length() > 0) {
-                    estaDigitando = true;
-                    if (chatManager != null) {
-                        chatManager.indicarDigitando(true);
-                    }
-                }
-
-                // Cancelar o timer anterior
-                if (pararDigitando != null) {
-                    digitandoHandler.removeCallbacks(pararDigitando);
-                }
-
-                // Criar novo timer para parar de digitar
-                pararDigitando = () -> {
-                    estaDigitando = false;
-                    if (chatManager != null) {
-                        chatManager.indicarDigitando(false);
-                    }
-                };
-
-                digitandoHandler.postDelayed(pararDigitando, 2000); // 2 segundos
+                gerenciarIndicadorDigitacao(s);
             }
 
             @Override
@@ -156,28 +187,104 @@ public class ChatFragment extends Fragment {
         });
     }
 
+    private void gerenciarIndicadorDigitacao(CharSequence texto) {
+        boolean temTexto = texto.length() > 0;
+
+        // Só enviar se mudou o estado
+        if (temTexto && !estaDigitando) {
+            estaDigitando = true;
+            if (isChatManagerReady()) {
+                chatManager.indicarDigitando(true);
+            }
+        }
+
+        // Cancelar timer anterior
+        if (pararDigitando != null) {
+            digitandoHandler.removeCallbacks(pararDigitando);
+        }
+
+        // Criar novo timer se há texto
+        if (temTexto) {
+            pararDigitando = () -> {
+                if (estaDigitando) {
+                    estaDigitando = false;
+                    if (isChatManagerReady()) {
+                        chatManager.indicarDigitando(false);
+                    }
+                }
+            };
+            digitandoHandler.postDelayed(pararDigitando, 2000);
+        } else if (estaDigitando) {
+            // Se não há texto e estava digitando, parar imediatamente
+            estaDigitando = false;
+            if (isChatManagerReady()) {
+                chatManager.indicarDigitando(false);
+            }
+        }
+    }
+
     private void inicializarChatManager() {
-        if (usuarioLogado != null) {
+        try {
             chatManager = new ChatManager(getContext(), usuarioLogado);
-
-            // Configurar listeners
-            chatManager.setOnMensagemRecebidaListener(mensagem -> {
-                adapter.adicionarMensagem(mensagem);
-                rolarParaUltimaMensagem();
-                mostrarNotificacao(mensagem);
-            });
-
-            chatManager.setOnStatusConexaoListener(conectado -> {
-                atualizarStatusConexao(conectado);
-            });
-
-            chatManager.setOnDigitandoListener(digitando -> {
-                layoutDigitando.setVisibility(digitando ? View.VISIBLE : View.GONE);
-            });
+            configurarChatManagerListeners();
 
             // Conectar e carregar mensagens
+            conectarChat();
+
+        } catch (Exception e) {
+            Log.e(TAG, "Erro ao inicializar ChatManager", e);
+            mostrarErro(ChatManager.ErrorType.SOCKET, "Erro ao inicializar chat");
+        }
+    }
+
+    private void configurarChatManagerListeners() {
+        // Listener para mensagens recebidas - NÃO adiciona duplicatas
+        chatManager.setOnMensagemRecebidaListener(mensagem -> {
+            if (isFragmentReady()) {
+                adapter.adicionarMensagem(mensagem);
+                rolarParaUltimaMensagem();
+
+                // Notificar apenas se não é do próprio usuário
+                if (!mensagem.isEhPaciente() ||
+                        !usuarioLogado.getCpf().equals(mensagem.getPacienteCpf())) {
+                    mostrarNotificacao(mensagem);
+                }
+            }
+        });
+
+        // Listener para status de conexão
+        chatManager.setOnStatusConexaoListener(conectado -> {
+            if (isFragmentReady()) {
+                atualizarStatusConexao(conectado);
+
+                // Tentar carregar mensagens quando conectar
+                if (conectado && !mensagensCarregadas) {
+                    carregarMensagens();
+                }
+            }
+        });
+
+        // Listener para digitação - agora com usuário
+        chatManager.setOnDigitandoListener((digitando, usuario) -> {
+            if (isFragmentReady()) {
+                // Só mostrar se não é o próprio usuário
+                boolean mostrarIndicador = digitando &&
+                        !usuarioLogado.getCpf().equals(usuario);
+
+                layoutDigitando.setVisibility(
+                        mostrarIndicador ? View.VISIBLE : View.GONE
+                );
+
+                Log.d(TAG, "Indicador digitação: " + digitando +
+                        " para usuário: " + usuario +
+                        " (mostrar: " + mostrarIndicador + ")");
+            }
+        });
+    }
+
+    private void conectarChat() {
+        if (isChatManagerReady()) {
             chatManager.conectar();
-            carregarMensagens();
         }
     }
 
@@ -185,106 +292,195 @@ public class ChatFragment extends Fragment {
         String mensagem = etMensagem.getText().toString().trim();
 
         if (mensagem.isEmpty()) {
-            Toast.makeText(getContext(), "Digite uma mensagem", Toast.LENGTH_SHORT).show();
+            mostrarToast("Digite uma mensagem");
             return;
         }
 
-        if (chatManager == null || !chatManager.isConectado()) {
-            Toast.makeText(getContext(), "Não conectado ao servidor", Toast.LENGTH_SHORT).show();
+        if (!isChatManagerReady() || !chatManager.isConectado()) {
+            mostrarToast("Não conectado ao servidor. Tentando reconectar...");
+            conectarChat();
             return;
         }
 
-        // Desabilitar botão enquanto envia
-        btnEnviar.setEnabled(false);
-
-        // Adicionar mensagem localmente primeiro
-        MensagemDTO mensagemLocal = new MensagemDTO(mensagem, true);
-        adapter.adicionarMensagem(mensagemLocal);
-        rolarParaUltimaMensagem();
-
-        // Limpar campo
+        // Desabilitar botão e limpar campo
+        setBotaoEnviarEnabled(false);
         etMensagem.getText().clear();
 
-        // Enviar para servidor
+        // Enviar para servidor - SEM adicionar localmente primeiro
         chatManager.enviarMensagem(mensagem, new ChatManager.OnMensagemEnviadaListener() {
             @Override
             public void onSucesso(String resposta) {
-                btnEnviar.setEnabled(true);
-                Log.d(TAG, "Mensagem enviada: " + resposta);
+                if (isFragmentReady()) {
+                    setBotaoEnviarEnabled(true);
+                    Log.d(TAG, "Mensagem enviada: " + resposta);
+                    // Mensagem aparecerá via onMensagemRecebida do servidor
+                }
             }
 
             @Override
-            public void onErro(String erro) {
-                btnEnviar.setEnabled(true);
-                Toast.makeText(getContext(), "Erro ao enviar: " + erro, Toast.LENGTH_SHORT).show();
-                // TODO: Marcar mensagem como falha ou remover
+            public void onErro(ChatManager.ErrorType tipo, String erro) {
+                if (isFragmentReady()) {
+                    setBotaoEnviarEnabled(true);
+
+                    Log.e(TAG, "Erro ao enviar - Tipo: " + tipo.getValue() +
+                            " - Erro: " + erro);
+
+                    // Mostrar mensagem específica para o usuário
+                    String mensagemUsuario = obterMensagemErroEnvio(tipo);
+                    mostrarToast(mensagemUsuario);
+
+                    // Restaurar texto se erro crítico
+                    if (shouldRestoreMessage(tipo)) {
+                        etMensagem.setText(mensagem);
+                        etMensagem.setSelection(mensagem.length());
+                    }
+                }
             }
         });
     }
 
-    private void carregarMensagens() {
-        if (chatManager != null) {
-            chatManager.carregarMensagens(new ChatManager.OnMensagensCarregadasListener() {
-                @Override
-                public void onMensagensCarregadas(List<MensagemDTO> mensagens) {
-                    adapter.definirMensagens(mensagens);
-                    if (!mensagens.isEmpty()) {
-                        rolarParaUltimaMensagem();
-                    }
-                }
+    private boolean shouldRestoreMessage(ChatManager.ErrorType tipo) {
+        // Restaurar texto apenas em erros temporários
+        return tipo == ChatManager.ErrorType.SOCKET ||
+                tipo == ChatManager.ErrorType.TIMEOUT;
+    }
 
-                @Override
-                public void onErro(String erro) {
-                    if (isAdded()) {
-                        requireActivity().runOnUiThread(() ->
-                            Toast.makeText(getContext(), "Erro ao carregar mensagens: " + erro,
-                                    Toast.LENGTH_SHORT).show()
-                        );
-                    }
-                }
-            });
+    private String obterMensagemErroEnvio(ChatManager.ErrorType tipo) {
+        switch (tipo) {
+            case SOCKET:
+                return "Problema de conexão. Tente novamente.";
+            case BANCO:
+                return "Erro no servidor. Tente mais tarde.";
+            case TIMEOUT:
+                return "Tempo limite. Verifique sua internet.";
+            case VALIDACAO:
+                return "Mensagem inválida.";
+            default:
+                return "Erro ao enviar. Tente novamente.";
         }
     }
 
+    private void carregarMensagens() {
+        if (!isChatManagerReady() || mensagensCarregadas) {
+            return;
+        }
+
+        chatManager.carregarMensagens(new ChatManager.OnMensagensCarregadasListener() {
+            @Override
+            public void onMensagensCarregadas(List<MensagemDTO> mensagens) {
+                if (isFragmentReady()) {
+                    adapter.definirMensagens(mensagens);
+                    mensagensCarregadas = true;
+
+                    if (!mensagens.isEmpty()) {
+                        rolarParaUltimaMensagem();
+                    }
+
+                    Log.d(TAG, "Mensagens carregadas: " + mensagens.size());
+                }
+            }
+
+            @Override
+            public void onErro(ChatManager.ErrorType tipo, String erro) {
+                if (isFragmentReady()) {
+                    Log.e(TAG, "Erro ao carregar mensagens - Tipo: " +
+                            tipo.getValue() + " - Erro: " + erro);
+
+                    String mensagemUsuario = obterMensagemErroCarregamento(tipo);
+                    mostrarToast(mensagemUsuario);
+
+                    // Em alguns casos, tentar novamente
+                    if (shouldRetryLoading(tipo)) {
+                        scheduleRetryLoading();
+                    }
+                }
+            }
+        });
+    }
+
+    private String obterMensagemErroCarregamento(ChatManager.ErrorType tipo) {
+        switch (tipo) {
+            case SOCKET:
+                return "Erro de conexão ao carregar histórico";
+            case BANCO:
+                return "Erro no servidor ao buscar mensagens";
+            case TIMEOUT:
+                return "Tempo limite ao carregar histórico";
+            case VALIDACAO:
+                return "Dados de usuário inválidos";
+            default:
+                return "Erro ao carregar histórico";
+        }
+    }
+
+    private boolean shouldRetryLoading(ChatManager.ErrorType tipo) {
+        return tipo == ChatManager.ErrorType.SOCKET ||
+                tipo == ChatManager.ErrorType.TIMEOUT;
+    }
+
+    private void scheduleRetryLoading() {
+        digitandoHandler.postDelayed(() -> {
+            if (isFragmentReady() && !mensagensCarregadas) {
+                Log.d(TAG, "Tentando recarregar mensagens...");
+                carregarMensagens();
+            }
+        }, 3000); // Retry após 3 segundos
+    }
+
     private void rolarParaUltimaMensagem() {
-        if (adapter.getItemCount() > 0) {
+        if (adapter != null && adapter.getItemCount() > 0) {
             rvMensagens.smoothScrollToPosition(adapter.getItemCount() - 1);
         }
     }
 
     private void atualizarStatusConexao(boolean conectado) {
-        if (tvStatusConexao != null && ivStatusIndicator != null) {
-            if (conectado) {
-                tvStatusConexao.setText("Online");
+        if (tvStatusConexao == null || ivStatusIndicator == null) {
+            return;
+        }
+
+        if (conectado) {
+            tvStatusConexao.setText("Online");
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
                 ivStatusIndicator.setBackgroundTintList(
                         getResources().getColorStateList(R.color.success, null));
-            } else {
-                tvStatusConexao.setText("Desconectado");
+            }
+            shouldReconnectOnResume = false;
+        } else {
+            tvStatusConexao.setText("Desconectado");
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
                 ivStatusIndicator.setBackgroundTintList(
                         getResources().getColorStateList(R.color.danger, null));
             }
+            shouldReconnectOnResume = true;
+        }
+
+        Log.d(TAG, "Status conexão: " + (conectado ? "Online" : "Desconectado"));
+    }
+
+    private void setBotaoEnviarEnabled(boolean enabled) {
+        if (btnEnviar != null) {
+            btnEnviar.setEnabled(enabled);
         }
     }
 
-    private void carregarUsuarioLogado() {
-        // Carregar dados do SharedPreferences ou de onde você armazena os dados do login
-        SharedPreferences prefs = getActivity().getSharedPreferences("user_data", Context.MODE_PRIVATE);
-
-        usuarioLogado = new UsuarioDTO();
-        usuarioLogado.setCpf(prefs.getString("cpf", ""));
-        usuarioLogado.setNome(prefs.getString("nome", ""));
-        usuarioLogado.setEmail(prefs.getString("email", ""));
-        usuarioLogado.setTelefone(prefs.getString("telefone", ""));
-
-        if (usuarioLogado.getCpf().isEmpty()) {
-            Toast.makeText(getContext(), "Usuário não encontrado. Faça login novamente.",
-                    Toast.LENGTH_LONG).show();
-            // TODO: Redirecionar para tela de login
+    private void mostrarToast(String mensagem) {
+        if (getContext() != null) {
+            Toast.makeText(getContext(), mensagem, Toast.LENGTH_SHORT).show();
         }
+    }
+
+    private void mostrarErro(ChatManager.ErrorType tipo, String mensagem) {
+        Log.e(TAG, tipo.getValue() + ": " + mensagem);
+        mostrarToast("Erro: " + mensagem);
+    }
+
+    private void mostrarErroUsuario() {
+        mostrarToast("Dados do usuário inválidos. Faça login novamente.");
+        // TODO: Implementar redirecionamento para login se necessário
     }
 
     private void criarCanalNotificacao() {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O && getActivity() != null) {
             NotificationChannel channel = new NotificationChannel(
                     CHANNEL_ID,
                     "Mensagens do Chat",
@@ -293,53 +489,92 @@ public class ChatFragment extends Fragment {
             channel.setDescription("Notificações de novas mensagens no chat");
 
             notificationManager = getActivity().getSystemService(NotificationManager.class);
-            notificationManager.createNotificationChannel(channel);
+            if (notificationManager != null) {
+                notificationManager.createNotificationChannel(channel);
+            }
         }
     }
 
     private void mostrarNotificacao(MensagemDTO mensagem) {
-        // Só mostrar se o app estiver em background ou fragment não visível
+        // Só mostrar se fragment não está visível
         if (!isVisible() || !getUserVisibleHint()) {
-            NotificationCompat.Builder builder = new NotificationCompat.Builder(getContext(), CHANNEL_ID)
-                    .setSmallIcon(R.drawable.ic_chat)
-                    .setContentTitle("Nova mensagem")
-                    .setContentText(mensagem.getMensagem())
-                    .setPriority(NotificationCompat.PRIORITY_DEFAULT)
-                    .setAutoCancel(true);
+            if (getContext() != null && notificationManager != null) {
+                NotificationCompat.Builder builder = new NotificationCompat.Builder(getContext(), CHANNEL_ID)
+                        .setSmallIcon(R.drawable.ic_chat)
+                        .setContentTitle("Nova mensagem")
+                        .setContentText(mensagem.getMensagem())
+                        .setPriority(NotificationCompat.PRIORITY_DEFAULT)
+                        .setAutoCancel(true);
 
-            if (notificationManager != null) {
                 notificationManager.notify(1, builder.build());
             }
         }
     }
 
+    // Métodos de verificação de estado
+    private boolean isFragmentReady() {
+        return isInitialized && isAdded() && getContext() != null;
+    }
+
+    private boolean isChatManagerReady() {
+        return chatManager != null && isFragmentReady();
+    }
+
     @Override
     public void onResume() {
         super.onResume();
-        if (chatManager != null) {
-            chatManager.conectar();
+        Log.d(TAG, "onResume");
+
+        // Só reconectar se necessário
+        if (shouldReconnectOnResume && isChatManagerReady()) {
+            Log.d(TAG, "Reconectando chat...");
+            conectarChat();
         }
     }
 
     @Override
     public void onPause() {
         super.onPause();
-        // Parar indicador de digitação
-        if (estaDigitando && chatManager != null) {
+        Log.d(TAG, "onPause");
+
+        // Parar digitação
+        pararIndicadorDigitacao();
+    }
+
+    private void pararIndicadorDigitacao() {
+        if (estaDigitando && isChatManagerReady()) {
             estaDigitando = false;
             chatManager.indicarDigitando(false);
+
+            if (pararDigitando != null) {
+                digitandoHandler.removeCallbacks(pararDigitando);
+            }
         }
     }
 
     @Override
     public void onDestroy() {
         super.onDestroy();
+        Log.d(TAG, "onDestroy - limpando recursos");
+
+        // Limpar digitação
+        pararIndicadorDigitacao();
+
+        // Limpar handlers
+        if (digitandoHandler != null) {
+            digitandoHandler.removeCallbacksAndMessages(null);
+        }
+
+        // Destruir ChatManager
         if (chatManager != null) {
-            chatManager.limparListeners();
-            chatManager.desconectar();
+            chatManager.destroy();
+            chatManager = null;
         }
-        if (digitandoHandler != null && pararDigitando != null) {
-            digitandoHandler.removeCallbacks(pararDigitando);
-        }
+
+        // Reset state
+        mensagensCarregadas = false;
+        shouldReconnectOnResume = false;
+
+        Log.d(TAG, "ChatFragment totalmente limpo");
     }
 }

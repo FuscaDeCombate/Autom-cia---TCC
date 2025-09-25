@@ -2,13 +2,17 @@ package com.automacia.mobile;
 
 import android.content.Intent;
 import android.os.Bundle;
+import android.os.Handler;
+import android.os.Looper;
 import android.text.Editable;
 import android.text.TextWatcher;
 import android.view.View;
+import android.view.WindowManager;
 import android.widget.ProgressBar;
 import android.widget.Toast;
 
 import androidx.activity.EdgeToEdge;
+import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.graphics.Insets;
 import androidx.core.view.ViewCompat;
@@ -25,7 +29,13 @@ import com.google.android.material.textfield.TextInputLayout;
 
 /**
  * Activity responsável pelo cadastro de novos usuários
- * Implementa validações em tempo real, formatação automática e integração com banco de dados
+ * Implementa validações em tempo real, formatação automática e integração com Firebase Auth
+ *
+ * Fluxo do cadastro:
+ * 1. Validação local dos campos
+ * 2. Criação da conta no Firebase + envio de email de verificação
+ * 3. Usuário confirma email (automaticamente detectado no onResume)
+ * 4. Finalização do cadastro no banco local
  */
 public class RegisterActivity extends AppCompatActivity {
 
@@ -49,23 +59,28 @@ public class RegisterActivity extends AppCompatActivity {
     private boolean isSenhaValida = false;
     private boolean isConfirmacaoValida = false;
 
+    // Controle do estado do cadastro
+    private boolean isProcessandoCadastro = false;
+    private boolean isAguardandoVerificacao = false;
+    private UsuarioDTO usuarioTemporario = null;
+    private AlertDialog dialogoVerificacao = null;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         EdgeToEdge.enable(this);
         setContentView(R.layout.activity_register);
 
+        getWindow().setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_ADJUST_RESIZE);
+
         // Inicializa o service
-        registerService = new RegisterService();
+        registerService = new RegisterService(getBaseContext());
 
         setupWindowInsets();
         setupGradientBackground();
         initializeViews();
         setupValidators();
         setupClickListeners();
-
-        // Testa conexão inicial
-        testarConexaoInicial();
     }
 
     private void setupWindowInsets() {
@@ -105,22 +120,6 @@ public class RegisterActivity extends AppCompatActivity {
         if (progressBar != null) {
             progressBar.setVisibility(View.GONE);
         }
-    }
-
-    private void testarConexaoInicial() {
-        registerService.testarConexao(new RegisterService.CheckExistenceCallback() {
-            @Override
-            public void onResult(boolean ok, String field) {
-                // Conexão OK
-            }
-
-            @Override
-            public void onError(String error) {
-                Toast.makeText(RegisterActivity.this,
-                        "Problema de conexão: " + error,
-                        Toast.LENGTH_LONG).show();
-            }
-        });
     }
 
     private void setupValidators() {
@@ -249,24 +248,37 @@ public class RegisterActivity extends AppCompatActivity {
         boolean todosValidos = isNomeValido && isCpfValido && isEmailValido &&
                 isTelefoneValido && isSenhaValida && isConfirmacaoValida;
 
-        btnCadastrar.setEnabled(todosValidos);
-        btnCadastrar.setAlpha(todosValidos ? 1.0f : 0.5f);
+        btnCadastrar.setEnabled(todosValidos && !isProcessandoCadastro && !isAguardandoVerificacao);
+        btnCadastrar.setAlpha((todosValidos && !isProcessandoCadastro && !isAguardandoVerificacao) ? 1.0f : 0.5f);
     }
 
     private void setupClickListeners() {
         btnCadastrar.setOnClickListener(v -> realizarCadastro());
 
         txtLogin.setOnClickListener(v -> {
+            if (isProcessandoCadastro || isAguardandoVerificacao) {
+                Toast.makeText(this, "Aguarde o processamento do cadastro", Toast.LENGTH_SHORT).show();
+                return;
+            }
+
             Intent intent = new Intent(this, LoginActivity.class);
             startActivity(intent);
             finish();
         });
 
         btnGoogle.setOnClickListener(v -> {
+            if (isProcessandoCadastro || isAguardandoVerificacao) {
+                Toast.makeText(this, "Aguarde o processamento do cadastro", Toast.LENGTH_SHORT).show();
+                return;
+            }
             Toast.makeText(this, "Login com Google em desenvolvimento", Toast.LENGTH_SHORT).show();
         });
 
         btnFacebook.setOnClickListener(v -> {
+            if (isProcessandoCadastro || isAguardandoVerificacao) {
+                Toast.makeText(this, "Aguarde o processamento do cadastro", Toast.LENGTH_SHORT).show();
+                return;
+            }
             Toast.makeText(this, "Login com Facebook em desenvolvimento", Toast.LENGTH_SHORT).show();
         });
     }
@@ -277,41 +289,221 @@ public class RegisterActivity extends AppCompatActivity {
         }
 
         // Coleta os dados
-        UsuarioDTO usuario = coletarDadosUsuario();
+        usuarioTemporario = coletarDadosUsuario();
 
-        // Chama o service para registrar
-        registerService.registrarUsuario(usuario, new RegisterService.RegisterCallback() {
+        // Chama o service para registrar no Firebase
+        registerService.registrarUsuario(usuarioTemporario, new RegisterService.RegisterCallback() {
+            @Override
+            public void onSuccess(String message) {
+                // Cadastro inicial no Firebase foi bem-sucedido
+                // Agora precisa aguardar verificação do email
+                isAguardandoVerificacao = true;
+                mostrarDialogoVerificacaoEmail(usuarioTemporario.getEmail());
+            }
+
+            @Override
+            public void onError(String error) {
+                Toast.makeText(RegisterActivity.this, error, Toast.LENGTH_LONG).show();
+                resetarEstadoCadastro();
+            }
+
+            @Override
+            public void onLoading(boolean isLoading) {
+                isProcessandoCadastro = isLoading;
+                updateButtonState();
+
+                btnCadastrar.setText(isLoading ? "Criando conta..." : "Cadastrar");
+
+                if (progressBar != null) {
+                    progressBar.setVisibility(isLoading ? View.VISIBLE : View.GONE);
+                }
+
+                // Desabilita outros controles durante o processamento
+                btnGoogle.setEnabled(!isLoading);
+                btnFacebook.setEnabled(!isLoading);
+                txtLogin.setEnabled(!isLoading);
+
+                // Desabilita campos de entrada durante processamento
+                setFieldsEnabled(!isLoading);
+            }
+
+            @Override
+            public void onEmailVerificationSent(String email) {
+                // Email de verificação foi enviado
+                // Este callback será usado no diálogo de verificação
+            }
+        });
+    }
+
+    private void setFieldsEnabled(boolean enabled) {
+        editNomeC.setEnabled(enabled);
+        editCPF.setEnabled(enabled);
+        editEmail.setEnabled(enabled);
+        editTelefone.setEnabled(enabled);
+        editSenha.setEnabled(enabled);
+        editConSenha.setEnabled(enabled);
+    }
+
+    private void mostrarDialogoVerificacaoEmail(String email) {
+        // Fecha diálogo anterior se existir
+        if (dialogoVerificacao != null && dialogoVerificacao.isShowing()) {
+            dialogoVerificacao.dismiss();
+        }
+
+        AlertDialog.Builder builder = new AlertDialog.Builder(this);
+        builder.setTitle("Verifique seu email");
+        builder.setMessage("Enviamos um link de confirmação para:\n" + email +
+                "\n\nClique no link do email para ativar sua conta e depois toque em 'Verificar' para continuar.");
+        builder.setCancelable(false);
+
+        builder.setPositiveButton("Verificar", (dialog, which) -> {
+            verificarEmailConfirmado();
+        });
+
+        builder.setNeutralButton("Reenviar Email", (dialog, which) -> {
+            reenviarEmailVerificacao();
+        });
+
+        builder.setNegativeButton("Voltar", (dialog, which) -> {
+            dialog.dismiss();
+            resetarEstadoCadastro();
+        });
+
+        dialogoVerificacao = builder.create();
+        dialogoVerificacao.show();
+    }
+
+    private void verificarEmailConfirmado() {
+        // Mostra loading durante verificação
+        if (progressBar != null) {
+            progressBar.setVisibility(View.VISIBLE);
+        }
+
+        registerService.processarLinkVerificacao(new RegisterService.RegisterCallback() {
+            @Override
+            public void onSuccess(String message) {
+                if (progressBar != null) {
+                    progressBar.setVisibility(View.GONE);
+                }
+
+                // Email foi verificado, fecha o diálogo e completa o registro
+                if (dialogoVerificacao != null && dialogoVerificacao.isShowing()) {
+                    dialogoVerificacao.dismiss();
+                }
+                completarRegistroNoBanco();
+            }
+
+            @Override
+            public void onError(String error) {
+                if (progressBar != null) {
+                    progressBar.setVisibility(View.GONE);
+                }
+                Toast.makeText(RegisterActivity.this,
+                        "Email ainda não foi verificado. Clique no link do email e tente novamente.",
+                        Toast.LENGTH_LONG).show();
+
+                // Mostra o diálogo novamente após um pequeno delay
+                new Handler(Looper.getMainLooper()).postDelayed(() -> {
+                    mostrarDialogoVerificacaoEmail(usuarioTemporario.getEmail());
+                }, 1000);
+            }
+
+            @Override
+            public void onLoading(boolean isLoading) {
+                // Não precisa de loading adicional aqui
+            }
+
+            @Override
+            public void onEmailVerificationSent(String email) {
+                // Não usado neste contexto
+            }
+        });
+    }
+
+    private void reenviarEmailVerificacao() {
+        registerService.reenviarLinkVerificacao(new RegisterService.RegisterCallback() {
+            @Override
+            public void onSuccess(String message) {
+                Toast.makeText(RegisterActivity.this, message, Toast.LENGTH_SHORT).show();
+                // Mostra o diálogo novamente
+                mostrarDialogoVerificacaoEmail(usuarioTemporario.getEmail());
+            }
+
+            @Override
+            public void onError(String error) {
+                Toast.makeText(RegisterActivity.this,
+                        "Erro ao reenviar email: " + error,
+                        Toast.LENGTH_LONG).show();
+                // Mostra o diálogo novamente
+                mostrarDialogoVerificacaoEmail(usuarioTemporario.getEmail());
+            }
+
+            @Override
+            public void onLoading(boolean isLoading) {
+                // Não precisa mostrar loading para reenvio
+            }
+
+            @Override
+            public void onEmailVerificationSent(String email) {
+                // Email reenviado
+            }
+        });
+    }
+
+    private void completarRegistroNoBanco() {
+        if (progressBar != null) {
+            progressBar.setVisibility(View.VISIBLE);
+        }
+
+        registerService.completarRegistroNoBanco(usuarioTemporario, new RegisterService.DatabaseCallback() {
             @Override
             public void onSuccess(String message) {
                 Toast.makeText(RegisterActivity.this, message, Toast.LENGTH_LONG).show();
 
-                // Redireciona para login com email preenchido
+                // Redireciona para login
                 Intent intent = new Intent(RegisterActivity.this, LoginActivity.class);
-                intent.putExtra("email", usuario.getEmail());
+                intent.putExtra("email", usuarioTemporario.getEmail());
                 intent.putExtra("cadastro_sucesso", true);
+                intent.putExtra("message", "Cadastro finalizado com sucesso! Faça login para continuar.");
+
                 startActivity(intent);
                 finish();
             }
 
             @Override
             public void onError(String error) {
-                Toast.makeText(RegisterActivity.this, error, Toast.LENGTH_LONG).show();
+                Toast.makeText(RegisterActivity.this,
+                        "Erro ao finalizar cadastro: " + error,
+                        Toast.LENGTH_LONG).show();
+
+                resetarEstadoCadastro();
             }
 
             @Override
             public void onLoading(boolean isLoading) {
-                btnCadastrar.setEnabled(!isLoading);
-                btnCadastrar.setText(isLoading ? "Cadastrando..." : "Cadastrar");
-
                 if (progressBar != null) {
                     progressBar.setVisibility(isLoading ? View.VISIBLE : View.GONE);
                 }
-
-                btnGoogle.setEnabled(!isLoading);
-                btnFacebook.setEnabled(!isLoading);
-                txtLogin.setEnabled(!isLoading);
             }
         });
+    }
+
+    private void resetarEstadoCadastro() {
+        isProcessandoCadastro = false;
+        isAguardandoVerificacao = false;
+        usuarioTemporario = null;
+        updateButtonState();
+        setFieldsEnabled(true);
+        btnCadastrar.setText("Cadastrar");
+
+        if (progressBar != null) {
+            progressBar.setVisibility(View.GONE);
+        }
+
+        // Reabilita outros controles
+        btnGoogle.setEnabled(true);
+        btnFacebook.setEnabled(true);
+        txtLogin.setEnabled(true);
     }
 
     private UsuarioDTO coletarDadosUsuario() {
@@ -379,15 +571,71 @@ public class RegisterActivity extends AppCompatActivity {
     @Override
     protected void onResume() {
         super.onResume();
-        if (btnCadastrar != null) {
+
+        // Atualiza estado dos botões
+        if (btnCadastrar != null && !isProcessandoCadastro && !isAguardandoVerificacao) {
             updateButtonState();
             btnCadastrar.setText("Cadastrar");
         }
+
+        // Detecção automática: se estava aguardando verificação e tem usuário temporário,
+        // verifica se o email foi confirmado (útil quando usuário verifica em outro device)
+        if (isAguardandoVerificacao && usuarioTemporario != null) {
+            // Pequeno delay para evitar múltiplas verificações
+            new Handler(Looper.getMainLooper()).postDelayed(() -> {
+                verificarEmailConfirmadoSilencioso();
+            }, 500);
+        }
+    }
+
+    /**
+     * Verifica email confirmado de forma silenciosa (sem mostrar diálogos)
+     * Usado no onResume para detectar verificação feita em outro device
+     */
+    private void verificarEmailConfirmadoSilencioso() {
+        registerService.processarLinkVerificacao(new RegisterService.RegisterCallback() {
+            @Override
+            public void onSuccess(String message) {
+                // Email foi verificado! Fecha qualquer diálogo aberto e completa o registro
+                if (dialogoVerificacao != null && dialogoVerificacao.isShowing()) {
+                    dialogoVerificacao.dismiss();
+                }
+
+                Toast.makeText(RegisterActivity.this,
+                        "Email verificado! Finalizando cadastro...",
+                        Toast.LENGTH_SHORT).show();
+
+                completarRegistroNoBanco();
+            }
+
+            @Override
+            public void onError(String error) {
+                // Ignora erros na verificação silenciosa
+                // O usuário ainda pode usar o botão "Verificar" manualmente
+            }
+
+            @Override
+            public void onLoading(boolean isLoading) {
+                // Não mostra loading na verificação silenciosa
+            }
+
+            @Override
+            public void onEmailVerificationSent(String email) {
+                // Não usado neste contexto
+            }
+        });
     }
 
     @Override
     protected void onDestroy() {
         super.onDestroy();
+
+        // Fecha diálogo se estiver aberto
+        if (dialogoVerificacao != null && dialogoVerificacao.isShowing()) {
+            dialogoVerificacao.dismiss();
+        }
+
+        // Limpa o service
         if (registerService != null) {
             registerService.shutdown();
         }
@@ -395,7 +643,7 @@ public class RegisterActivity extends AppCompatActivity {
 
     @Override
     public void onBackPressed() {
-        if (btnCadastrar != null && !btnCadastrar.isEnabled()) {
+        if (isProcessandoCadastro || isAguardandoVerificacao) {
             Toast.makeText(this, "Aguarde o cadastro ser processado", Toast.LENGTH_SHORT).show();
             return;
         }

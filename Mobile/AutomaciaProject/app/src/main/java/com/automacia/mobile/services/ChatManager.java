@@ -16,11 +16,15 @@ import java.sql.Connection;
 import java.sql.CallableStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 import java.util.Locale;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
 
 import io.socket.client.IO;
 import io.socket.client.Socket;
@@ -30,14 +34,71 @@ public class ChatManager {
 
     private static final String TAG = "ChatManager";
     private static final String SERVER_URL = "http://192.168.20.61:6969";
-    private static final int FUNCIONARIO_ID = 1; // ID fixo do funcionário para este exemplo
+    private static final int FUNCIONARIO_ID = 1; // TODO: Tornar dinâmico
+    private static final int CONNECTION_TIMEOUT = 10000;
+    private static final int DATABASE_TIMEOUT = 10000;
 
+    // Enums para padronização
+    public enum ChatEvents {
+        NOVA_MENSAGEM("nova_mensagem"),
+        DIGITANDO("digitando"),
+        ENTRAR_SALA("entrar_sala"),
+        ENVIAR_MENSAGEM("enviar_mensagem"),
+        SAIR_SALA("sair_sala");
+
+        private final String value;
+
+        ChatEvents(String value) {
+            this.value = value;
+        }
+
+        public String getValue() {
+            return value;
+        }
+    }
+
+    public enum ErrorType {
+        SOCKET("SOCKET_ERROR"),
+        BANCO("DATABASE_ERROR"),
+        TIMEOUT("TIMEOUT_ERROR"),
+        DESCONHECIDO("UNKNOWN_ERROR"),
+        VALIDACAO("VALIDATION_ERROR");
+
+        private final String value;
+
+        ErrorType(String value) {
+            this.value = value;
+        }
+
+        public String getValue() {
+            return value;
+        }
+    }
+
+    public enum TipoUsuario {
+        PACIENTE("paciente"),
+        FUNCIONARIO("funcionario");
+
+        private final String value;
+
+        TipoUsuario(String value) {
+            this.value = value;
+        }
+
+        public String getValue() {
+            return value;
+        }
+    }
+
+    // Variáveis de instância
     private Socket mSocket;
     private Context context;
     private UsuarioDTO usuarioLogado;
     private Handler mainHandler;
+    private ExecutorService databaseExecutor;
+    private volatile boolean isConnected = false;
 
-    // Interfaces para callbacks
+    // Interfaces para callbacks com ErrorType
     public interface OnMensagemRecebidaListener {
         void onMensagemRecebida(MensagemDTO mensagem);
     }
@@ -47,19 +108,28 @@ public class ChatManager {
     }
 
     public interface OnDigitandoListener {
-        void onDigitando(boolean digitando);
+        void onDigitando(boolean digitando, String usuario);
     }
 
     public interface OnMensagensCarregadasListener {
         void onMensagensCarregadas(List<MensagemDTO> mensagens);
-        void onErro(String erro);
+
+        void onErro(ErrorType tipo, String erro);
     }
 
     public interface OnMensagemEnviadaListener {
         void onSucesso(String mensagem);
-        void onErro(String erro);
+
+        void onErro(ErrorType tipo, String erro);
     }
 
+    public interface OnSalaListener {
+        void onEntrou(String salaId);
+
+        void onErro(ErrorType tipo, String erro);
+    }
+
+    // Listeners
     private OnMensagemRecebidaListener onMensagemRecebidaListener;
     private OnStatusConexaoListener onStatusConexaoListener;
     private OnDigitandoListener onDigitandoListener;
@@ -68,6 +138,7 @@ public class ChatManager {
         this.context = context;
         this.usuarioLogado = usuario;
         this.mainHandler = new Handler(Looper.getMainLooper());
+        this.databaseExecutor = Executors.newSingleThreadExecutor();
         inicializarSocket();
     }
 
@@ -78,108 +149,188 @@ public class ChatManager {
             options.reconnection = true;
             options.reconnectionAttempts = 5;
             options.reconnectionDelay = 1000;
+            options.timeout = CONNECTION_TIMEOUT;
 
             mSocket = IO.socket(SERVER_URL, options);
 
-            mSocket.on(Socket.EVENT_CONNECT, new Emitter.Listener() {
-                @Override
-                public void call(Object... args) {
-                    Log.d(TAG, "Conectado ao servidor Socket.IO");
-                    mainHandler.post(() -> {
-                        if (onStatusConexaoListener != null) {
-                            onStatusConexaoListener.onStatusChanged(true);
-                        }
-                    });
-
-                    // Entrar na sala do chat específico
-                    entrarNaSala();
-                }
-            });
-
-            mSocket.on(Socket.EVENT_DISCONNECT, new Emitter.Listener() {
-                @Override
-                public void call(Object... args) {
-                    Log.d(TAG, "Desconectado do servidor Socket.IO");
-                    mainHandler.post(() -> {
-                        if (onStatusConexaoListener != null) {
-                            onStatusConexaoListener.onStatusChanged(false);
-                        }
-                    });
-                }
-            });
-
-            mSocket.on(Socket.EVENT_CONNECT_ERROR, new Emitter.Listener() {
-                @Override
-                public void call(Object... args) {
-                    Log.e(TAG, "Erro de conexão: " + args[0].toString());
-                    mainHandler.post(() -> {
-                        if (onStatusConexaoListener != null) {
-                            onStatusConexaoListener.onStatusChanged(false);
-                        }
-                    });
-                }
-            });
-
-            // Escutar mensagens recebidas
-            mSocket.on("nova_mensagem", new Emitter.Listener() {
-                @Override
-                public void call(Object... args) {
-                    try {
-                        JSONObject data = (JSONObject) args[0];
-                        String mensagemTexto = data.getString("mensagem");
-                        String remetente = data.getString("remetente");
-                        String timestamp = data.getString("timestamp");
-
-                        // Criar objeto mensagem
-                        MensagemDTO mensagem = new MensagemDTO();
-                        mensagem.setMensagem(mensagemTexto);
-                        mensagem.setEhPaciente(false); // Mensagem do funcionário
-
-                        // Parse do timestamp
-                        try {
-                            SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault());
-                            mensagem.setHoraEnvio(sdf.parse(timestamp));
-                        } catch (Exception e) {
-                            mensagem.setHoraEnvio(new Date());
-                        }
-
-                        mainHandler.post(() -> {
-                            if (onMensagemRecebidaListener != null) {
-                                onMensagemRecebidaListener.onMensagemRecebida(mensagem);
-                            }
-                        });
-
-                    } catch (JSONException e) {
-                        Log.e(TAG, "Erro ao processar mensagem recebida", e);
-                    }
-                }
-            });
-
-            // Escutar indicador de digitação
-            mSocket.on("digitando", new Emitter.Listener() {
-                @Override
-                public void call(Object... args) {
-                    try {
-                        JSONObject data = (JSONObject) args[0];
-                        boolean digitando = data.getBoolean("digitando");
-                        String usuario = data.getString("usuario");
-
-                        // Só mostrar se não for o próprio usuário digitando
-                        if (!usuario.equals(usuarioLogado.getCpf())) {
-                            mainHandler.post(() -> {
-                                if (onDigitandoListener != null) {
-                                    onDigitandoListener.onDigitando(digitando);
-                                }
-                            });
-                        }
-                    } catch (JSONException e) {
-                        Log.e(TAG, "Erro ao processar indicador de digitação", e);
-                    }
-                }
-            });
+            configurarEventListeners();
 
         } catch (URISyntaxException e) {
             Log.e(TAG, "Erro ao inicializar Socket.IO", e);
+            notificarErro(ErrorType.SOCKET, "Erro ao inicializar conexão: " + e.getMessage());
+        }
+    }
+
+    private void configurarEventListeners() {
+        mSocket.on(Socket.EVENT_CONNECT, new Emitter.Listener() {
+            @Override
+            public void call(Object... args) {
+                Log.d(TAG, "Conectado ao servidor Socket.IO");
+                isConnected = true;
+                mainHandler.post(() -> {
+                    if (onStatusConexaoListener != null) {
+                        onStatusConexaoListener.onStatusChanged(true);
+                    }
+                });
+
+                // Entrar na sala do chat automaticamente
+                entrarNaSala();
+            }
+        });
+
+        mSocket.on(Socket.EVENT_DISCONNECT, new Emitter.Listener() {
+            @Override
+            public void call(Object... args) {
+                Log.d(TAG, "Desconectado do servidor Socket.IO");
+                isConnected = false;
+                mainHandler.post(() -> {
+                    if (onStatusConexaoListener != null) {
+                        onStatusConexaoListener.onStatusChanged(false);
+                    }
+                });
+            }
+        });
+
+        mSocket.on(Socket.EVENT_CONNECT_ERROR, new Emitter.Listener() {
+            @Override
+            public void call(Object... args) {
+                String erro = args.length > 0 ? args[0].toString() : "Erro desconhecido";
+                Log.e(TAG, "Erro de conexão: " + erro);
+                isConnected = false;
+                mainHandler.post(() -> {
+                    if (onStatusConexaoListener != null) {
+                        onStatusConexaoListener.onStatusChanged(false);
+                    }
+                });
+            }
+        });
+
+        // Escutar mensagens recebidas
+        mSocket.on(ChatEvents.NOVA_MENSAGEM.getValue(), new Emitter.Listener() {
+            @Override
+            public void call(Object... args) {
+                processarNovaMensagem(args);
+            }
+        });
+
+        // Escutar indicador de digitação
+        mSocket.on(ChatEvents.DIGITANDO.getValue(), new Emitter.Listener() {
+            @Override
+            public void call(Object... args) {
+                processarIndicadorDigitacao(args);
+            }
+        });
+
+        // Escutar confirmação de entrada na sala
+        mSocket.on("sala_confirmada", new Emitter.Listener() {
+            @Override
+            public void call(Object... args) {
+                try {
+                    JSONObject data = (JSONObject) args[0];
+                    String salaId = data.getString("sala");
+                    Log.d(TAG, "Confirmação de entrada na sala: " + salaId);
+                } catch (JSONException e) {
+                    Log.e(TAG, "Erro ao processar confirmação de sala", e);
+                }
+            }
+        });
+
+        // Escutar erros do servidor
+        mSocket.on("error", new Emitter.Listener() {
+            @Override
+            public void call(Object... args) {
+                try {
+                    JSONObject data = (JSONObject) args[0];
+                    String errorType = data.getString("error_type");
+                    String message = data.getString("message");
+
+                    ErrorType tipo;
+                    switch (errorType) {
+                        case "DATABASE_ERROR":
+                            tipo = ErrorType.BANCO;
+                            break;
+                        case "SOCKET_ERROR":
+                            tipo = ErrorType.SOCKET;
+                            break;
+                        case "VALIDATION_ERROR":
+                            tipo = ErrorType.VALIDACAO;
+                            break;
+                        case "TIMEOUT_ERROR":
+                            tipo = ErrorType.TIMEOUT;
+                            break;
+                        default:
+                            tipo = ErrorType.DESCONHECIDO;
+                            break;
+                    }
+
+                    Log.e(TAG, "Erro do servidor (" + errorType + "): " + message);
+                    notificarErro(tipo, message);
+                } catch (JSONException e) {
+                    Log.e(TAG, "Erro ao processar erro do servidor", e);
+                    notificarErro(ErrorType.SOCKET, "Erro de comunicação com servidor");
+                }
+            }
+        });
+    }
+
+    private void processarNovaMensagem(Object... args) {
+        try {
+            JSONObject data = (JSONObject) args[0];
+            String mensagemTexto = data.getString("mensagem");
+            String remetente = data.getString("remetente");
+            String tipoRemetente = data.getString("tipo_remetente");
+            String timestamp = data.getString("timestamp");
+
+            // Criar objeto mensagem
+            MensagemDTO mensagem = new MensagemDTO();
+            mensagem.setMensagem(mensagemTexto);
+            mensagem.setEhPaciente(TipoUsuario.PACIENTE.getValue().equals(tipoRemetente));
+
+            // Parse do timestamp
+            try {
+                SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSSSSS", Locale.getDefault());
+                mensagem.setHoraEnvio(sdf.parse(timestamp));
+            } catch (ParseException e) {
+                Log.w(TAG, "Erro ao fazer parse do timestamp, usando horário atual", e);
+                mensagem.setHoraEnvio(new Date());
+            }
+
+            // Definir dados adicionais
+            if (data.has("cpf_paciente")) {
+                mensagem.setPacienteCpf(data.getString("cpf_paciente"));
+            }
+            if (data.has("funcionario_id")) {
+                mensagem.setFuncionarioId(data.getInt("funcionario_id"));
+            }
+
+            mainHandler.post(() -> {
+                if (onMensagemRecebidaListener != null) {
+                    onMensagemRecebidaListener.onMensagemRecebida(mensagem);
+                }
+            });
+
+        } catch (JSONException e) {
+            Log.e(TAG, "Erro ao processar mensagem recebida", e);
+            notificarErro(ErrorType.SOCKET, "Erro ao processar mensagem recebida");
+        }
+    }
+
+    private void processarIndicadorDigitacao(Object... args) {
+        try {
+            JSONObject data = (JSONObject) args[0];
+            boolean digitando = data.getBoolean("digitando");
+            String usuario = data.getString("usuario");
+
+            // Só mostrar se não for o próprio usuário digitando
+            if (!usuario.equals(usuarioLogado.getCpf())) {
+                mainHandler.post(() -> {
+                    if (onDigitandoListener != null) {
+                        onDigitandoListener.onDigitando(digitando, usuario);
+                    }
+                });
+            }
+        } catch (JSONException e) {
+            Log.e(TAG, "Erro ao processar indicador de digitação", e);
         }
     }
 
@@ -188,13 +339,14 @@ public class ChatManager {
             JSONObject data = new JSONObject();
             data.put("cpfPaciente", usuarioLogado.getCpf());
             data.put("funcionarioId", FUNCIONARIO_ID);
-            data.put("tipoUsuario", "paciente");
+            data.put("tipoUsuario", TipoUsuario.PACIENTE.getValue());
 
-            mSocket.emit("entrar_sala", data);
-            Log.d(TAG, "Entrando na sala do chat: " + usuarioLogado.getCpf());
+            mSocket.emit(ChatEvents.ENTRAR_SALA.getValue(), data);
+            Log.d(TAG, "Solicitando entrada na sala: " + usuarioLogado.getCpf());
 
         } catch (JSONException e) {
             Log.e(TAG, "Erro ao entrar na sala", e);
+            notificarErro(ErrorType.SOCKET, "Erro ao entrar na sala de chat");
         }
     }
 
@@ -207,141 +359,99 @@ public class ChatManager {
     public void desconectar() {
         if (mSocket != null) {
             mSocket.disconnect();
+            isConnected = false;
         }
     }
 
     public void enviarMensagem(String mensagem, OnMensagemEnviadaListener listener) {
-        // Primeiro salvar no banco via procedure
-        new Thread(() -> {
-            try {
-                Connection connection = DatabaseHelper.getConnection();
-                CallableStatement stmt = connection.prepareCall("{call Envia_Mensagem_P(?, ?, ?)}");
-
-                stmt.setInt(1, FUNCIONARIO_ID);
-                stmt.setString(2, usuarioLogado.getCpf());
-                stmt.setString(3, mensagem);
-
-                ResultSet rs = stmt.executeQuery();
-
-                String resultado = "";
-                if (rs.next()) {
-                    resultado = rs.getString("Mensagem_Retorno_P");
-                }
-
-                rs.close();
-                stmt.close();
-                connection.close();
-
-                final String resultadoFinal = resultado;
-
-                if (resultado.equals("Mensagem enviada com sucesso")) {
-                    // Enviar via Socket.IO
-                    try {
-                        JSONObject data = new JSONObject();
-                        data.put("mensagem", mensagem);
-                        data.put("cpfPaciente", usuarioLogado.getCpf());
-                        data.put("funcionarioId", FUNCIONARIO_ID);
-                        data.put("remetente", usuarioLogado.getCpf());
-                        data.put("tipoRemetente", "paciente");
-
-                        mSocket.emit("enviar_mensagem", data);
-
-                        mainHandler.post(() -> {
-                            if (listener != null) {
-                                listener.onSucesso(resultadoFinal);
-                            }
-                        });
-
-                    } catch (JSONException e) {
-                        Log.e(TAG, "Erro ao enviar mensagem via Socket.IO", e);
-                        mainHandler.post(() -> {
-                            if (listener != null) {
-                                listener.onErro("Erro ao enviar mensagem");
-                            }
-                        });
-                    }
-                } else {
-                    mainHandler.post(() -> {
-                        if (listener != null) {
-                            listener.onErro(resultadoFinal);
-                        }
-                    });
-                }
-
-            } catch (SQLException e) {
-                Log.e(TAG, "Erro no banco de dados ao enviar mensagem", e);
-                mainHandler.post(() -> {
-                    if (listener != null) {
-                        listener.onErro("Erro no banco de dados");
-                    }
-                });
+        if (mensagem == null || mensagem.trim().isEmpty()) {
+            if (listener != null) {
+                mainHandler.post(() -> listener.onErro(ErrorType.VALIDACAO, "Mensagem não pode estar vazia"));
             }
-        }).start();
+            return;
+        }
+
+        if (!isConnected) {
+            if (listener != null) {
+                mainHandler.post(() -> listener.onErro(ErrorType.SOCKET, "Não conectado ao servidor"));
+            }
+            return;
+        }
+
+        try {
+            JSONObject data = new JSONObject();
+            data.put("mensagem", mensagem.trim());
+            data.put("cpfPaciente", usuarioLogado.getCpf());
+            data.put("funcionarioId", FUNCIONARIO_ID);
+            data.put("tipoRemetente", TipoUsuario.PACIENTE.getValue());
+
+            mSocket.emit(ChatEvents.ENVIAR_MENSAGEM.getValue(), data);
+
+            // Sucesso imediato - confirmação real vem via nova_mensagem
+            mainHandler.post(() -> {
+                if (listener != null) {
+                    listener.onSucesso("Enviando mensagem...");
+                }
+            });
+
+        } catch (JSONException e) {
+            Log.e(TAG, "Erro ao enviar mensagem", e);
+            mainHandler.post(() -> {
+                if (listener != null) {
+                    listener.onErro(ErrorType.SOCKET, "Erro ao enviar mensagem");
+                }
+            });
+        }
     }
 
     public void carregarMensagens(OnMensagensCarregadasListener listener) {
-        new Thread(() -> {
+        databaseExecutor.execute(() -> {
+            Connection connection = null;
+            CallableStatement stmt = null;
+            ResultSet rs = null;
+
             try {
-                Connection connection = DatabaseHelper.getConnection();
-                CallableStatement stmt = connection.prepareCall("{call Mostra_Chat(?, ?)}");
+                connection = DatabaseHelper.getConnection();
+                stmt = connection.prepareCall("{call Mostra_Chat(?, ?)}");
 
                 stmt.setString(1, usuarioLogado.getCpf());
                 stmt.setInt(2, FUNCIONARIO_ID);
+                stmt.setQueryTimeout(DATABASE_TIMEOUT / 1000);
 
-                ResultSet rs = stmt.executeQuery();
-
+                rs = stmt.executeQuery();
                 List<MensagemDTO> mensagens = new ArrayList<>();
 
-                // Verificar se há erro
-                if (rs.next()) {
-                    String primeiroResultado = rs.getString(1);
+                // Processar resultados
+                while (rs.next()) {
+                    String mensagemTexto = rs.getString(1); // Primeira coluna
 
-                    // Se for uma mensagem de erro
-                    if (primeiroResultado.equals("CPF Inválido") ||
-                            primeiroResultado.equals("Funcionário Inválido") ||
-                            primeiroResultado.equals("Informações Inválidas")) {
-
-                        rs.close();
-                        stmt.close();
-                        connection.close();
-
+                    // Verificar se é mensagem de erro
+                    if (isErrorMessage(mensagemTexto)) {
+                        final String erro = mensagemTexto;
                         mainHandler.post(() -> {
                             if (listener != null) {
-                                listener.onErro(primeiroResultado);
+                                listener.onErro(ErrorType.BANCO, erro);
                             }
                         });
                         return;
                     }
 
-                    // Se não é erro, processar as mensagens
-                    // Note: Como o resultado já foi lido, precisamos incluí-lo
-                    if (primeiroResultado != null && !primeiroResultado.trim().isEmpty()) {
+                    // Criar mensagem se não for erro
+                    if (mensagemTexto != null && !mensagemTexto.trim().isEmpty()) {
                         MensagemDTO mensagem = new MensagemDTO();
-                        mensagem.setMensagem(primeiroResultado);
-                        // Aqui você precisa determinar se é do paciente ou funcionário
-                        // Por enquanto, vou assumir uma lógica baseada no conteúdo ou posição
-                        mensagem.setEhPaciente(true); // Placeholder - implementar lógica real
-                        mensagem.setHoraEnvio(new Date()); // Placeholder - pegar do banco
+                        mensagem.setMensagem(mensagemTexto);
+                        mensagem.setPacienteCpf(usuarioLogado.getCpf());
+                        mensagem.setFuncionarioId(FUNCIONARIO_ID);
+
+                        // TODO: Implementar lógica para determinar quem enviou
+                        // Por enquanto, assumindo que todas são do paciente
+                        // Isso precisa ser corrigido com base na estrutura real do banco
+                        mensagem.setEhPaciente(true);
+                        mensagem.setHoraEnvio(new Date()); // Placeholder
+
                         mensagens.add(mensagem);
                     }
-
-                    // Continuar lendo o restante
-                    while (rs.next()) {
-                        String mensagemTexto = rs.getString("Mensagem");
-                        if (mensagemTexto != null && !mensagemTexto.trim().isEmpty()) {
-                            MensagemDTO mensagem = new MensagemDTO();
-                            mensagem.setMensagem(mensagemTexto);
-                            // Implementar lógica para determinar quem enviou
-                            mensagem.setEhPaciente(true); // Placeholder
-                            mensagem.setHoraEnvio(new Date()); // Placeholder
-                            mensagens.add(mensagem);
-                        }
-                    }
                 }
-
-                rs.close();
-                stmt.close();
-                connection.close();
 
                 mainHandler.post(() -> {
                     if (listener != null) {
@@ -353,14 +463,32 @@ public class ChatManager {
                 Log.e(TAG, "Erro ao carregar mensagens do banco", e);
                 mainHandler.post(() -> {
                     if (listener != null) {
-                        listener.onErro("Erro ao carregar mensagens");
+                        listener.onErro(ErrorType.BANCO, "Erro ao carregar mensagens: " + e.getMessage());
                     }
                 });
+            } finally {
+                try {
+                    if (rs != null) rs.close();
+                    if (stmt != null) stmt.close();
+                    if (connection != null) connection.close();
+                } catch (SQLException e) {
+                    Log.e(TAG, "Erro ao fechar recursos do banco", e);
+                }
             }
-        }).start();
+        });
+    }
+
+    private boolean isErrorMessage(String mensagem) {
+        return mensagem != null && (
+                mensagem.equals("CPF Inválido") ||
+                        mensagem.equals("Funcionário Inválido") ||
+                        mensagem.equals("Informações Inválidas")
+        );
     }
 
     public void indicarDigitando(boolean digitando) {
+        if (!isConnected) return;
+
         try {
             JSONObject data = new JSONObject();
             data.put("digitando", digitando);
@@ -368,7 +496,7 @@ public class ChatManager {
             data.put("cpfPaciente", usuarioLogado.getCpf());
             data.put("funcionarioId", FUNCIONARIO_ID);
 
-            mSocket.emit("digitando", data);
+            mSocket.emit(ChatEvents.DIGITANDO.getValue(), data);
 
         } catch (JSONException e) {
             Log.e(TAG, "Erro ao indicar digitação", e);
@@ -376,7 +504,12 @@ public class ChatManager {
     }
 
     public boolean isConectado() {
-        return mSocket != null && mSocket.connected();
+        return mSocket != null && mSocket.connected() && isConnected;
+    }
+
+    private void notificarErro(ErrorType tipo, String mensagem) {
+        Log.e(TAG, tipo.getValue() + ": " + mensagem);
+        // Aqui você pode adicionar notificação para o usuário se necessário
     }
 
     // Setters para listeners
@@ -396,5 +529,22 @@ public class ChatManager {
         this.onMensagemRecebidaListener = null;
         this.onStatusConexaoListener = null;
         this.onDigitandoListener = null;
+    }
+
+    public void destroy() {
+        limparListeners();
+        desconectar();
+
+        if (databaseExecutor != null && !databaseExecutor.isShutdown()) {
+            databaseExecutor.shutdown();
+            try {
+                if (!databaseExecutor.awaitTermination(5, TimeUnit.SECONDS)) {
+                    databaseExecutor.shutdownNow();
+                }
+            } catch (InterruptedException e) {
+                databaseExecutor.shutdownNow();
+                Thread.currentThread().interrupt();
+            }
+        }
     }
 }
