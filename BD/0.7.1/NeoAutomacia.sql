@@ -129,11 +129,12 @@ CREATE TABLE Receita (
         Data_Receita DATETIME2 NOT NULL DEFAULT GETDATE(),
         Data_Validade DATE NOT NULL,
         Funcionar_Rec INT NOT NULL,
+		Funcionar_Nome VARCHAR(100) NOT NULL,
         Paciente_F VARCHAR(11) NOT NULL,
         Medicamento VARCHAR(200) NOT NULL,
         Detalhes VARCHAR(500),
         Limite_Baixas TINYINT,
-        Valido BIT DEFAULT 1,
+        Valido BIT DEFAULT 1, --Valido por padrão
         Baixas TINYINT DEFAULT 1,
         PRIMARY KEY (ID_Receita),
         FOREIGN KEY (Funcionar_Rec) REFERENCES Funcionario(Funcionar_Rec),
@@ -493,8 +494,8 @@ BEGIN
                 -- Verifica��es finais e inser��o
                 IF (@ID_Funcionario_R = 1) AND (@Senha_Funcionario_R = 1) AND (@Tipo_Funcionario_R = 2) AND (@CPF_Receita_R = 1)
                 BEGIN
-                        INSERT INTO Receita (Funcionar_Rec, Data_Validade, Medicamento, Detalhes, Limite_Baixas, Paciente_F, Valido, Baixas) 
-                        VALUES (@ID_Funcionario, @Data_Validade, @Medicamento, @Detalhes, @Limite_Baixas, @CPF_Receita, 1, 0);
+                        INSERT INTO Receita (Funcionar_Rec,Funcionar_Nome, Data_Validade, Medicamento, Detalhes, Limite_Baixas, Paciente_F, Valido, Baixas) 
+                        VALUES (@ID_Funcionario, (SELECT Nome_Funcionario FROM Funcionario WHERE Funcionar_Rec = @ID_Funcionario),@Data_Validade, @Medicamento, @Detalhes, @Limite_Baixas, @CPF_Receita, 1, 0);
                         SELECT 'Receita criada com sucesso' AS 'Retorno_Registra_Receita';
                 END
                 ELSE 
@@ -526,7 +527,7 @@ BEGIN
                         SELECT 'Nenhuma receita encontrada para este CPF' AS 'Ver_Receita_Retorno';
                         RETURN;
                 END
-                SELECT * FROM Receita WHERE Paciente_F = @CPF_Receita ORDER BY Data_Receita DESC;
+                SELECT * FROM Receita R WHERE Paciente_F = @CPF_Receita ORDER BY Valido, Data_Receita DESC;
         END TRY
         BEGIN CATCH
                 SELECT 'Erro ao consultar receitas' AS 'Ver_Receita_Retorno';
@@ -1248,6 +1249,7 @@ BEGIN
 END
 GO
 
+--Login Contratante
 CREATE PROCEDURE Login_Contratante(
 		@CNPJ Varchar(20),
 		@Senha Varchar(32)
@@ -1277,6 +1279,18 @@ CREATE PROCEDURE Login_Contratante(
         BEGIN CATCH
                 SELECT 'Erro no processo de login' AS 'Login_Contratante_Retorno';
         END CATCH
+GO
+
+--Mostra Funcionário
+CREATE PROCEDURE Mostra_Funcionario (@ID_Funcionario INT)AS
+BEGIN
+	BEGIN TRY
+		SELECT Nome_Funcionario, F.CNPJ, F.Ativo, C.Nome_Contratante FROM Funcionario F Inner Join Contratante C On F.CNPJ = C.CNPJ Where F.Funcionar_Rec = @ID_Funcionario;
+	END TRY
+	BEGIN CATCH
+		SELECT '' AS 'Mostra_Funcionário_Retorno';
+	END CATCH
+END
 GO
 --===============================================================================================
 -- TRIGGER E PROCEDURE DE MANUTENÇÃO
@@ -1315,8 +1329,7 @@ BEGIN
                 -- Invalidar receitas vencidas
                 UPDATE Receita 
                 SET Valido = 0 
-                WHERE Data_Validade < CAST(GETDATE() AS DATE) 
-                  AND Valido = 1;
+                WHERE Data_Validade < CAST(GETDATE() AS DATE) AND Valido = 1;
                 SELECT 'Receitas vencidas atualizadas com sucesso' AS 'Retorno_Atualiza_Receita';
         END TRY
         BEGIN CATCH
@@ -1431,64 +1444,64 @@ GO
 -- POPULAÇÃO
 
 --Contratante (CNPJ, Documentação:Binário, Nome, Senha)
-Exec Contrata '1', 0xABCDEF, 'CayoLandia', 'senha';
-Exec Contrata '2', 0xABCDEF, 'AndréFeira', 'senha1';
-Exec Contrata '3', 0xABCDEF, 'JonasTryHard', 'senha2';
-Exec Contrata '4', 0xABCDEF, 'AlanTalvez', 'senha3';
-Exec Contrata '5', 0xABCDEF, 'BogasRiquelmus', 'senha4';
-Exec Contrata '6', 0xABCDEF, 'O Império', 'senhaMuitoBoa';
-Exec Contrata '7', 0xABCDEF, 'SuperRobens', 'senha5';
-Exec Contrata '8', 0xABCDEF, 'UltraBombs', 'senha6';
-Exec Contrata '9', 0xABCDEF, 'JovenzinhosSergio', 'senha7';
+Exec Contrata '1', 0xABCDEF, 'CayoLandia',			'senha';
+Exec Contrata '2', 0xABCDEF, 'AndréFeira',			'senha1';
+Exec Contrata '3', 0xABCDEF, 'JonasTryHard',		'senha2';
+Exec Contrata '4', 0xABCDEF, 'AlanTalvez',			'senha3';
+Exec Contrata '5', 0xABCDEF, 'BogasRiquelmus',		'senha4';
+Exec Contrata '6', 0xABCDEF, 'O Império',			'senhaMuitoBoa';
+Exec Contrata '7', 0xABCDEF, 'SuperRobens',			'senha5';
+Exec Contrata '8', 0xABCDEF, 'UltraBombs',			'senha6';
+Exec Contrata '9', 0xABCDEF, 'JovenzinhosSergio',	'senha7';
 
 --Funcionário (CNPJ, TipoFunc, Nome, SenhaFunc, SenhaContratante)
-Exec Registra_Funcionario '9', 1, 'Alan Ono Osanai Pan', 'senha123', 'senha7';
-Exec Registra_Funcionario '1', 1, 'Alexandre', 'senha123?', 'senha';
-Exec Registra_Funcionario '1', 1, 'Allan Alves', 'senha123?', 'senha';
-Exec Registra_Funcionario '1', 1, 'André Fabian', 'senha123?', 'senha';
-Exec Registra_Funcionario '1', 1, 'Bruno Alves', 'senha123?', 'senha';
-Exec Registra_Funcionario '2', 1, 'Caue', 'senha123?', 'senha1';
-Exec Registra_Funcionario '9', 1, 'Cayo', 'senha123?', 'senha7';
-Exec Registra_Funcionario '2', 1, 'Daniel', 'senha123?', 'senha1';
-Exec Registra_Funcionario '2', 1, 'Elisa', 'senha123?', 'senha1';
-Exec Registra_Funcionario '3', 2, 'Enzo', 'senha123?', 'senha2';
-Exec Registra_Funcionario '3', 2, 'Gabriel Eiki', 'senha123?', 'senha2';
-Exec Registra_Funcionario '3', 2, 'Gabriel Gonçalves', 'senha123?', 'senha2';
-Exec Registra_Funcionario '4', 2, 'Gabriel Oliveira', 'senha04','senha3';
-Exec Registra_Funcionario '4', 2, 'Gabriel Sobral', 'senha123?', 'senha3';
-Exec Registra_Funcionario '4', 2, 'Giovanini Urologista', 'senha123?', 'senha3';
-Exec Registra_Funcionario '5', 2, 'Heloisa Aiko Uehara', 'senha123?', 'senha4';
-Exec Registra_Funcionario '5', 2, 'Henrique Bressan', 'senha123', 'senha4';
-Exec Registra_Funcionario '5', 2, 'Joana', 'senha123?', 'senha4';
-Exec Registra_Funcionario '9', 2, 'João', 'senha123?', 'senha7';
-Exec Registra_Funcionario '9', 3, 'Jonatas', 'senha123?', 'senha7';
-Exec Registra_Funcionario '5', 3, 'Jorge', 'senha123?', 'senha4';
-Exec Registra_Funcionario '5', 3, 'Juliana', 'senha123?', 'senha4';
-Exec Registra_Funcionario '2', 3, 'Karina', 'senha123?', 'senha1';
-Exec Registra_Funcionario '4', 3, 'Kaully', 'senha123?', 'senha3';
-Exec Registra_Funcionario '4', 3, 'Kelly Park', 'senha123?', 'senha3';
-Exec Registra_Funcionario '4', 3, 'Leandro', 'senha123?', 'senha3';
-Exec Registra_Funcionario '7', 3, 'Leonardo', 'senha123?', 'senha5';
-Exec Registra_Funcionario '7', 3, 'Lucas', 'senha123?', 'senha5';
-Exec Registra_Funcionario '7', 3, 'Maria Vitória Tavares', 'senha123?', 'senha5';
-Exec Registra_Funcionario '7', 4, 'Natália', 'senha123?', 'senha5';
-Exec Registra_Funcionario '7', 4, 'Pedro²', 'senha123?', 'senha5';
-Exec Registra_Funcionario '8', 4, 'Rafael', 'senha123?', 'senha6';
-Exec Registra_Funcionario '8', 4, 'Ricardo', 'senha123?', 'senha6';
-Exec Registra_Funcionario '8', 4, 'Rikelme', 'senha123?', 'senha6';
-Exec Registra_Funcionario '6', 4, 'Riquelme Brain Root da SILVA', 'senha123?', 'senhaMuitoBoa';
-Exec Registra_Funcionario '6', 4, 'Sophia', 'senha123?', 'senhaMuitoBoa';
-Exec Registra_Funcionario '8', 4, 'Teodora', 'senha123?', 'senha6';
-Exec Registra_Funcionario '9', 4, 'Victor Hugo', 'senha123?', 'senha7';
-Exec Registra_Funcionario '6', 4, 'V King', 'senha123?', 'senhaMuitoBoa';
-Exec Registra_Funcionario '6', 4, 'Vítor Pires', 'senha123?', 'senhaMuitoBoa';
-Exec Registra_Funcionario '6', 4, 'Vladmir Pudim', 'senha123?', 'senhaMuitoBoa';
-EXEC Registra_Funcionario '6', 4, 'Wanderley da Silva Souza de Mata Pera Pereira Vazconselos Oliveira', 'senha123', 'senhaMuitoBoa';
-Exec Registra_Funcionario '6', 4, 'Yasmin', 'senha123?', 'senhaMuitoBoa';
+Exec Registra_Funcionario '9', 1, 'Alan Ono Osanai Pan',												'senha123',		'senha7';
+Exec Registra_Funcionario '1', 1, 'Alexandre',															'senha123?',	'senha';
+Exec Registra_Funcionario '1', 1, 'Allan Alves',														'senha123?',	'senha';
+Exec Registra_Funcionario '1', 1, 'André Fabian',														'senha123?',	'senha';
+Exec Registra_Funcionario '1', 1, 'Bruno Alves',														'senha123?',	'senha';
+Exec Registra_Funcionario '2', 1, 'Caue',																'senha123?',	'senha1';
+Exec Registra_Funcionario '9', 1, 'Cayo',																'senha123?',	'senha7';
+Exec Registra_Funcionario '2', 1, 'Daniel',																'senha123?',	'senha1';
+Exec Registra_Funcionario '2', 1, 'Elisa',																'senha123?',	'senha1';
+Exec Registra_Funcionario '3', 2, 'Enzo',																'senha123?',	'senha2';
+Exec Registra_Funcionario '3', 2, 'Gabriel Eiki',														'senha123?',	'senha2';
+Exec Registra_Funcionario '3', 2, 'Gabriel Gonçalves',													'senha123?',	'senha2';
+Exec Registra_Funcionario '4', 2, 'Gabriel Oliveira',													'senha04',		'senha3';
+Exec Registra_Funcionario '4', 2, 'Gabriel Sobral',														'senha123?',	'senha3';
+Exec Registra_Funcionario '4', 2, 'Giovanini Urologista',												'senha123?',	'senha3';
+Exec Registra_Funcionario '5', 2, 'Heloisa Aiko Uehara',												'senha123?',	'senha4';
+Exec Registra_Funcionario '5', 2, 'Henrique Bressan',													'senha123',		'senha4';
+Exec Registra_Funcionario '5', 2, 'Joana',																'senha123?',	'senha4';
+Exec Registra_Funcionario '9', 2, 'João',																'senha123?',	'senha7';
+Exec Registra_Funcionario '9', 3, 'Jonatas',															'senha123?',	'senha7';
+Exec Registra_Funcionario '5', 3, 'Jorge',																'senha123?',	'senha4';
+Exec Registra_Funcionario '5', 3, 'Juliana',															'senha123?',	'senha4';
+Exec Registra_Funcionario '2', 3, 'Karina',																'senha123?',	'senha1';
+Exec Registra_Funcionario '4', 3, 'Kaully',																'senha123?',	'senha3';
+Exec Registra_Funcionario '4', 3, 'Kelly Park',															'senha123?',	'senha3';
+Exec Registra_Funcionario '4', 3, 'Leandro',															'senha123?',	'senha3';
+Exec Registra_Funcionario '7', 3, 'Leonardo',															'senha123?',	'senha5';
+Exec Registra_Funcionario '7', 3, 'Lucas',																'senha123?',	'senha5';
+Exec Registra_Funcionario '7', 3, 'Maria Vitória Tavares',												'senha123?',	'senha5';
+Exec Registra_Funcionario '7', 4, 'Natália',															'senha123?',	'senha5';
+Exec Registra_Funcionario '7', 4, 'Pedro²',																'senha123?',	'senha5';
+Exec Registra_Funcionario '8', 4, 'Rafael',																'senha123?',	'senha6';
+Exec Registra_Funcionario '8', 4, 'Ricardo',															'senha123?',	'senha6';
+Exec Registra_Funcionario '8', 4, 'Rikelme',															'senha123?',	'senha6';
+Exec Registra_Funcionario '6', 4, 'Riquelme Brain Root da SILVA',										'senha123?',	'senhaMuitoBoa';
+Exec Registra_Funcionario '6', 4, 'Sophia',																'senha123?',	'senhaMuitoBoa';
+Exec Registra_Funcionario '8', 4, 'Teodora',															'senha123?',	'senha6';
+Exec Registra_Funcionario '9', 4, 'Victor Hugo',														'senha123?',	'senha7';
+Exec Registra_Funcionario '6', 4, 'V King',																'senha123?',	'senhaMuitoBoa';
+Exec Registra_Funcionario '6', 4, 'Vítor Pires',														'senha123?',	'senhaMuitoBoa';
+Exec Registra_Funcionario '6', 4, 'Vladmir Pudim',														'senha123?',	'senhaMuitoBoa';
+EXEC Registra_Funcionario '6', 4, 'Wanderley da Silva Souza de Mata Pera Pereira Vazconselos Oliveira',	'senha123',		'senhaMuitoBoa';
+Exec Registra_Funcionario '6', 4, 'Yasmin',																'senha123?',	'senhaMuitoBoa';
 
 --Paciente (CPF, Senha, Email, Nome, NomeSocial, Telefone)
 EXEC Registra_Paciente '54856098802',	'Alanzoca',		'algumEmail@gmail.com',			'Alan',						'Talvez',						'(55) +11 975793636';
-EXEC Registra_Paciente '03674704030',	'Catapimbas12',	'webosi7905@dawhe.com',			'Wazaoski',					'',								'(55) +11 923456789';
+EXEC Registra_Paciente '03674704030',	'Catapimbas12',	'webosi7905@dawhe.com',			'Mike Wazaoski',			'',								'(55) +11 923456789';
 EXEC Registra_Paciente '05642844083',	'Bananas',		'rehab1695@uorak.com',			'Raimundo',					'',								'(55) +11 934567890';
 EXEC Registra_Paciente '58061315050',	'Platano',		'joao3244@uorak.com',			'João',						'',								'(55) +11 945678901';
 EXEC Registra_Paciente '87949685000',	'Pineapple',	'tabitha1366@uorak.com',		'Tabata',					'',								'(55) +11 956789012';
@@ -1502,24 +1515,24 @@ EXEC Registra_Paciente '75286209041',	'Hornet',		'mitzie9696@uorak.com',			'Miri
 EXEC Registra_Paciente '56470317065',	'Bettle',		'alan2212@uorak.com',			'Aaaaalan',					'',								'(55) +11 994567890';
 EXEC Registra_Paciente '19483550009',	'Parmegiana',	'adiela122@uorak.com',			'Kotone Shiomi',			'Not a Princess',				'(55) +11 995678901';
 EXEC Registra_Paciente '93729214080',	'Rosbife',		'christopher3650@uorak.com',	'Kris Dremurr',				'Lightner',						'(55) +11 996789012';
-EXEC Registra_Paciente '69068097091',	'Risoto',		'rabii3924@uorak.com',			'Keiji Shibusawa',			'',								'(55) +11 997890123';
+EXEC Registra_Paciente '69068097091',	'Risoto',		'rabii3924@uorak.com',			'Keiji Shibusawa',			'Dragon',						'(55) +11 997890123';
 EXEC Registra_Paciente '21955621020',	'Macarronada',	'charo1949@uorak.com',			'Carol',					'',								'(55) +11 998901234';
 EXEC Registra_Paciente '08924899015',	'Bolonhesa',	'youcef4205@uorak.com',			'Yonatas',					'',								'(55) +11 999012345';
 EXEC Registra_Paciente '21524961086',	'Roux12',		'salobral8643@uorak.com',		'Daiseuke Kuse',			'',								'(55) +21 923456789';
 EXEC Registra_Paciente '39862328002',	'TortaDeLimao',	'wenche1232@uorak.com',			'Wesley',					'',								'(55) +21 934567890';
 EXEC Registra_Paciente '05892157016',	'Banoffe',		'alenjandro7008@uorak.com',		'Alejandro',				'',								'(55) +21 945678901';
-EXEC Registra_Paciente '22942383038',	'Cereja',		'amrinder8598@uorak.com',		'Ren Amamiya',				'',								'(55) +21 956789012';
+EXEC Registra_Paciente '22942383038',	'Cereja',		'amrinder8598@uorak.com',		'Ren Amamiya',				'JOKER',						'(55) +21 956789012';
 EXEC Registra_Paciente '43817833016',	'Uva123',		'xantal7174@uorak.com',			'Xantae',					'',								'(55) +21 967890123';
-EXEC Registra_Paciente '59784195070',	'Cogumelo',		'orencia5572@uorak.com',		'Ryuji Goda',				'',								'(55) +21 978901234';
+EXEC Registra_Paciente '59784195070',	'Cogumelo',		'orencia5572@uorak.com',		'Ryuji Goda',				'Golden Dragon',				'(55) +21 978901234';
 EXEC Registra_Paciente '54273844052',	'Shimeji',		'mayssa77@uorak.com',			'Mayara',					'',								'(55) +21 989012345';
-EXEC Registra_Paciente '51971708089',	'Temaki',		'xevi7186@uorak.com',			'Yoshitaka Mine',			'',								'(55) +21 990123456';
+EXEC Registra_Paciente '51971708089',	'Temaki',		'xevi7186@uorak.com',			'Yoshitaka Mine',			'The Kirin',					'(55) +21 990123456';
 EXEC Registra_Paciente '58614220014',	'Sushi1',		'josphine8493@uorak.com',		'Josefina',					'',								'(55) +21 991234567';
 EXEC Registra_Paciente '21341531058',	'Lamen1',		'dinis8748@uorak.com',			'Dionisio',					'',								'(55) +21 992345678';
 EXEC Registra_Paciente '91948947013',	'Gyoza1',		'flors9789@uorak.com',			'Flordis',					'',								'(55) +21 993456789';
 EXEC Registra_Paciente '40310919070',	'Taco12',		'penko988@uorak.com',			'Peko Pekoyama',			'Ultmate Martial Swordsman',	'(55) +21 994567890';
 EXEC Registra_Paciente '74315582018',	'Burrito',		'khawla7812@uorak.com',			'Kasemiro Walter',			'',								'(55) +21 995678901';
 EXEC Registra_Paciente '90934957045',	'Quesadilla',	'husam1393@uorak.com',			'Hugo Messias',				'',								'(55) +21 996789012';
-EXEC Registra_Paciente '43014639095',	'Pao123',		'shanna6488@uorak.com',			'Samara',					'',								'(55) +21 997890123';
+EXEC Registra_Paciente '43014639095',	'Pao123',		'shanna6488@uorak.com',			'Samara',					'Sadaoko',						'(55) +21 997890123';
 EXEC Registra_Paciente '33077793032',	'Lasanha',		'noria3789@uorak.com',			'Nori',						'',								'(55) +21 998901234';
 EXEC Registra_Paciente '62062052073',	'Virado',		'cherise1512@uorak.com',		'Chiquitita',				'',								'(55) +21 999012345';
 EXEC Registra_Paciente '10358560004',	'BaiaoDe2',		'enemesio7189@uorak.com',		'Eneias Pedro',				'',								'(55) +11 923567890';
@@ -1527,9 +1540,9 @@ EXEC Registra_Paciente '47298600044',	'FileMignhon',	'shameka3800@uorak.com',		'
 EXEC Registra_Paciente '09577340008',	'PureDeBatata',	'espiritu2026@uorak.com',		'Espertino',				'',								'(55) +11 945789012';
 EXEC Registra_Paciente '18065460003',	'Bacalhau',		'qasim8524@uorak.com',			'Quasit',					'',								'(55) +11 956890123';
 EXEC Registra_Paciente '15150863050',	'Bolo3Leches',	'badara1011@uorak.com',			'Bandara',					'',								'(55) +11 967901234';
-EXEC Registra_Paciente '12614706051',	'Panetone',		'margaux4438@uorak.com',		'Margo',					'',								'(55) +11 978012345';
+EXEC Registra_Paciente '12614706051',	'Panetone',		'margaux4438@uorak.com',		'Margô',					'',								'(55) +11 978012345';
 EXEC Registra_Paciente '60030094038',	'Salame',		'koro8923@uorak.com',			'Koromaru',					'Koro-chan',					'(55) +11 989123456';
-EXEC Registra_Paciente '74689923043',	'Queijo',		'apolinar7587@uorak.com',		'Pericles',					'',								'(55) +11 990234567';
+EXEC Registra_Paciente '74689923043',	'Queijo',		'apolinar7587@uorak.com',		'Péricles',					'',								'(55) +11 990234567';
 EXEC Registra_Paciente '40526767006',	'Pizza',		'dulcelina247@uorak.com',		'Dulcelina',				'',								'(55) +11 991345678';
 EXEC Registra_Paciente '13164571097',	'Hamburguer',	'sharilyn2650@uorak.com',		'Shamyn',					'',								'(55) +11 992456789';
 EXEC Registra_Paciente '86565804001',	'Beirute',		'ayaz6243@uorak.com',			'Ainz',						'',								'(55) +11 993567890';
@@ -1551,17 +1564,17 @@ EXEC Registra_Paciente '01400902070',	'Sashimi',		'alyona8632@uorak.com',			'Dai
 EXEC Registra_Paciente '49591700008',	'HotRoll',		'moneyba6921@uorak.com',		'Mr MoneyBags Sotenbori',	'',								'(55) +21 992456789';
 EXEC Registra_Paciente '53497527076',	'Uramaki',		'obdulio666@uorak.com',			'Shoei Dojima',				'',								'(55) +21 993567890';
 EXEC Registra_Paciente '17717478030',	'Naruto',		'shelton9852@uorak.com',		'Boruto Uzumaki',			'',								'(55) +21 994678901';
-EXEC Registra_Paciente '96481104092',	'OvoCozido',	'judie4817@uorak.com',			'Tatsuo Shinada',			'Shrimp',						'(55) +21 995789012';
+EXEC Registra_Paciente '96481104092',	'OvoCozido',	'judie4817@uorak.com',			'Tatsuo Shinada',			'Shrimp Man',					'(55) +21 995789012';
 EXEC Registra_Paciente '17686975070',	'Pirulito',		'armindo8672@uorak.com',		'Myers',					'Escoteiro Chefe',				'(55) +21 996890123';
 EXEC Registra_Paciente '37666471050',	'Marshmallow',	'kathrine2227@uorak.com',		'John Krammer',				'Jigshaw',						'(55) +21 997901234';
 EXEC Registra_Paciente '58700766097',	'HotDog',		'florinel5540@uorak.com',		'Haruka Shawamura',			'',								'(55) +21 998012345';
 EXEC Registra_Paciente '47077123049',	'Churros',		'shavon8845@uorak.com',			'Don Ramon',				'',								'(55) +21 999123456';
-EXEC Registra_Paciente '96939809058',	'Shakra',		'wahab4798@uorak.com',			'Kazuma Kiryu',				'Dragon',						'(55) +11 924567890';
+EXEC Registra_Paciente '96939809058',	'Shakra',		'wahab4798@uorak.com',			'Kazuma Kiryu',				'Dragon of Dojima',				'(55) +11 924567890';
 EXEC Registra_Paciente '24547397040',	'Poshaka',		'rababe9316@uorak.com',			'Ralsei',					'Fluffy Boy',					'(55) +11 935678901';
 EXEC Registra_Paciente '97702083026',	'Bazinga',		'grigore2265@uorak.com',		'Sheldon Copper',			'',								'(55) +11 946789012';
 EXEC Registra_Paciente '05483202090',	'Sorvete',		'julija1797@uorak.com',			'Asreiel Dremurr',			'Deus da Hipermorte',			'(55) +11 957890123';
 EXEC Registra_Paciente '73930978008',	'SopaDePedra',	'romul6283@uorak.com',			'Suzie',					'',								'(55) +11 968901234';
-EXEC Registra_Paciente '54537158042',	'Bis123',		'elinore842@uorak.com',			'Louis Guiabern',			'O Tinaro',						'(55) +11 979012345';
+EXEC Registra_Paciente '54537158042',	'Bis123',		'elinore842@uorak.com',			'Louis Guiabern',			'O Tirano',						'(55) +11 979012345';
 EXEC Registra_Paciente '00175474079',	'Chocolate',	'iosune8195@uorak.com',			'Nagito Komaeda',			'Ultmate Luck Student',			'(55) +11 980123456';
 EXEC Registra_Paciente '26572689000',	'Miojo',		'hyon1372@uorak.com',			'Hajime Hinata',			'',								'(55) +11 991234568';
 EXEC Registra_Paciente '67593704068',	'Camarão',		'yi6061@uorak.com',				'Makoto Naegi',				'Ultmate Hope',					'(55) +11 992345679';
@@ -1585,73 +1598,111 @@ EXEC Registra_Paciente '63806193053',	'Cookie',		'roumaissa8810@uorak.com',		'Ja
 EXEC Registra_Paciente '27788684023',	'Bolo12',		'sefora8192@uorak.com',			'Dandelion',				'',								'(55) +21 994567891';
 
 --Receita (ID_Func, TipoFunc, SenhaFunc, DataValidade, CPF, Medicamento, Descrição, LimiteBaixas)
-Exec Registra_Receita 1, 2, 'senha123', '19-12-2025', '54856098802', 'Dorflex', 'Usar 3x ao dia', 3;
-Exec Registra_Receita 2, 2, 'senha123?', '25-01-2026', '03674704030', 'Paracetamol 750mg', 'Tomar 1 comprimido de 8 em 8 horas', 2;
-Exec Registra_Receita 3, 2, 'senha123?', '15-02-2026', '05642844083', 'Ibuprofeno 600mg', 'Tomar 1 comprimido de 12 em 12 horas após refeições', 4;
-Exec Registra_Receita 4, 2, '04', '20-03-2026', '58061315050', 'Amoxicilina 500mg', 'Tomar 1 cápsula de 8 em 8 horas por 7 dias', 2;
-Exec Registra_Receita 5, 2, 'senha123?', '10-04-2026', '87949685000', 'Loratadina 10mg', 'Tomar 1 comprimido por dia pela manhã', 3;
-Exec Registra_Receita 6, 2, 'senha123?', '05-05-2026', '75974478096', 'Omeprazol 20mg', 'Tomar 1 cápsula em jejum pela manhã', 3;
-Exec Registra_Receita 7, 2, 'senha123?', '18-06-2026', '34731605040', 'Dipirona 500mg', 'Tomar 1 comprimido até 4x ao dia em caso de dor', 40;
-Exec Registra_Receita 8, 2, 'senha123?', '22-07-2026', '51890585068', 'Captopril 25mg', 'Tomar 1 comprimido pela manhã em jejum', 30;
-Exec Registra_Receita 9, 3, 'senha123?', '30-08-2026', '81112054065', 'Metformina 850mg', 'Tomar 1 comprimido após café da manhã', 30;
-Exec Registra_Receita 10, 3, 'senha123?', '12-09-2026', '53274699055', 'Sinvastatina 20mg', 'Tomar 1 comprimido à noite antes de dormir', 30;
-Exec Registra_Receita 11, 3, 'senha123?', '25-10-2026', '07628546005', 'Losartana 50mg', 'Tomar 1 comprimido pela manhã', 30;
-Exec Registra_Receita 12, 3, 'senha123?', '14-11-2026', '75286209041', 'Fluoxetina 20mg', 'Tomar 1 cápsula pela manhã', 30;
-Exec Registra_Receita 13, 3, 'senha123?', '08-12-2026', '56470317065', 'Cefalexina 500mg', 'Tomar 1 cápsula de 6 em 6 horas por 10 dias', 40;
-Exec Registra_Receita 14, 4, 'senha123?', '16-01-2027', '19483550009', 'Clonazepam 2mg', 'Tomar 0,5mg (1/4 comp) à noite', 30;
-Exec Registra_Receita 15, 4, 'senha123?', '28-02-2027', '93729214080', 'Atenolol 50mg', 'Tomar 1 comprimido pela manhã', 30;
-Exec Registra_Receita 16, 4, 'senha123?', '19-03-2027', '69068097091', 'Prednisona 20mg', 'Tomar 1 comprimido após café da manhã por 5 dias', 5;
-Exec Registra_Receita 17, 4, 'senha123?', '11-04-2027', '21955621020', 'Hidroclorotiazida 25mg', 'Tomar 1 comprimido pela manhã', 30;
-Exec Registra_Receita 18, 4, 'senha123?', '23-05-2027', '08924899015', 'Azitromicina 500mg', 'Tomar 1 comprimido por dia por 3 dias', 3;
-Exec Registra_Receita 19, 4, 'senha123?', '07-06-2027', '21524961086', 'Diclofenaco 50mg', 'Tomar 1 comprimido de 12 em 12 horas após refeições', 20;
-Exec Registra_Receita 20, 4, 'senha123?', '15-07-2027', '39862328002', 'Ranitidina 150mg', 'Tomar 1 comprimido 2x ao dia', 60;
+Exec Registra_Receita 1,	2, 'senha123',	'19-12-2025', '54856098802', 'Dorflex',					'Tomar 3x ao dia',										3;
+Exec Registra_Receita 2,	2, 'senha123?', '25-01-2026', '03674704030', 'Paracetamol 750mg',		'Tomar 1 comprimido de 8 em 8 horas',					2;
+Exec Registra_Receita 3,	2, 'senha123?', '15-02-2026', '05642844083', 'Ibuprofeno 600mg',		'Tomar 1 comprimido de 12 em 12 horas após refeições',	4;
+Exec Registra_Receita 4,	2, 'senha04',	'20-03-2026', '58061315050', 'Amoxicilina 500mg',		'Tomar 1 cápsula de 8 em 8 horas por 7 dias',			2;
+Exec Registra_Receita 5,	2, 'senha123?', '10-04-2026', '87949685000', 'Loratadina 10mg',			'Tomar 1 comprimido por dia pela manhã',				3;
+Exec Registra_Receita 6,	2, 'senha123?', '05-05-2026', '75974478096', 'Omeprazol 20mg',			'Tomar 1 cápsula em jejum pela manhã',					3;
+Exec Registra_Receita 7,	2, 'senha123?', '18-06-2026', '34731605040', 'Dipirona 500mg',			'Tomar 1 comprimido até 4x ao dia em caso de dor',		40;
+Exec Registra_Receita 8,	2, 'senha123?', '22-07-2026', '51890585068', 'Captopril 25mg',			'Tomar 1 comprimido pela manhã em jejum',				30;
+Exec Registra_Receita 9,	3, 'senha123?', '30-08-2026', '81112054065', 'Metformina 850mg',		'Tomar 1 comprimido após café da manhã',				30;
+Exec Registra_Receita 10,	3, 'senha123?', '12-09-2026', '53274699055', 'Sinvastatina 20mg',		'Tomar 1 comprimido à noite antes de dormir',			30;
+Exec Registra_Receita 11,	3, 'senha123?', '25-10-2026', '07628546005', 'Losartana 50mg',			'Tomar 1 comprimido pela manhã',						30;
+Exec Registra_Receita 12,	3, 'senha123?', '14-11-2026', '75286209041', 'Fluoxetina 20mg',			'Tomar 1 cápsula pela manhã',							30;
+Exec Registra_Receita 13,	3, 'senha123?', '08-12-2026', '56470317065', 'Cefalexina 500mg',		'Tomar 1 cápsula de 6 em 6 horas por 10 dias',			40;
+Exec Registra_Receita 14,	4, 'senha123?', '16-01-2027', '19483550009', 'Clonazepam 2mg',			'Tomar 0,5mg (1/4 comp) à noite',						30;
+Exec Registra_Receita 15,	4, 'senha123?', '28-02-2027', '93729214080', 'Atenolol 50mg',			'Tomar 1 comprimido pela manhã',						30;
+Exec Registra_Receita 16,	4, 'senha123?', '19-03-2027', '69068097091', 'Prednisona 20mg',			'Tomar 1 comprimido após café da manhã por 5 dias',		5;
+Exec Registra_Receita 17,	4, 'senha123?', '11-04-2027', '21955621020', 'Hidroclorotiazida 25mg',	'Tomar 1 comprimido pela manhã',						30;
+Exec Registra_Receita 18,	4, 'senha123?', '23-05-2027', '08924899015', 'Azitromicina 500mg',		'Tomar 1 comprimido por dia por 3 dias',				3;
+Exec Registra_Receita 19,	4, 'senha123?', '07-06-2027', '21524961086', 'Diclofenaco 50mg',		'Tomar 1 comprimido de 12 em 12 horas após refeições',	20;
+Exec Registra_Receita 20,	4, 'senha123?', '15-07-2027', '39862328002', 'Ranitidina 150mg',		'Tomar 1 comprimido 2x ao dia',							60;
 
--- Mensagens de Pacientes para Funcionários
-EXEC Envia_Mensagem_P 2, '03674704030', 'Bom dia! Preciso marcar uma consulta de retorno.';
-EXEC Envia_Mensagem_P 3, '05642844083', 'Olá, gostaria de saber sobre os resultados dos meus exames.';
-EXEC Envia_Mensagem_P 4, '58061315050', 'Oi, posso remarcar minha consulta para a próxima semana?';
-EXEC Envia_Mensagem_P 5, '87949685000', 'Boa tarde, o medicamento está fazendo efeito positivo!';
-EXEC Envia_Mensagem_P 6, '75974478096', 'Preciso de uma segunda via da receita, por favor.';
-EXEC Envia_Mensagem_P 7, '34731605040', 'Estou sentindo alguns efeitos colaterais do medicamento.';
-EXEC Envia_Mensagem_P 8, '51890585068', 'Quando posso agendar minha próxima consulta?';
-EXEC Envia_Mensagem_P 9, '81112054065', 'Obrigada pelo atendimento! Estou me sentindo melhor.';
-EXEC Envia_Mensagem_P 10, '53274699055', 'Posso tomar o medicamento junto com outros remédios?';
-EXEC Envia_Mensagem_P 11, '07628546005', 'Preciso alterar meu cadastro, mudei de telefone.';
-EXEC Envia_Mensagem_P 12, '75286209041', 'Dúvida sobre o horário correto para tomar o medicamento.';
-EXEC Envia_Mensagem_P 13, '56470317065', 'Bom dia! Como faço para solicitar atestado médico?';
-EXEC Envia_Mensagem_P 14, '19483550009', 'Estou viajando, posso interromper o tratamento?';
-EXEC Envia_Mensagem_P 15, '93729214080', 'O medicamento acabou, preciso de nova receita.';
+-- Mensagens de Pacientes para Funcionários (ID_Func, CPF, Mensagem)
+EXEC Envia_Mensagem_P 2,	'03674704030', 'Bom dia! Preciso marcar uma consulta de retorno.';
+EXEC Envia_Mensagem_P 3,	'05642844083', 'Olá, gostaria de saber sobre os resultados dos meus exames.';
+EXEC Envia_Mensagem_P 4,	'58061315050', 'Oi, posso remarcar minha consulta para a próxima semana?';
+EXEC Envia_Mensagem_P 5,	'87949685000', 'Boa tarde, o medicamento está fazendo efeito positivo!';
+EXEC Envia_Mensagem_P 6,	'75974478096', 'Preciso de uma segunda via da receita, por favor.';
+EXEC Envia_Mensagem_P 7,	'34731605040', 'Estou sentindo alguns efeitos colaterais do medicamento.';
+EXEC Envia_Mensagem_P 8,	'51890585068', 'Quando posso agendar minha próxima consulta?';
+EXEC Envia_Mensagem_P 9,	'81112054065', 'Obrigada pelo atendimento! Estou me sentindo melhor.';
+EXEC Envia_Mensagem_P 10,	'53274699055', 'Posso tomar o medicamento junto com outros remédios?';
+EXEC Envia_Mensagem_P 11,	'07628546005', 'Preciso alterar meu cadastro, mudei de telefone.';
+EXEC Envia_Mensagem_P 12,	'75286209041', 'Dúvida sobre o horário correto para tomar o medicamento.';
+EXEC Envia_Mensagem_P 13,	'56470317065', 'Bom dia! Como faço para solicitar atestado médico?';
+EXEC Envia_Mensagem_P 14,	'19483550009', 'Estou viajando, posso interromper o tratamento?';
+EXEC Envia_Mensagem_P 15,	'93729214080', 'O medicamento acabou, preciso de nova receita.';
 
--- Mensagens de Funcionários para Pacientes
-EXEC Envia_Mensagem_F '03674704030', 2, 'Olá! Sua consulta está agendada para segunda-feira às 14h.';
-EXEC Envia_Mensagem_F '05642844083', 3, 'Seus exames chegaram, pode buscar na recepção.';
-EXEC Envia_Mensagem_F '58061315050', 4, 'Conseguimos remarcar para quarta-feira no mesmo horário.';
-EXEC Envia_Mensagem_F '87949685000', 5, 'Que bom! Continue o tratamento conforme orientado.';
-EXEC Envia_Mensagem_F '75974478096', 6, 'Segunda via da receita já está pronta para retirada.';
-EXEC Envia_Mensagem_F '34731605040', 7, 'Vamos avaliar na próxima consulta, não pare o medicamento.';
-EXEC Envia_Mensagem_F '51890585068', 8, 'Temos disponibilidade na próxima sexta às 16h.';
-EXEC Envia_Mensagem_F '81112054065', 9, 'Ficamos felizes! Continue seguindo as orientações.';
-EXEC Envia_Mensagem_F '53274699055', 10, 'É seguro, mas informe sempre todos os medicamentos que usa.';
-EXEC Envia_Mensagem_F '07628546005', 11, 'Compareça à recepção com documento para atualizar cadastro.';
-EXEC Envia_Mensagem_F '75286209041', 12, 'Tome sempre no mesmo horário, preferencialmente pela manhã.';
-EXEC Envia_Mensagem_F '56470317065', 13, 'Atestado será emitido na sua próxima consulta presencial.';
-EXEC Envia_Mensagem_F '19483550009', 14, 'Não interrompa sem orientação médica. Entre em contato urgente.';
-EXEC Envia_Mensagem_F '93729214080', 15, 'Nova receita já foi preparada, pode retirar na farmácia.';
-EXEC Envia_Mensagem_F '69068097091', 16, 'Lembre-se: consulta de retorno em 15 dias.';
-EXEC Envia_Mensagem_F '21955621020', 17, 'Seus exames de rotina estão em dia, parabéns!';
-EXEC Envia_Mensagem_F '08924899015', 18, 'Importante: termine todo o ciclo do antibiótico.';
-EXEC Envia_Mensagem_F '21524961086', 19, 'Evite atividades físicas intensas durante o tratamento.';
-EXEC Envia_Mensagem_F '39862328002', 20, 'Qualquer dúvida, estamos à disposição pelo WhatsApp.';
+-- Mensagens de Funcionários para Pacientes (CPF, ID_Func, Mensagem)
+EXEC Envia_Mensagem_F '03674704030', 2,		'Olá! Sua consulta está agendada para segunda-feira às 14h.';
+EXEC Envia_Mensagem_F '05642844083', 3,		'Seus exames chegaram, pode buscar na recepção.';
+EXEC Envia_Mensagem_F '58061315050', 4,		'Conseguimos remarcar para quarta-feira no mesmo horário.';
+EXEC Envia_Mensagem_F '87949685000', 5,		'Que bom! Continue o tratamento conforme orientado.';
+EXEC Envia_Mensagem_F '75974478096', 6,		'Segunda via da receita já está pronta para retirada.';
+EXEC Envia_Mensagem_F '34731605040', 7,		'Vamos avaliar na próxima consulta, não pare o medicamento.';
+EXEC Envia_Mensagem_F '51890585068', 8,		'Temos disponibilidade na próxima sexta às 16h.';
+EXEC Envia_Mensagem_F '81112054065', 9,		'Ficamos felizes! Continue seguindo as orientações.';
+EXEC Envia_Mensagem_F '53274699055', 10,	'É seguro, mas informe sempre todos os medicamentos que usa.';
+EXEC Envia_Mensagem_F '07628546005', 11,	'Compareça à recepção com documento para atualizar cadastro.';
+EXEC Envia_Mensagem_F '75286209041', 12,	'Tome sempre no mesmo horário, preferencialmente pela manhã.';
+EXEC Envia_Mensagem_F '56470317065', 13,	'Atestado será emitido na sua próxima consulta presencial.';
+EXEC Envia_Mensagem_F '19483550009', 14,	'Não interrompa sem orientação médica. Entre em contato urgente.';
+EXEC Envia_Mensagem_F '93729214080', 15,	'Nova receita já foi preparada, pode retirar na farmácia.';
+EXEC Envia_Mensagem_F '69068097091', 16,	'Lembre-se: consulta de retorno em 15 dias.';
+EXEC Envia_Mensagem_F '21955621020', 17,	'Seus exames de rotina estão em dia, parabéns!';
+EXEC Envia_Mensagem_F '08924899015', 18,	'Importante: termine todo o ciclo do antibiótico.';
+EXEC Envia_Mensagem_F '21524961086', 19,	'Evite atividades físicas intensas durante o tratamento.';
+EXEC Envia_Mensagem_F '39862328002', 20,	'Qualquer dúvida, estamos à disposição pelo WhatsApp.';
 
--- Conversas cruzadas (mais realistas)
-EXEC Envia_Mensagem_P 1, '22942383038', 'Dr., posso tomar dipirona junto com o remédio prescrito?';
-EXEC Envia_Mensagem_F '22942383038', 1, 'Sim, pode tomar. Dipirona não interage com seu medicamento.';
-EXEC Envia_Mensagem_P 2, '43817833016', 'Enfermeira, minha pressão está 140x90, é normal?';
-EXEC Envia_Mensagem_F '43817833016', 2, 'Está um pouco alta. Tome o medicamento e monitore diariamente.';
-EXEC Envia_Mensagem_P 3, '59784195070', 'Bom dia! Posso agendar consulta para minha esposa também?';
-EXEC Envia_Mensagem_F '59784195070', 3, 'Claro! Ela precisa fazer cadastro primeiro na recepção.';
-EXEC Envia_Mensagem_P 4, '54273844052', 'O laboratório pediu para jejuar 12h, está correto?';
-EXEC Envia_Mensagem_F '54273844052', 4, 'Sim, para seus exames é necessário jejum de 12 horas.';
-EXEC Envia_Mensagem_P 5, '51971708089', 'Doutora, posso fazer exercícios durante o tratamento?';
-EXEC Envia_Mensagem_F '51971708089', 5, 'Exercícios leves são recomendados. Evite apenas impacto.';
+-- Conversas cruzadas 
+EXEC Envia_Mensagem_P 1,				'22942383038',	'Dr., posso tomar dipirona junto com o remédio prescrito?';
+EXEC Envia_Mensagem_F '22942383038',	 1,				'Sim, pode tomar. Dipirona não interage com seu medicamento.';
+EXEC Envia_Mensagem_P 2,				'43817833016',	'Doutora, minha pressão está 140x90, é normal?';
+EXEC Envia_Mensagem_F '43817833016',	2,				'Está um pouco alta. Tome o medicamento e monitore diariamente.';
+EXEC Envia_Mensagem_P 3,				'59784195070',	'Bom dia! Posso agendar consulta para minha esposa também?';
+EXEC Envia_Mensagem_F '59784195070',	3,				'Claro! Ela precisa fazer cadastro primeiro na recepção.';
+EXEC Envia_Mensagem_P 4,				'54273844052',	'O laboratório pediu para jejuar 12h, está correto?';
+EXEC Envia_Mensagem_F '54273844052',	4,				'Sim, para seus exames é necessário jejum de 12 horas.';
+EXEC Envia_Mensagem_P 5,				'51971708089',	'Doutora, posso fazer exercícios durante o tratamento?';
+EXEC Envia_Mensagem_F '51971708089',	5,				'Exercícios leves são recomendados. Evite apenas impacto.';
 
+--Histórico
+EXEC Insere_Historico '54856098802',	'Alanzoca',		0xABCDEF;
+EXEC Insere_Historico '40310919070',	'Taco12',		0xABCDEF;
+EXEC Insere_Historico '43014639095',	'Pao123',		0xABCDEF;
+EXEC Insere_Historico '67593704068',	'Camarão',		0xABCDEF;
+EXEC Insere_Historico '85082610040',	'Tomate',		0xABCDEF;
+EXEC Insere_Historico '19483550009',	'Parmegiana',	0xABCDEF;
+EXEC Insere_Historico '65331943055',	'Guacamole',	0xABCDEF;
+EXEC Insere_Historico '39867593014',	'agua12',		0xABCDEF;
+EXEC Insere_Historico '90226815056',	'Pacu12',		0xABCDEF;
+EXEC Insere_Historico '27788684023',	'Bolo12',		0xABCDEF;
+EXEC Insere_Historico '51971708089',	'Temaki',		0xABCDEF;
+EXEC Insere_Historico '54537158042',	'Bis123',		0xABCDEF;
+EXEC Insere_Historico '56858037020',	'Costela',		0xABCDEF;
+EXEC Insere_Historico '53595358066',	'Risole',		0xABCDEF;
+EXEC Insere_Historico '35295496066',	'Abacate',		0xABCDEF;
+EXEC Insere_Historico '85194921004',	'Shawarma',		0xABCDEF;
+EXEC Insere_Historico '96481104092',	'OvoCozido',	0xABCDEF;
+EXEC Insere_Historico '00175474079',	'Chocolate',	0xABCDEF;
+EXEC Insere_Historico '21341531058',	'Lamen1',		0xABCDEF;
+EXEC Insere_Historico '81112054065',	'Blueberry',	0xABCDEF;
+EXEC Insere_Historico '46261355010',	'Cupim1',		0xABCDEF;
+EXEC Insere_Historico '59784195070',	'Cogumelo',		0xABCDEF;
+EXEC Insere_Historico '53274699055',	'Chia12',		0xABCDEF;
+EXEC Insere_Historico '42891855094',	'Morango',		0xABCDEF;
+EXEC Insere_Historico '73930978008',	'SopaDePedra',	0xABCDEF;
+EXEC Insere_Historico '05892157016',	'Banoffe',		0xABCDEF;
+EXEC Insere_Historico '26572689000',	'Miojo',		0xABCDEF;
+EXEC Insere_Historico '34731605040',	'Manzana',		0xABCDEF;
+EXEC Insere_Historico '63806193053',	'Cookie',		0xABCDEF;
+EXEC Insere_Historico '87370831043',	'Salgadinho',	0xABCDEF;
+EXEC Insere_Historico '59442913034',	'Picanha',		0xABCDEF;
+EXEC Insere_Historico '13977711008',	'Maminha',		0xABCDEF;
+EXEC Insere_Historico '89961711076',	'Chorizo',		0xABCDEF;
+EXEC Insere_Historico '01400902070',	'Sashimi',		0xABCDEF;
+EXEC Insere_Historico '96939809058',	'Shakra',		0xABCDEF;
+EXEC Insere_Historico '08343472020',	'Carbonara',	0xABCDEF;
+EXEC Insere_Historico '21524961086',	'Roux12',		0xABCDEF;
