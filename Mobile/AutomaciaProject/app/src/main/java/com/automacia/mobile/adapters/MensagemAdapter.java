@@ -3,7 +3,6 @@ package com.automacia.mobile.adapters;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
-import android.widget.LinearLayout;
 import android.widget.TextView;
 
 import androidx.annotation.NonNull;
@@ -15,100 +14,226 @@ import com.automacia.mobile.models.MensagemDTO;
 import java.util.ArrayList;
 import java.util.List;
 
-public class MensagemAdapter extends RecyclerView.Adapter<MensagemAdapter.MensagemViewHolder> {
+public class MensagemAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
 
-    private List<MensagemDTO> mensagens;
+    // Constantes para tipos de view
+    private static final int TIPO_MENSAGEM_PACIENTE = 1;
+    private static final int TIPO_MENSAGEM_FUNCIONARIO = 2;
+    private static final int TIPO_SEPARADOR_DATA = 3;
+
+    private final List<ItemChat> itens;
 
     public MensagemAdapter() {
-        this.mensagens = new ArrayList<>();
+        this.itens = new ArrayList<>();
+    }
+
+    @Override
+    public int getItemViewType(int position) {
+        ItemChat item = itens.get(position);
+
+        if (item.isSeparadorData()) {
+            return TIPO_SEPARADOR_DATA;
+        } else if (item.getMensagem().isEhPaciente()) {
+            return TIPO_MENSAGEM_PACIENTE;
+        } else {
+            return TIPO_MENSAGEM_FUNCIONARIO;
+        }
     }
 
     @NonNull
     @Override
-    public MensagemViewHolder onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
-        View view = LayoutInflater.from(parent.getContext())
-                .inflate(R.layout.item_mensagem, parent, false);
-        return new MensagemViewHolder(view);
+    public RecyclerView.ViewHolder onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
+        LayoutInflater inflater = LayoutInflater.from(parent.getContext());
+
+        switch (viewType) {
+            case TIPO_MENSAGEM_PACIENTE:
+                View viewPaciente = inflater.inflate(R.layout.item_mensagem_paciente, parent, false);
+                return new MensagemPacienteViewHolder(viewPaciente);
+
+            case TIPO_MENSAGEM_FUNCIONARIO:
+                View viewFuncionario = inflater.inflate(R.layout.item_mensagem_funcionario, parent, false);
+                return new MensagemFuncionarioViewHolder(viewFuncionario);
+
+            case TIPO_SEPARADOR_DATA:
+                View viewData = inflater.inflate(R.layout.item_mensagem_data, parent, false);
+                return new SeparadorDataViewHolder(viewData);
+
+            default:
+                throw new IllegalArgumentException("Tipo de view desconhecido: " + viewType);
+        }
     }
 
     @Override
-    public void onBindViewHolder(@NonNull MensagemViewHolder holder, int position) {
-        MensagemDTO mensagem = mensagens.get(position);
-        holder.bind(mensagem, position > 0 ? mensagens.get(position - 1) : null);
+    public void onBindViewHolder(@NonNull RecyclerView.ViewHolder holder, int position) {
+        ItemChat item = itens.get(position);
+
+        if (holder instanceof MensagemPacienteViewHolder) {
+            ((MensagemPacienteViewHolder) holder).bind(item.getMensagem());
+        } else if (holder instanceof MensagemFuncionarioViewHolder) {
+            ((MensagemFuncionarioViewHolder) holder).bind(item.getMensagem());
+        } else if (holder instanceof SeparadorDataViewHolder) {
+            ((SeparadorDataViewHolder) holder).bind(item.getDataSeparador());
+        }
     }
 
     @Override
     public int getItemCount() {
-        return mensagens.size();
+        return itens.size();
     }
 
+    /**
+     * Adiciona uma mensagem e automaticamente insere separador de data se necessário
+     */
     public void adicionarMensagem(MensagemDTO mensagem) {
-        mensagens.add(mensagem);
-        notifyItemInserted(mensagens.size() - 1);
+        // Verifica se precisa adicionar separador de data
+        if (itens.isEmpty()) {
+            // Primeira mensagem: adiciona separador
+            itens.add(new ItemChat(mensagem.getDataRelativa()));
+            itens.add(new ItemChat(mensagem));
+            notifyItemRangeInserted(itens.size() - 2, 2);
+        } else {
+            // Verifica se a última mensagem é do mesmo dia
+            MensagemDTO ultimaMensagem = getUltimaMensagem();
+
+            if (ultimaMensagem != null && !mensagem.isMesmoData(ultimaMensagem)) {
+                // Dias diferentes: adiciona separador antes da nova mensagem
+                itens.add(new ItemChat(mensagem.getDataRelativa()));
+                itens.add(new ItemChat(mensagem));
+                notifyItemRangeInserted(itens.size() - 2, 2);
+            } else {
+                // Mesmo dia: apenas adiciona a mensagem
+                itens.add(new ItemChat(mensagem));
+                notifyItemInserted(itens.size() - 1);
+            }
+        }
     }
 
-    public void definirMensagens(List<MensagemDTO> novasMensagens) {
-        this.mensagens.clear();
-        this.mensagens.addAll(novasMensagens);
+    /**
+     * Define lista completa de mensagens, processando separadores automaticamente
+     */
+    public void definirMensagens(List<MensagemDTO> mensagens) {
+        itens.clear();
+
+        if (mensagens.isEmpty()) {
+            notifyDataSetChanged();
+            return;
+        }
+
+        MensagemDTO mensagemAnterior = null;
+
+        for (MensagemDTO mensagem : mensagens) {
+            // Adiciona separador se for primeira mensagem ou data diferente
+            if (mensagemAnterior == null || !mensagem.isMesmoData(mensagemAnterior)) {
+                itens.add(new ItemChat(mensagem.getDataRelativa()));
+            }
+
+            // Adiciona a mensagem
+            itens.add(new ItemChat(mensagem));
+            mensagemAnterior = mensagem;
+        }
+
         notifyDataSetChanged();
     }
 
     public void limparMensagens() {
-        this.mensagens.clear();
+        itens.clear();
         notifyDataSetChanged();
     }
 
-    public static class MensagemViewHolder extends RecyclerView.ViewHolder {
+    /**
+     * Retorna a última mensagem (ignorando separadores)
+     */
+    private MensagemDTO getUltimaMensagem() {
+        for (int i = itens.size() - 1; i >= 0; i--) {
+            ItemChat item = itens.get(i);
+            if (!item.isSeparadorData()) {
+                return item.getMensagem();
+            }
+        }
+        return null;
+    }
 
-        private LinearLayout layoutMensagemPaciente;
-        private LinearLayout layoutMensagemFuncionario;
-        private LinearLayout layoutSeparadorData;
+    // ViewHolder para mensagens do paciente
+    static class MensagemPacienteViewHolder extends RecyclerView.ViewHolder {
+        private final TextView tvMensagem;
+        private final TextView tvHora;
 
-        private TextView tvMensagemPaciente;
-        private TextView tvHoraPaciente;
-        private TextView tvMensagemFuncionario;
-        private TextView tvHoraFuncionario;
-        private TextView tvSeparadorData;
-
-        public MensagemViewHolder(@NonNull View itemView) {
+        public MensagemPacienteViewHolder(@NonNull View itemView) {
             super(itemView);
-
-            layoutMensagemPaciente = itemView.findViewById(R.id.layoutMensagemPaciente);
-            layoutMensagemFuncionario = itemView.findViewById(R.id.layoutMensagemFuncionario);
-            layoutSeparadorData = itemView.findViewById(R.id.layoutSeparadorData);
-
-            tvMensagemPaciente = itemView.findViewById(R.id.tvMensagemPaciente);
-            tvHoraPaciente = itemView.findViewById(R.id.tvHoraPaciente);
-            tvMensagemFuncionario = itemView.findViewById(R.id.tvMensagemFuncionario);
-            tvHoraFuncionario = itemView.findViewById(R.id.tvHoraFuncionario);
-            tvSeparadorData = itemView.findViewById(R.id.tvSeparadorData);
+            tvMensagem = itemView.findViewById(R.id.tvMensagem);
+            tvHora = itemView.findViewById(R.id.tvHora);
         }
 
-        public void bind(MensagemDTO mensagem, MensagemDTO mensagemAnterior) {
-            // Reset visibility
-            layoutMensagemPaciente.setVisibility(View.GONE);
-            layoutMensagemFuncionario.setVisibility(View.GONE);
-            layoutSeparadorData.setVisibility(View.GONE);
+        public void bind(MensagemDTO mensagem) {
+            tvMensagem.setText(mensagem.getMensagem());
+            tvHora.setText(mensagem.getHoraFormatada());
+        }
+    }
 
-            // Mostrar separador de data se necessário
-            boolean mostrarSeparador = false;
-            if (mensagemAnterior == null || !mensagem.isMesmoData(mensagemAnterior)) {
-                mostrarSeparador = true;
-                layoutSeparadorData.setVisibility(View.VISIBLE);
-                tvSeparadorData.setText(mensagem.getDataRelativa());
-            }
+    // ViewHolder para mensagens do funcionário
+    static class MensagemFuncionarioViewHolder extends RecyclerView.ViewHolder {
+        private final TextView tvMensagem;
+        private final TextView tvHora;
 
-            if (mensagem.isEhPaciente()) {
-                // Mensagem do paciente (direita)
-                layoutMensagemPaciente.setVisibility(View.VISIBLE);
-                tvMensagemPaciente.setText(mensagem.getMensagem());
-                tvHoraPaciente.setText(mensagem.getHoraFormatada());
-            } else {
-                // Mensagem do funcionário (esquerda)
-                layoutMensagemFuncionario.setVisibility(View.VISIBLE);
-                tvMensagemFuncionario.setText(mensagem.getMensagem());
-                tvHoraFuncionario.setText(mensagem.getHoraFormatada());
-            }
+        public MensagemFuncionarioViewHolder(@NonNull View itemView) {
+            super(itemView);
+            tvMensagem = itemView.findViewById(R.id.tvMensagem);
+            tvHora = itemView.findViewById(R.id.tvHora);
+        }
+
+        public void bind(MensagemDTO mensagem) {
+            tvMensagem.setText(mensagem.getMensagem());
+            tvHora.setText(mensagem.getHoraFormatada());
+        }
+    }
+
+    // ViewHolder para separador de data
+    static class SeparadorDataViewHolder extends RecyclerView.ViewHolder {
+        private final TextView tvData;
+
+        public SeparadorDataViewHolder(@NonNull View itemView) {
+            super(itemView);
+            tvData = itemView.findViewById(R.id.tvData);
+        }
+
+        public void bind(String data) {
+            tvData.setText(data);
+        }
+    }
+
+    /**
+     * Classe auxiliar para representar itens do RecyclerView
+     * Pode ser uma mensagem ou um separador de data
+     */
+    private static class ItemChat {
+        private final MensagemDTO mensagem;
+        private final String dataSeparador;
+        private final boolean isSeparadorData;
+
+        // Construtor para mensagem
+        public ItemChat(MensagemDTO mensagem) {
+            this.mensagem = mensagem;
+            this.dataSeparador = null;
+            this.isSeparadorData = false;
+        }
+
+        // Construtor para separador de data
+        public ItemChat(String dataSeparador) {
+            this.mensagem = null;
+            this.dataSeparador = dataSeparador;
+            this.isSeparadorData = true;
+        }
+
+        public boolean isSeparadorData() {
+            return isSeparadorData;
+        }
+
+        public MensagemDTO getMensagem() {
+            return mensagem;
+        }
+
+        public String getDataSeparador() {
+            return dataSeparador;
         }
     }
 }

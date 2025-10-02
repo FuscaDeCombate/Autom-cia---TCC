@@ -78,7 +78,7 @@
         android:layout_weight="1"
         android:padding="8dp"
         android:clipToPadding="false"
-        tools:listitem="@layout/item_mensagem" />
+        tools:listitem="@layout/item_mensagem_paciente" />
 
     <!-- Área de digitação -->
     <com.google.android.material.card.MaterialCardView

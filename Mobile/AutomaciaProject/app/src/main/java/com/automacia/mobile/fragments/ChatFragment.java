@@ -2,7 +2,6 @@ package com.automacia.mobile.fragments;
 
 import android.app.NotificationChannel;
 import android.app.NotificationManager;
-import android.content.Context;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.Handler;
@@ -172,7 +171,7 @@ public class ChatFragment extends Fragment {
             return true;
         });
 
-        // Indicador de digitação centralizado
+        // Indicador de digitação
         etMensagem.addTextChangedListener(new TextWatcher() {
             @Override
             public void beforeTextChanged(CharSequence s, int start, int count, int after) {}
@@ -238,9 +237,12 @@ public class ChatFragment extends Fragment {
     }
 
     private void configurarChatManagerListeners() {
-        // Listener para mensagens recebidas - NÃO adiciona duplicatas
+        // Listener para mensagens recebidas - adiciona automaticamente
         chatManager.setOnMensagemRecebidaListener(mensagem -> {
             if (isFragmentReady()) {
+                Log.d(TAG, "Mensagem recebida: " + mensagem.getMensagem() +
+                        " | Paciente: " + mensagem.isEhPaciente());
+
                 adapter.adicionarMensagem(mensagem);
                 rolarParaUltimaMensagem();
 
@@ -264,7 +266,7 @@ public class ChatFragment extends Fragment {
             }
         });
 
-        // Listener para digitação - agora com usuário
+        // Listener para digitação
         chatManager.setOnDigitandoListener((digitando, usuario) -> {
             if (isFragmentReady()) {
                 // Só mostrar se não é o próprio usuário
@@ -306,14 +308,14 @@ public class ChatFragment extends Fragment {
         setBotaoEnviarEnabled(false);
         etMensagem.getText().clear();
 
-        // Enviar para servidor - SEM adicionar localmente primeiro
+        // Enviar para servidor - mensagem aparecerá via onMensagemRecebida
         chatManager.enviarMensagem(mensagem, new ChatManager.OnMensagemEnviadaListener() {
             @Override
-            public void onSucesso(String resposta) {
+            public void onSucesso(MensagemDTO mensagem) {
                 if (isFragmentReady()) {
                     setBotaoEnviarEnabled(true);
-                    Log.d(TAG, "Mensagem enviada: " + resposta);
-                    // Mensagem aparecerá via onMensagemRecebida do servidor
+                    Log.d(TAG, "Mensagem enviada com sucesso: " + mensagem.getMensagem());
+                    // NÃO adiciona no adapter aqui - aguarda confirmação do servidor
                 }
             }
 
@@ -364,6 +366,8 @@ public class ChatFragment extends Fragment {
         if (!isChatManagerReady() || mensagensCarregadas) {
             return;
         }
+
+        Log.d(TAG, "Carregando mensagens do histórico...");
 
         chatManager.carregarMensagens(new ChatManager.OnMensagensCarregadasListener() {
             @Override
@@ -476,7 +480,6 @@ public class ChatFragment extends Fragment {
 
     private void mostrarErroUsuario() {
         mostrarToast("Dados do usuário inválidos. Faça login novamente.");
-        // TODO: Implementar redirecionamento para login se necessário
     }
 
     private void criarCanalNotificacao() {
