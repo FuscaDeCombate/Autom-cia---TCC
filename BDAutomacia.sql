@@ -615,7 +615,8 @@ CREATE PROCEDURE Alt_Paciente(
         @Senha_Alt_P VARCHAR(256),
         @Email_Alt_P VARCHAR(100),
         @Nome_Alt_P VARCHAR(100),
-        @Nome_Social_Alt_P VARCHAR(100)
+        @Nome_Social_Alt_P VARCHAR(100),
+		@Tel_Alt_R VARCHAR(20)
 ) AS 
 BEGIN
         DECLARE 
@@ -648,7 +649,8 @@ BEGIN
                 UPDATE Paciente SET 
                         Email = @EmailT,
                         Nome_Paciente = LTRIM(RTRIM(@Nome_Alt_P)),
-                        Nome_Social = LTRIM(RTRIM(@Nome_Social_Alt_P))
+                        Nome_Social = LTRIM(RTRIM(@Nome_Social_Alt_P)),
+						Fone = LTRIM(RTRIM(@Tel_Alt_R))
                 WHERE Paciente_F = @CPF_Alt_P;
                 SELECT 'Dados alterados com sucesso' AS 'Retorno_Altera_Paciente';
         END TRY
@@ -1236,7 +1238,7 @@ EXEC Registra_Paciente '15150863050',	'Bolo3Leches',	'badara1011@uorak.com',			'
 EXEC Registra_Paciente '12614706051',	'Panetone',		'margaux4438@uorak.com',		'Margô',					'',								'(55) +11 978012345';
 EXEC Registra_Paciente '60030094038',	'Salame',		'koro8923@uorak.com',			'Koromaru',					'Koro-chan',					'(55) +11 989123456';
 EXEC Registra_Paciente '74689923043',	'Queijo',		'apolinar7587@uorak.com',		'Péricles',					'',								'(55) +11 990234567';
-EXEC Registra_Paciente '40526767006',	'Pizza',		'dulcelina247@uorak.com',		'Dulcelina',				'',								'(55) +11 991345678';
+EXEC Registra_Paciente '40526767006',	'Pizza1',		'dulcelina247@uorak.com',		'Dulcelina',				'',								'(55) +11 991345678';
 EXEC Registra_Paciente '13164571097',	'Hamburguer',	'sharilyn2650@uorak.com',		'Shamyn',					'',								'(55) +11 992456789';
 EXEC Registra_Paciente '86565804001',	'Beirute',		'ayaz6243@uorak.com',			'Ainz',						'',								'(55) +11 993567890';
 EXEC Registra_Paciente '85194921004',	'Shawarma',		'aduen8584@uorak.com',			'Makoto Nijima',			'Queen',						'(55) +11 994678901';
