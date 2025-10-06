@@ -4,6 +4,7 @@
     <color name="black">#000000</color>
     <color name="white">#FFFFFF</color>
     <color name="primary">#001A6E</color>
+    <color name="secondary">#2196F3</color>
     <color name="primary_dark">#001447</color>
     <color name="primary_light">#E8EFFF</color>
     <color name="text_primary">#1F1F1F</color>

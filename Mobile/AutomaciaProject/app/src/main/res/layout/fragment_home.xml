@@ -122,29 +122,6 @@
 
                         </LinearLayout>
 
-                        <LinearLayout
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:orientation="horizontal"
-                            android:layout_marginTop="2dp">
-
-                            <TextView
-                                android:layout_width="wrap_content"
-                                android:layout_height="wrap_content"
-                                android:text="Nascimento: "
-                                android:textColor="@color/text_secondary"
-                                android:textSize="14sp" />
-
-                            <TextView
-                                android:id="@+id/tv_birth_date"
-                                android:layout_width="wrap_content"
-                                android:layout_height="wrap_content"
-                                android:text="01/01/1990"
-                                android:textColor="@color/text_secondary"
-                                android:textSize="14sp" />
-
-                        </LinearLayout>
-
                     </LinearLayout>
 
                 </LinearLayout>
@@ -177,10 +154,10 @@
                             android:id="@+id/tv_prescription_status"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:text="Você possui 2 receitas válidas.\n1 receita foi enviada para a farmácia X.\nÚltima atualização: 14/04/2025."
+                            android:text="Você possui 2 receitas válidas.\nÚltima atualização: 14/04/2025."
                             android:textColor="@color/text_primary"
                             android:textSize="14sp"
-                            android:lineSpacingMultiplier="1.2" />
+                            android:lineSpacingMultiplier="1.5" />
 
                     </LinearLayout>
 
@@ -333,47 +310,6 @@
                 app:cardBackgroundColor="@color/white"
                 android:clickable="true"
                 android:foreground="?attr/selectableItemBackground">
-
-                <LinearLayout
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:orientation="horizontal"
-                    android:padding="20dp"
-                    android:gravity="center_vertical">
-
-                    <androidx.cardview.widget.CardView
-                        android:layout_width="56dp"
-                        android:layout_height="56dp"
-                        app:cardCornerRadius="28dp"
-                        app:cardBackgroundColor="@color/red_light"
-                        app:cardElevation="0dp">
-
-                        <ImageView
-                            android:layout_width="32dp"
-                            android:layout_height="32dp"
-                            android:layout_gravity="center"
-                            android:src="@drawable/ic_warning"
-                            app:tint="@color/red" />
-
-                    </androidx.cardview.widget.CardView>
-
-                    <TextView
-                        android:layout_width="0dp"
-                        android:layout_height="wrap_content"
-                        android:layout_weight="1"
-                        android:layout_marginStart="16dp"
-                        android:text="Alergias"
-                        android:textColor="@color/text_primary"
-                        android:textSize="18sp"
-                        android:textStyle="bold" />
-
-                    <ImageView
-                        android:layout_width="24dp"
-                        android:layout_height="24dp"
-                        android:src="@drawable/ic_arrow_forward"
-                        app:tint="@color/text_secondary" />
-
-                </LinearLayout>
 
             </androidx.cardview.widget.CardView>
 

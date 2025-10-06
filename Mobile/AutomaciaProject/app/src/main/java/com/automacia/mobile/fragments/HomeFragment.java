@@ -11,12 +11,15 @@ import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.ImageButton;
+import android.widget.ProgressBar;
 import android.widget.TextView;
 import android.widget.Toast;
 
 import com.automacia.mobile.R;
-import com.automacia.mobile.adapters.PrescriptionAdapter;
+import com.automacia.mobile.adapters.TimelinePrescriptionAdapter;
+import com.automacia.mobile.models.PrescriptionDTO;
 import com.automacia.mobile.models.UsuarioDTO;
+import com.automacia.mobile.services.PrescriptionService;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -30,14 +33,18 @@ public class HomeFragment extends Fragment {
     private CircleImageView ivProfile;
     private ImageButton btnHelp, btnLogout;
     private RecyclerView rvPrescriptions;
+    private ProgressBar progressBar;
     private CardView cardHelp, cardSendPrescription, cardMessages;
     private CardView cardAllergies, cardMedicalHistory;
     private CardView[] quickActionCards = new CardView[7];
 
     // Dados do usuário
     private UsuarioDTO currentUser;
-    private List<Prescription> prescriptionList;
-    private PrescriptionAdapter prescriptionAdapter;
+    private List<PrescriptionDTO> prescriptionList;
+    private TimelinePrescriptionAdapter prescriptionAdapter;
+
+    // Service
+    private PrescriptionService prescriptionService;
 
     // Constantes para argumentos
     private static final String ARG_USUARIO = "usuario";
@@ -58,6 +65,9 @@ public class HomeFragment extends Fragment {
                              Bundle savedInstanceState) {
         View view = inflater.inflate(R.layout.fragment_home, container, false);
 
+        // Inicializar service
+        prescriptionService = new PrescriptionService();
+
         // Recuperar usuário dos argumentos
         if (getArguments() != null) {
             currentUser = (UsuarioDTO) getArguments().getSerializable(ARG_USUARIO);
@@ -65,7 +75,7 @@ public class HomeFragment extends Fragment {
 
         // Se não tiver usuário nos argumentos, tentar buscar de outro local
         if (currentUser == null) {
-            currentUser = getUserFromSession(); // Método para buscar de SharedPreferences ou outro local
+            currentUser = getUserFromSession();
         }
 
         initViews(view);
@@ -73,7 +83,19 @@ public class HomeFragment extends Fragment {
         setupRecyclerView();
         setupClickListeners();
 
+        // Carregar receitas do banco de dados
+        loadPrescriptionsFromDatabase();
+
         return view;
+    }
+
+    @Override
+    public void onDestroyView() {
+        super.onDestroyView();
+        // Encerrar o service quando o fragment for destruído
+        if (prescriptionService != null) {
+            prescriptionService.shutdown();
+        }
     }
 
     private void initViews(View view) {
@@ -86,6 +108,9 @@ public class HomeFragment extends Fragment {
         tvUserName = view.findViewById(R.id.tv_user_name);
         tvCpf = view.findViewById(R.id.tv_cpf);
         tvPrescriptionStatus = view.findViewById(R.id.tv_prescription_status);
+
+        // ProgressBar
+        progressBar = view.findViewById(R.id.progressBar);
 
         // Botões de ação principais
         cardHelp = view.findViewById(R.id.card_help);
@@ -119,25 +144,23 @@ public class HomeFragment extends Fragment {
 
     private void setupUserData() {
         if (currentUser == null) {
-            // Fallback: criar usuário vazio ou mostrar erro
             Toast.makeText(getContext(), "Erro ao carregar dados do usuário", Toast.LENGTH_LONG).show();
             return;
         }
 
         // Atualizar UI com dados do usuário real
-        tvUserName.setText(currentUser.getNomeExibicao()); // Usa nome social ou nome normal
-        tvCpf.setText(formatCpf(currentUser.getCpf())); // Formata o CPF
+        tvUserName.setText(currentUser.getNomeExibicao());
+        tvCpf.setText(formatCpf(currentUser.getCpf()));
 
-        // Status das receitas (normalmente viria de uma API)
-        updatePrescriptionStatus();
+        // Status inicial (será atualizado após carregar as receitas)
+        tvPrescriptionStatus.setText("Carregando suas receitas...");
     }
 
     private void setupRecyclerView() {
-        // Criar lista de receitas fictícias
-        prescriptionList = createSamplePrescriptions();
+        // Inicializar com lista vazia
+        prescriptionList = new ArrayList<>();
 
-        prescriptionAdapter = new PrescriptionAdapter(prescriptionList, prescription -> {
-            // Clique no item da receita
+        prescriptionAdapter = new TimelinePrescriptionAdapter(prescriptionList, prescription -> {
             openPrescriptionDetails(prescription);
         });
 
@@ -168,19 +191,124 @@ public class HomeFragment extends Fragment {
     }
 
     /**
-     * Método para buscar usuário de sessão (SharedPreferences, Singleton, etc.)
-     * Implementar conforme a arquitetura do projeto
+     * Carrega as receitas do banco de dados usando PrescriptionService
+     */
+    private void loadPrescriptionsFromDatabase() {
+        if (currentUser == null || currentUser.getCpf() == null) {
+            Toast.makeText(getContext(), "CPF do usuário não encontrado", Toast.LENGTH_SHORT).show();
+            tvPrescriptionStatus.setText("Erro ao carregar receitas");
+            return;
+        }
+
+        // Mostrar loading
+        showLoading(true);
+
+        // Buscar receitas SIMPLES (apenas dados necessários para o adapter)
+        prescriptionService.fetchSimplePrescription(currentUser.getCpf(), new PrescriptionService.PrescriptionCallback() {
+            @Override
+            public void onSuccess(List<PrescriptionDTO> prescriptions) {
+                showLoading(false);
+
+                if (prescriptions == null || prescriptions.isEmpty()) {
+                    // Nenhuma receita encontrada
+                    prescriptionList.clear();
+                    prescriptionAdapter.updatePrescriptions(prescriptionList);
+                    updatePrescriptionStatusEmpty();
+                    Toast.makeText(getContext(), "Nenhuma receita encontrada", Toast.LENGTH_SHORT).show();
+                    return;
+                }
+
+                // Atualizar lista e adapter
+                prescriptionList.clear();
+                prescriptionList.addAll(prescriptions);
+                prescriptionAdapter.updatePrescriptions(prescriptionList);
+
+                // Atualizar status com dados reais
+                updatePrescriptionStatus(prescriptions);
+
+                Toast.makeText(getContext(),
+                        prescriptions.size() + " receita(s) carregada(s)",
+                        Toast.LENGTH_SHORT).show();
+            }
+
+            @Override
+            public void onError(String errorMessage) {
+                showLoading(false);
+
+                // Mostrar erro básico para o usuário
+                Toast.makeText(getContext(),
+                        "Erro ao carregar receitas",
+                        Toast.LENGTH_LONG).show();
+
+                // Log detalhado já está no PrescriptionService
+                tvPrescriptionStatus.setText("Erro ao carregar receitas.\nTente novamente mais tarde.");
+            }
+        });
+    }
+
+    /**
+     * Mostra/esconde o loading
+     */
+    private void showLoading(boolean show) {
+        if (progressBar != null) {
+            progressBar.setVisibility(show ? View.VISIBLE : View.GONE);
+        }
+        if (rvPrescriptions != null) {
+            rvPrescriptions.setVisibility(show ? View.GONE : View.VISIBLE);
+        }
+    }
+
+    /**
+     * Atualiza o status das receitas com dados reais do banco
+     */
+    private void updatePrescriptionStatus(List<PrescriptionDTO> prescriptions) {
+        if (prescriptions == null || prescriptions.isEmpty()) {
+            updatePrescriptionStatusEmpty();
+            return;
+        }
+
+        // Contar receitas válidas e enviadas
+        int validCount = 0;
+        int sentCount = 0; // Você pode adicionar lógica para identificar receitas "enviadas"
+
+        for (PrescriptionDTO prescription : prescriptions) {
+            if (prescription.isValido()) {
+                validCount++;
+            }
+            // Se você tiver um campo de status "enviada", conte aqui
+        }
+
+        // Montar texto do status
+        StringBuilder statusText = new StringBuilder();
+        statusText.append("Bem-vindo, ").append(currentUser.getNomeExibicao()).append("!\n");
+
+        if (validCount > 0) {
+            statusText.append("Você possui ").append(validCount)
+                    .append(validCount == 1 ? " receita válida" : " receitas válidas").append(".\n");
+        } else {
+            statusText.append("Você não possui receitas válidas no momento.\n");
+        }
+
+        statusText.append("Total de receitas: ").append(prescriptions.size());
+
+        tvPrescriptionStatus.setText(statusText.toString());
+    }
+
+    /**
+     * Atualiza status quando não há receitas
+     */
+    private void updatePrescriptionStatusEmpty() {
+        String status = "Bem-vindo, " + currentUser.getNomeExibicao() + "!\n" +
+                "Você ainda não possui receitas cadastradas.\n" +
+                "Solicite uma receita ao seu médico.";
+        tvPrescriptionStatus.setText(status);
+    }
+
+    /**
+     * Metodo para buscar usuário de sessão (SharedPreferences, Singleton, etc.)
      */
     private UsuarioDTO getUserFromSession() {
         // TODO: Implementar busca do usuário da sessão
-        // Exemplo com SharedPreferences:
-        // SharedPreferences prefs = getContext().getSharedPreferences("user_session", Context.MODE_PRIVATE);
-        // String cpf = prefs.getString("user_cpf", null);
-        // if (cpf != null) {
-        //     // Buscar usuário completo do banco ou cache
-        // }
-
-        // Por enquanto retorna null
         return null;
     }
 
@@ -189,7 +317,7 @@ public class HomeFragment extends Fragment {
      */
     private String formatCpf(String cpf) {
         if (cpf == null || cpf.length() != 11) {
-            return cpf; // Retorna original se não tiver 11 dígitos
+            return cpf;
         }
 
         return cpf.substring(0, 3) + "." +
@@ -198,71 +326,13 @@ public class HomeFragment extends Fragment {
                 cpf.substring(9, 11);
     }
 
-    private void updatePrescriptionStatus() {
-        // Aqui você faria uma chamada para a API para obter o status atual
-        // Por enquanto usando dados fictícios
-        String status = "Bem-vindo, " + (currentUser != null ? currentUser.getNomeExibicao() : "Usuário") + "!\n" +
-                "Você possui 2 receitas válidas.\n" +
-                "1 receita foi enviada para a farmácia.\n" +
-                "Última atualização: 14/04/2025.";
-        tvPrescriptionStatus.setText(status);
-    }
-
-    private List<Prescription> createSamplePrescriptions() {
-        List<Prescription> prescriptions = new ArrayList<>();
-
-        // TODO: pegar as receitas diretamente do banco usando o CPF do usuário atual
-        // String cpfUsuario = currentUser != null ? currentUser.getCpf() : null;
-
-        prescriptions.add(new Prescription(
-                "1",
-                "Receita - Antibiótico",
-                "Dr. Maria Santos",
-                "01/04/2025",
-                "Válida",
-                PrescriptionStatus.VALID
-        ));
-
-        prescriptions.add(new Prescription(
-                "2",
-                "Receita - Anti-inflamatório",
-                "Dr. João Costa",
-                "28/03/2025",
-                "Enviada para Farmácia",
-                PrescriptionStatus.VALID
-        ));
-
-        prescriptions.add(new Prescription(
-                "3",
-                "Receita - Vitaminas",
-                "Dr. Ana Lima",
-                "25/03/2025",
-                "Processada",
-                PrescriptionStatus.EXPIRED
-        ));
-
-        prescriptions.add(new Prescription(
-                "4",
-                "Receita - Medicamento Contínuo",
-                "Dr. Carlos Ferreira",
-                "20/03/2025",
-                "Expirada",
-                PrescriptionStatus.EXPIRED
-        ));
-
-        return prescriptions;
-    }
-
     // Métodos de ação
     private void showHelp() {
         Toast.makeText(getContext(), "Abrindo central de ajuda...", Toast.LENGTH_SHORT).show();
-        // Aqui você abriria a tela de ajuda
     }
 
     private void logout() {
         Toast.makeText(getContext(), "Fazendo logout...", Toast.LENGTH_SHORT).show();
-        // Aqui você implementaria a lógica de logout
-        // Limpar dados de sessão e voltar para tela de login
         if (currentUser != null) {
             currentUser.clearSensitiveData();
         }
@@ -271,32 +341,31 @@ public class HomeFragment extends Fragment {
 
     private void sendPrescription() {
         Toast.makeText(getContext(), "Abrindo envio de receita...", Toast.LENGTH_SHORT).show();
-        // Aqui você abriria a tela para enviar uma nova receita
     }
 
     private void openMessages() {
         Toast.makeText(getContext(), "Abrindo mensagens...", Toast.LENGTH_SHORT).show();
-        // Aqui você abriria a tela de mensagens
     }
 
     private void openAllergies() {
         Toast.makeText(getContext(), "Abrindo alergias...", Toast.LENGTH_SHORT).show();
-        // Aqui você abriria a tela de alergias
     }
 
     private void openMedicalHistory() {
         Toast.makeText(getContext(), "Abrindo histórico médico...", Toast.LENGTH_SHORT).show();
-        // Aqui você abriria a tela de histórico médico
     }
 
-    private void openPrescriptionDetails(Prescription prescription) {
-        Toast.makeText(getContext(), "Abrindo detalhes: " + prescription.getTitle(), Toast.LENGTH_SHORT).show();
-        // Aqui você abriria a tela de detalhes da receita
+    private void openPrescriptionDetails(PrescriptionDTO prescription) {
+        Toast.makeText(getContext(),
+                "Abrindo detalhes: " + prescription.getMedicamento(),
+                Toast.LENGTH_SHORT).show();
+        // TODO: Abrir Activity com detalhes completos
+        // Você pode usar prescriptionService.fetchPrescriptionById() ou fetchCompletePrescriptions()
     }
 
     private void viewAllPrescriptions() {
         Toast.makeText(getContext(), "Abrindo todas as receitas...", Toast.LENGTH_SHORT).show();
-        // Aqui você abriria a tela com todas as receitas
+        // TODO: Abrir Activity com todas as receitas
     }
 
     private void handleQuickAction(int actionIndex) {
@@ -307,7 +376,6 @@ public class HomeFragment extends Fragment {
 
         if (actionIndex < actions.length) {
             Toast.makeText(getContext(), "Abrindo: " + actions[actionIndex], Toast.LENGTH_SHORT).show();
-            // Aqui você implementaria a ação específica
         }
     }
 
@@ -323,7 +391,6 @@ public class HomeFragment extends Fragment {
 
     private void openContact() {
         try {
-            // Usar telefone do usuário se disponível, senão usar padrão
             String phoneNumber = currentUser != null && currentUser.getTelefone() != null ?
                     currentUser.getTelefone() : "+5511999999999";
 
@@ -337,37 +404,5 @@ public class HomeFragment extends Fragment {
 
     private void openFAQ() {
         Toast.makeText(getContext(), "Abrindo FAQ...", Toast.LENGTH_SHORT).show();
-        // Aqui você abriria a tela de FAQ
-    }
-
-    // Classes modelo (mantidas para compatibilidade)
-    public static class Prescription {
-        private String id;
-        private String title;
-        private String doctor;
-        private String date;
-        private String statusText;
-        private PrescriptionStatus status;
-
-        public Prescription(String id, String title, String doctor, String date, String statusText, PrescriptionStatus status) {
-            this.id = id;
-            this.title = title;
-            this.doctor = doctor;
-            this.date = date;
-            this.statusText = statusText;
-            this.status = status;
-        }
-
-        // Getters
-        public String getId() { return id; }
-        public String getTitle() { return title; }
-        public String getDoctor() { return doctor; }
-        public String getDate() { return date; }
-        public String getStatusText() { return statusText; }
-        public PrescriptionStatus getStatus() { return status; }
-    }
-
-    public enum PrescriptionStatus {
-        VALID, SENT, PROCESSED, EXPIRED, CANCELLED
     }
 }
