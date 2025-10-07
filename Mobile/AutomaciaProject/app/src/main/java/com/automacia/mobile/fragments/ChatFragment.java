@@ -239,10 +239,13 @@ public class ChatFragment extends Fragment {
     private void configurarChatManagerListeners() {
         // Listener para mensagens recebidas - adiciona automaticamente
         chatManager.setOnMensagemRecebidaListener(mensagem -> {
+            Log.d(TAG, "isFragmentReady: " + isFragmentReady());
+
             if (isFragmentReady()) {
                 Log.d(TAG, "Mensagem recebida: " + mensagem.getMensagem() +
                         " | Paciente: " + mensagem.isEhPaciente());
 
+                // Adicionar no adapter - SEMPRE
                 adapter.adicionarMensagem(mensagem);
                 rolarParaUltimaMensagem();
 

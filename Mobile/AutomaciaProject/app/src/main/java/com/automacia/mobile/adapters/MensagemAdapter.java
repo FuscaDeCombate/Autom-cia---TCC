@@ -1,5 +1,6 @@
 package com.automacia.mobile.adapters;
 
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -85,6 +86,9 @@ public class MensagemAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolde
      * Adiciona uma mensagem e automaticamente insere separador de data se necessário
      */
     public void adicionarMensagem(MensagemDTO mensagem) {
+        Log.d("MensagemAdapter", "Adicionando mensagem: '" + mensagem.getMensagem() +
+                "' | ehPaciente=" + mensagem.isEhPaciente());
+
         // Verifica se precisa adicionar separador de data
         if (itens.isEmpty()) {
             // Primeira mensagem: adiciona separador
@@ -106,6 +110,8 @@ public class MensagemAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolde
                 notifyItemInserted(itens.size() - 1);
             }
         }
+
+        Log.d("MensagemAdapter", "Total de mensagens agora: " + itens.size());
     }
 
     /**

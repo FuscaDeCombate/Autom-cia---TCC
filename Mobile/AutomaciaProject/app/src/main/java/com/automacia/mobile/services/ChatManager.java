@@ -33,7 +33,7 @@ import io.socket.emitter.Emitter;
 public class ChatManager {
 
     private static final String TAG = "ChatManager";
-    private static final String SERVER_URL = "http://192.168.20.61:6969";
+    private static final String SERVER_URL = "http://192.168.1.17:6969";
     private static final int FUNCIONARIO_ID = 1; // TODO: Tornar dinâmico baseado no usuário logado
     private static final int CONNECTION_TIMEOUT = 10000;
     private static final int DATABASE_TIMEOUT = 10000;
@@ -148,6 +148,10 @@ public class ChatManager {
             options.reconnectionAttempts = 5;
             options.reconnectionDelay = 1000;
             options.timeout = CONNECTION_TIMEOUT;
+            // Configurações do WebSocket com o server
+            options.transports = new String[]{"websocket", "polling"};
+            options.upgrade = true;
+            options.rememberUpgrade = true;
 
             mSocket = IO.socket(SERVER_URL, options);
             configurarEventListeners();
@@ -269,41 +273,67 @@ public class ChatManager {
         try {
             JSONObject data = (JSONObject) args[0];
 
-            // Criar mensagem usando o factory method do JSON
-            MensagemDTO mensagem = MensagemDTO.fromJSON(data);
+            // Log completo para debug
+            Log.d(TAG, "=== NOVA MENSAGEM RECEBIDA ===");
+            Log.d(TAG, "JSON completo: " + data.toString());
 
-            // Fallback para formato legado se necessário
-            if (mensagem.getMensagem() == null && data.has("mensagem")) {
-                mensagem.setMensagem(data.getString("mensagem"));
+            MensagemDTO mensagem = new MensagemDTO();
+
+            // Campos obrigatórios
+            mensagem.setMensagem(data.getString("mensagem"));
+            mensagem.setPacienteCpf(data.getString("cpfPaciente"));
+            mensagem.setFuncionarioId(data.getInt("funcionarioId"));
+
+            // Determinar se é paciente (verificar ambos os campos)
+            boolean ehPaciente = data.optBoolean("msgPaciente", false);
+            if (!ehPaciente && data.has("tipo_remetente")) {
+                ehPaciente = "paciente".equals(data.getString("tipo_remetente"));
+            }
+            mensagem.setEhPaciente(ehPaciente);
+
+            // ID do chat se disponível
+            if (data.has("id_chat")) {
+                mensagem.setIdChat(data.getInt("id_chat"));
             }
 
-            // Determinar se é paciente baseado no campo msgPaciente ou tipo_remetente
-            if (data.has("msgPaciente")) {
-                mensagem.setEhPaciente(data.getBoolean("msgPaciente"));
-            } else if (data.has("tipo_remetente")) {
-                mensagem.setEhPaciente(
-                        TipoUsuario.PACIENTE.getValue().equals(data.getString("tipo_remetente"))
-                );
-            }
-
-            // Parse do timestamp se disponível
-            if (data.has("timestamp") && mensagem.getHoraEnvio() == null) {
+            // Timestamp
+            Date horaEnvio = null;
+            if (data.has("timestamp")) {
                 try {
                     String timestamp = data.getString("timestamp");
-                    SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSSSSS", Locale.getDefault());
-                    mensagem.setHoraEnvio(sdf.parse(timestamp));
+                    SimpleDateFormat sdf = new SimpleDateFormat(
+                            "yyyy-MM-dd'T'HH:mm:ss.SSSSSS", Locale.getDefault());
+                    horaEnvio = sdf.parse(timestamp);
                 } catch (ParseException e) {
-                    Log.w(TAG, "Erro ao fazer parse do timestamp, usando horário atual", e);
-                    mensagem.setHoraEnvio(new Date());
+                    Log.w(TAG, "Erro ao parsear timestamp formato completo", e);
+                    // Tentar formato ISO simples
+                    try {
+                        String timestamp = data.getString("timestamp");
+                        SimpleDateFormat sdf = new SimpleDateFormat(
+                                "yyyy-MM-dd'T'HH:mm:ss", Locale.getDefault());
+                        horaEnvio = sdf.parse(timestamp);
+                    } catch (ParseException e2) {
+                        Log.w(TAG, "Erro ao parsear timestamp formato ISO", e2);
+                    }
                 }
             }
 
-            // Garantir que tem hora de envio
-            if (mensagem.getHoraEnvio() == null) {
-                mensagem.setHoraEnvio(new Date());
+            if (horaEnvio == null) {
+                horaEnvio = new Date();
             }
+            mensagem.setHoraEnvio(horaEnvio);
 
-            // Notificar listener
+            // Log detalhado
+            Log.d(TAG, "Mensagem processada:");
+            Log.d(TAG, "  - Texto: " + mensagem.getMensagem());
+            Log.d(TAG, "  - CPF Paciente: " + mensagem.getPacienteCpf());
+            Log.d(TAG, "  - Funcionario ID: " + mensagem.getFuncionarioId());
+            Log.d(TAG, "  - eh Paciente: " + ehPaciente);
+            Log.d(TAG, "  - Usuario logado CPF: " + usuarioLogado.getCpf());
+            Log.d(TAG, "  - É do proprio usuario: " + usuarioLogado.getCpf().equals(mensagem.getPacienteCpf()));
+            Log.d(TAG, "=================================");
+
+            // Notificar UI na thread principal
             final MensagemDTO mensagemFinal = mensagem;
             mainHandler.post(() -> {
                 if (onMensagemRecebidaListener != null) {
@@ -313,7 +343,7 @@ public class ChatManager {
 
         } catch (JSONException e) {
             Log.e(TAG, "Erro ao processar mensagem recebida", e);
-            notificarErro(ErrorType.SOCKET, "Erro ao processar mensagem recebida");
+            Log.e(TAG, "JSON que causou erro: " + args[0].toString());
         }
     }
 

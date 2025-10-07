@@ -36,4 +36,6 @@
     <!-- Cores de acento -->
     <color name="accent">#FF4081</color>
     <color name="accent_light">#FCE4EC</color>
+    <color name="background_light">#DBDBDB</color>
+    <color name="fade_light_blue">#99b3f0</color>
 </resources>
