@@ -4,33 +4,46 @@ import static com.automacia.mobile.R.drawable.btn_gradient_danger;
 import static com.automacia.mobile.R.drawable.btn_gradient_primary;
 
 import android.animation.ValueAnimator;
+import android.app.AlertDialog;
 import android.os.Bundle;
 import android.text.Editable;
 import android.text.TextWatcher;
-import android.view.animation.AccelerateDecelerateInterpolator;
 
-import androidx.appcompat.content.res.AppCompatResources;
-import androidx.fragment.app.Fragment;
-
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
-
-import com.automacia.mobile.R;
-import com.automacia.mobile.utils.Utils;
-import com.automacia.mobile.watchers.TelefoneMaskWatcher;
-import com.google.android.material.button.MaterialButton;
+import android.view.animation.AccelerateDecelerateInterpolator;
 import android.widget.ImageButton;
 import android.widget.LinearLayout;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
+import androidx.appcompat.content.res.AppCompatResources;
+import androidx.fragment.app.Fragment;
+
+import com.automacia.mobile.MyApp;
+import com.automacia.mobile.R;
+import com.automacia.mobile.models.UsuarioDTO;
+import com.automacia.mobile.services.PerfilService;
+import com.automacia.mobile.utils.Utils;
+import com.automacia.mobile.watchers.TelefoneMaskWatcher;
+import com.google.android.material.button.MaterialButton;
 import com.google.android.material.textfield.TextInputEditText;
 import com.google.android.material.textfield.TextInputLayout;
+
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
 import de.hdodenhof.circleimageview.CircleImageView;
 
 public class UserFragment extends Fragment {
+
+    private static final String TAG = "UserFragment";
+    private static final String ARG_USUARIO = "usuario";
+    private static final int ANIMATION_DURATION = 300;
 
     // Views
     private ImageButton btnBack;
@@ -42,36 +55,71 @@ public class UserFragment extends Fragment {
     private View viewSpacing;
     private LinearLayout llButtonsContainer;
 
+    // Estado
     private boolean isEditing = false;
-    private static final int ANIMATION_DURATION = 300;
+    private UsuarioDTO usuario;
 
     // Flags de validação
-    private boolean isNomeValido = true; // Inicia como true pois já tem dados válidos
+    private boolean isNomeValido = true;
     private boolean isEmailValido = true;
     private boolean isTelefoneValido = true;
-    private boolean isNomeSocialValido = true; // Nome social é opcional, então sempre válido
+    private boolean isNomeSocialValido = true;
+
+    // Dados originais para cancelamento
+    private String nomeOriginal;
+    private String emailOriginal;
+    private String telefoneOriginal;
+    private String nomeSocialOriginal;
+
+    // Executor para operações em background
+    private final ExecutorService executorService = Executors.newSingleThreadExecutor();
 
     public UserFragment() {
         // Required empty public constructor
     }
 
+    public static UserFragment newInstance(UsuarioDTO usuario) {
+        UserFragment fragment = new UserFragment();
+        Bundle args = new Bundle();
+        args.putSerializable(ARG_USUARIO, usuario);
+        fragment.setArguments(args);
+        return fragment;
+    }
+
     @Override
-    public View onCreateView(LayoutInflater inflater, ViewGroup container,
-                             Bundle savedInstanceState) {
+    public void onCreate(@Nullable Bundle savedInstanceState) {
+        super.onCreate(savedInstanceState);
+        if (getArguments() != null) {
+            usuario = (UsuarioDTO) getArguments().getSerializable(ARG_USUARIO);
+        }
+    }
+
+    @Nullable
+    @Override
+    public View onCreateView(@NonNull LayoutInflater inflater, @Nullable ViewGroup container,
+                             @Nullable Bundle savedInstanceState) {
         View view = inflater.inflate(R.layout.fragment_user, container, false);
 
         initViews(view);
 
-        // Só chama os métodos depois que as views estão inicializadas
         if (areViewsInitialized()) {
             setupClickListeners();
             loadUserData();
         } else {
-            // Log para debug
-            android.util.Log.e("UserFragment", "Views não foram inicializadas corretamente");
+            Log.e(TAG, "Views não foram inicializadas corretamente");
+            Toast.makeText(getContext(), "Erro ao carregar tela", Toast.LENGTH_SHORT).show();
         }
 
         return view;
+    }
+
+    @Override
+    public void onDestroy() {
+        super.onDestroy();
+        // Shutdown do executor para evitar memory leaks
+        if (executorService != null && !executorService.isShutdown()) {
+            executorService.shutdown();
+        }
     }
 
     private void initViews(View view) {
@@ -92,26 +140,13 @@ public class UserFragment extends Fragment {
         layoutTel = view.findViewById(R.id.lay_telefone);
         layoutEmail = view.findViewById(R.id.lay_email);
         layoutNomeSoc = view.findViewById(R.id.lay_nome_soc);
-
-        // Log para debug - verificar quais views estão null
-        logNullViews();
-    }
-
-    private void logNullViews() {
-        android.util.Log.d("UserFragment", "=== Verificação de Views ===");
-        if (etNome == null) android.util.Log.e("UserFragment", "etNome é null");
-        if (etCpf == null) android.util.Log.e("UserFragment", "etCpf é null");
-        if (etEmail == null) android.util.Log.e("UserFragment", "etEmail é null");
-        if (etTelefone == null) android.util.Log.e("UserFragment", "etTelefone é null");
-        if (etNomeSocial == null) android.util.Log.e("UserFragment", "etNomeSocial é null");
-        if (btnEditar == null) android.util.Log.e("UserFragment", "btnEditar é null");
-        if (btnSalvar == null) android.util.Log.e("UserFragment", "btnSalvar é null");
     }
 
     private boolean areViewsInitialized() {
         return etNome != null && etCpf != null && etEmail != null &&
                 etTelefone != null && etNomeSocial != null &&
-                btnEditar != null && btnSalvar != null;
+                btnEditar != null && btnSalvar != null &&
+                layoutNomeCon != null && layoutEmail != null && layoutTel != null;
     }
 
     private void setupClickListeners() {
@@ -126,7 +161,7 @@ public class UserFragment extends Fragment {
         if (tvChangePhoto != null) {
             tvChangePhoto.setOnClickListener(v -> {
                 // TODO: Implementar seleção de foto
-                Toast.makeText(getContext(), "Selecionar foto", Toast.LENGTH_SHORT).show();
+                Toast.makeText(getContext(), "Funcionalidade em desenvolvimento", Toast.LENGTH_SHORT).show();
             });
         }
 
@@ -141,7 +176,186 @@ public class UserFragment extends Fragment {
         }
 
         if (btnSalvar != null) {
-            btnSalvar.setOnClickListener(v -> saveUserData());
+            btnSalvar.setOnClickListener(v -> showPasswordDialog());
+        }
+    }
+
+    /**
+     * Exibe um AlertDialog para solicitar a senha do usuário
+     */
+    private void showPasswordDialog() {
+        if (getContext() == null) return;
+
+        // Criar layout do dialog
+        final View dialogView = LayoutInflater.from(getContext()).inflate(R.layout.dialog_password_input, null);
+        final TextInputEditText etSenha = dialogView.findViewById(R.id.et_senha_confirmacao);
+        final TextInputLayout layoutSenha = dialogView.findViewById(R.id.lay_senha_confirmacao);
+
+        AlertDialog dialog = new AlertDialog.Builder(getContext())
+                .setTitle("Confirmar alterações")
+                .setMessage("Para sua segurança, digite sua senha para confirmar as alterações:")
+                .setView(dialogView)
+                .setPositiveButton("Confirmar", null)
+                .setNegativeButton("Cancelar", (d, which) -> d.dismiss())
+                .setCancelable(false)
+                .create();
+
+        dialog.setOnShowListener(dialogInterface -> {
+            MaterialButton btnConfirmar = (MaterialButton) dialog.getButton(AlertDialog.BUTTON_POSITIVE);
+            btnConfirmar.setOnClickListener(v -> {
+                String senha = etSenha.getText() != null ? etSenha.getText().toString() : "";
+
+                if (senha.isEmpty()) {
+                    layoutSenha.setError("Digite sua senha");
+                    return;
+                }
+
+                // Limpar erro
+                layoutSenha.setError(null);
+
+                // Desabilitar botão para evitar cliques duplos
+                btnConfirmar.setEnabled(false);
+                btnConfirmar.setText("Verificando...");
+
+                // Salvar dados
+                saveUserData(senha, dialog, btnConfirmar);
+            });
+        });
+
+        dialog.show();
+    }
+
+    /**
+     * Salva os dados do usuário no banco de dados
+     * Executa a operação em uma thread separada para não bloquear a UI
+     */
+    private void saveUserData(String senha, AlertDialog dialog, MaterialButton btnConfirmar) {
+        if (!areViewsInitialized() || usuario == null) {
+            Log.e(TAG, "Tentativa de salvar dados com views não inicializadas ou usuário nulo");
+            return;
+        }
+
+        // Validar todos os campos antes de salvar
+        if (!validateAllFields()) {
+            Toast.makeText(getContext(), "Por favor, corrija os erros antes de salvar", Toast.LENGTH_SHORT).show();
+            btnConfirmar.setEnabled(true);
+            btnConfirmar.setText("Confirmar");
+            return;
+        }
+
+        // Desabilitar botão salvar também
+        if (btnSalvar != null) {
+            btnSalvar.setEnabled(false);
+            btnSalvar.setText("Salvando...");
+        }
+
+        // Coletar dados normalizados
+        final String nome = Utils.normalizarNome(etNome.getText().toString());
+        final String email = Utils.normalizarEmail(etEmail.getText().toString());
+        final String telefone = Utils.extrairNumeros(etTelefone.getText().toString());
+        final String nomeSocial = etNomeSocial.getText() != null && !etNomeSocial.getText().toString().trim().isEmpty()
+                ? Utils.normalizarNome(etNomeSocial.getText().toString())
+                : "";
+
+        // Criar DTO temporário com os novos dados
+        final UsuarioDTO usuarioAtualizado = new UsuarioDTO(
+                usuario.getCpf(),
+                nome,
+                nomeSocial.isEmpty() ? null : nomeSocial,
+                email,
+                telefone
+        );
+
+        // Executar salvamento em thread separada
+        executorService.execute(() -> {
+            try {
+                Log.d(TAG, "Iniciando salvamento de dados do usuário");
+
+                // Chamar o serviço de atualização
+                PerfilService.ResultadoAtualizacao resultado =
+                        PerfilService.atualizarPerfil(usuarioAtualizado, senha);
+
+                // Voltar para a UI thread para atualizar a interface
+                if (getActivity() != null) {
+                    getActivity().runOnUiThread(() -> {
+                        handleSaveResult(resultado, usuarioAtualizado, dialog, btnConfirmar);
+                    });
+                }
+
+            } catch (Exception e) {
+                Log.e(TAG, "Erro inesperado ao salvar dados", e);
+
+                if (getActivity() != null) {
+                    getActivity().runOnUiThread(() -> {
+                        Toast.makeText(getContext(), "Erro inesperado ao salvar dados", Toast.LENGTH_LONG).show();
+
+                        // Restaurar botões
+                        if (btnConfirmar != null) {
+                            btnConfirmar.setText("Confirmar");
+                            btnConfirmar.setEnabled(true);
+                        }
+
+                        if (btnSalvar != null) {
+                            btnSalvar.setText("Salvar");
+                            btnSalvar.setEnabled(true);
+                        }
+                    });
+                }
+            }
+        });
+    }
+
+    /**
+     * Processa o resultado da operação de salvamento
+     */
+    private void handleSaveResult(PerfilService.ResultadoAtualizacao resultado,
+                                  UsuarioDTO usuarioAtualizado,
+                                  AlertDialog dialog,
+                                  MaterialButton btnConfirmar) {
+        if (resultado.isSucesso()) {
+            Log.i(TAG, "Dados salvos com sucesso");
+
+            // Atualizar o objeto usuario local
+            usuario.setNome(usuarioAtualizado.getNome());
+            usuario.setEmail(usuarioAtualizado.getEmail());
+            usuario.setTelefone(usuarioAtualizado.getTelefone());
+            usuario.setNomeSocial(usuarioAtualizado.getNomeSocial());
+
+            // Atualizar o usuário logado no MyApp
+            if (getActivity() != null && getActivity().getApplication() instanceof MyApp) {
+                MyApp app = (MyApp) getActivity().getApplication();
+                app.setUsuarioLogado(usuario);
+                Log.d(TAG, "Usuário atualizado no MyApp");
+            }
+
+            // Atualizar dados originais
+            saveOriginalData();
+
+            Toast.makeText(getContext(), resultado.getMensagem(), Toast.LENGTH_SHORT).show();
+
+            // Fechar dialog
+            if (dialog != null && dialog.isShowing()) {
+                dialog.dismiss();
+            }
+
+            // Sair do modo de edição
+            exitEditMode();
+
+        } else {
+            Log.w(TAG, "Falha ao salvar dados: " + resultado.getMensagem());
+
+            Toast.makeText(getContext(), resultado.getMensagem(), Toast.LENGTH_LONG).show();
+
+            // Restaurar botões
+            if (btnConfirmar != null) {
+                btnConfirmar.setText("Confirmar");
+                btnConfirmar.setEnabled(true);
+            }
+
+            if (btnSalvar != null) {
+                btnSalvar.setText("Salvar");
+                btnSalvar.setEnabled(true);
+            }
         }
     }
 
@@ -155,9 +369,6 @@ public class UserFragment extends Fragment {
         setupNomeSocialValidator();
     }
 
-    /**
-     * Validador para o campo Nome
-     */
     private void setupNomeValidator() {
         etNome.addTextChangedListener(new TextWatcher() {
             @Override
@@ -176,9 +387,6 @@ public class UserFragment extends Fragment {
         });
     }
 
-    /**
-     * Validador para o campo Email
-     */
     private void setupEmailValidator() {
         etEmail.addTextChangedListener(new TextWatcher() {
             @Override
@@ -197,9 +405,6 @@ public class UserFragment extends Fragment {
         });
     }
 
-    /**
-     * Validador para o campo Telefone com máscara
-     */
     private void setupTelefoneValidator() {
         // Aplica máscara de telefone
         etTelefone.addTextChangedListener(new TelefoneMaskWatcher(etTelefone));
@@ -223,9 +428,6 @@ public class UserFragment extends Fragment {
         });
     }
 
-    /**
-     * Validador para o campo Nome Social (opcional)
-     */
     private void setupNomeSocialValidator() {
         etNomeSocial.addTextChangedListener(new TextWatcher() {
             @Override
@@ -233,7 +435,6 @@ public class UserFragment extends Fragment {
 
             @Override
             public void onTextChanged(CharSequence s, int start, int before, int count) {
-                // Nome social é opcional, só valida se não estiver vazio
                 String texto = s.toString().trim();
                 if (!texto.isEmpty()) {
                     String erro = Utils.validarNome(texto);
@@ -241,7 +442,7 @@ public class UserFragment extends Fragment {
                     isNomeSocialValido = (erro == null);
                 } else {
                     layoutNomeSoc.setError(null);
-                    isNomeSocialValido = true; // Vazio é válido para nome social
+                    isNomeSocialValido = true;
                 }
                 updateSaveButtonState();
             }
@@ -264,20 +465,26 @@ public class UserFragment extends Fragment {
     }
 
     private void loadUserData() {
-        // Verificar se as views estão inicializadas antes de usá-las
         if (!areViewsInitialized()) {
-            android.util.Log.e("UserFragment", "Tentativa de carregar dados com views não inicializadas");
+            Log.e(TAG, "Tentativa de carregar dados com views não inicializadas");
             return;
         }
 
-        //TODO: carregamento de dados reais do Banco
-        // Simulação
         try {
-            etNome.setText("João Silva");
-            etCpf.setText("123.456.789-00");
-            etEmail.setText("joao@email.com");
-            etTelefone.setText("(11) 99999-9999");
-            etNomeSocial.setText("");
+            if (usuario != null) {
+                // Carregar dados do DTO recebido
+                etNome.setText(usuario.getNome());
+                etCpf.setText(Utils.formatCpf(usuario.getCpf()));
+                etEmail.setText(usuario.getEmail());
+                etTelefone.setText(usuario.getTelefone());
+                etNomeSocial.setText(usuario.getNomeSocial() != null ? usuario.getNomeSocial() : "");
+
+                // Salvar dados originais
+                saveOriginalData();
+            } else {
+                Log.w(TAG, "UsuarioDTO não foi fornecido ao fragment");
+                Toast.makeText(getContext(), "Erro ao carregar dados do usuário", Toast.LENGTH_SHORT).show();
+            }
 
             // Após carregar os dados, define todos como válidos
             isNomeValido = true;
@@ -285,63 +492,73 @@ public class UserFragment extends Fragment {
             isTelefoneValido = true;
             isNomeSocialValido = true;
         } catch (Exception e) {
-            android.util.Log.e("UserFragment", "Erro ao carregar dados do usuário: " + e.getMessage());
+            Log.e(TAG, "Erro ao carregar dados do usuário", e);
+            Toast.makeText(getContext(), "Erro ao carregar dados", Toast.LENGTH_SHORT).show();
         }
+    }
+
+    /**
+     * Salva os dados originais para poder restaurar em caso de cancelamento
+     */
+    private void saveOriginalData() {
+        nomeOriginal = etNome.getText() != null ? etNome.getText().toString() : "";
+        emailOriginal = etEmail.getText() != null ? etEmail.getText().toString() : "";
+        telefoneOriginal = etTelefone.getText() != null ? etTelefone.getText().toString() : "";
+        nomeSocialOriginal = etNomeSocial.getText() != null ? etNomeSocial.getText().toString() : "";
+    }
+
+    /**
+     * Restaura os dados originais nos campos
+     */
+    private void restoreOriginalData() {
+        if (etNome != null) etNome.setText(nomeOriginal);
+        if (etEmail != null) etEmail.setText(emailOriginal);
+        if (etTelefone != null) etTelefone.setText(telefoneOriginal);
+        if (etNomeSocial != null) etNomeSocial.setText(nomeSocialOriginal);
     }
 
     private void toggleEditMode() {
         if (!areViewsInitialized()) {
-            android.util.Log.e("UserFragment", "Tentativa de alternar modo de edição com views não inicializadas");
+            Log.e(TAG, "Tentativa de alternar modo de edição com views não inicializadas");
             return;
         }
 
         if (isEditing) {
-            // Se já está editando, cancelar
             cancelEdit();
         } else {
-            // Entrar no modo de edição
             isEditing = true;
 
             try {
-                //Alterar estados dos campos
+                // Alterar estados dos campos
                 etNome.setEnabled(true);
                 etEmail.setEnabled(true);
                 etTelefone.setEnabled(true);
                 etNomeSocial.setEnabled(true);
+                etCpf.setEnabled(false); // CPF sempre desabilitado
 
-                // CPF sempre desabilitado (não pode ser alterado)
-                etCpf.setEnabled(false);
-
-                // Configurar validadores apenas quando entrar em modo de edição
+                // Configurar validadores
                 setupValidators();
 
                 // Animar para modo de edição
                 animateToEditMode();
 
-                // Atualizar estado inicial do botão salvar
                 updateSaveButtonState();
             } catch (Exception e) {
-                android.util.Log.e("UserFragment", "Erro ao entrar no modo de edição: " + e.getMessage());
+                Log.e(TAG, "Erro ao entrar no modo de edição", e);
             }
         }
     }
 
     private void animateToEditMode() {
-        if (btnSalvar == null || btnEditar == null || viewSpacing == null) {
-            android.util.Log.e("UserFragment", "Botões não inicializados para animação");
-            return;
-        }
+        if (btnSalvar == null || btnEditar == null || viewSpacing == null) return;
 
-        // Tornar o botão salvar visível mas ainda sem largura
         btnSalvar.setVisibility(View.VISIBLE);
         btnSalvar.setAlpha(0f);
 
-        // Obter os LayoutParams atuais
         LinearLayout.LayoutParams editarParams = (LinearLayout.LayoutParams) btnEditar.getLayoutParams();
         LinearLayout.LayoutParams salvarParams = (LinearLayout.LayoutParams) btnSalvar.getLayoutParams();
         LinearLayout.LayoutParams spacingParams = (LinearLayout.LayoutParams) viewSpacing.getLayoutParams();
 
-        // Animar os weights
         ValueAnimator animator = ValueAnimator.ofFloat(0f, 1f);
         animator.setDuration(ANIMATION_DURATION);
         animator.setInterpolator(new AccelerateDecelerateInterpolator());
@@ -349,47 +566,31 @@ public class UserFragment extends Fragment {
         animator.addUpdateListener(animation -> {
             float progress = animation.getAnimatedFraction();
 
-            // Animar o weight do botão editar: de 1 para 0.48
             editarParams.weight = 1f - (progress * 0.52f);
-
-            // Animar o weight do botão salvar: de 0 para 0.48
             salvarParams.weight = progress * 0.48f;
-
-            // Animar o spacing: de 0 para 0.04 (4% da largura)
             spacingParams.weight = progress * 0.04f;
-
-            // Animar alpha do botão salvar
             btnSalvar.setAlpha(progress);
 
-            // Aplicar os novos parâmetros
             btnEditar.setLayoutParams(editarParams);
             btnSalvar.setLayoutParams(salvarParams);
             viewSpacing.setLayoutParams(spacingParams);
 
-            // Mostrar o spacing quando começar a animação
             if (progress > 0f && viewSpacing.getVisibility() != View.VISIBLE) {
                 viewSpacing.setVisibility(View.VISIBLE);
             }
         });
 
-        // Animar mudança de background, texto e ícone do botão editar com fade
         animateButtonBackgroundTextAndIcon(btnEditar, "Cancelar", btn_gradient_danger, R.drawable.ic_close);
-
         animator.start();
     }
 
     private void animateToViewMode() {
-        if (btnSalvar == null || btnEditar == null || viewSpacing == null) {
-            android.util.Log.e("UserFragment", "Botões não inicializados para animação de volta");
-            return;
-        }
+        if (btnSalvar == null || btnEditar == null || viewSpacing == null) return;
 
-        // Obter os LayoutParams atuais
         LinearLayout.LayoutParams editarParams = (LinearLayout.LayoutParams) btnEditar.getLayoutParams();
         LinearLayout.LayoutParams salvarParams = (LinearLayout.LayoutParams) btnSalvar.getLayoutParams();
         LinearLayout.LayoutParams spacingParams = (LinearLayout.LayoutParams) viewSpacing.getLayoutParams();
 
-        // Animar os weights de volta
         ValueAnimator animator = ValueAnimator.ofFloat(1f, 0f);
         animator.setDuration(ANIMATION_DURATION);
         animator.setInterpolator(new AccelerateDecelerateInterpolator());
@@ -397,19 +598,11 @@ public class UserFragment extends Fragment {
         animator.addUpdateListener(animation -> {
             float progress = animation.getAnimatedFraction();
 
-            // Animar o weight do botão editar: de 0.48 para 1
             editarParams.weight = 0.48f + (progress * 0.52f);
-
-            // Animar o weight do botão salvar: de 0.48 para 0
             salvarParams.weight = 0.48f - (progress * 0.48f);
-
-            // Animar o spacing: de 0.04 para 0
             spacingParams.weight = 0.04f - (progress * 0.04f);
-
-            // Animar alpha do botão salvar
             btnSalvar.setAlpha(1f - progress);
 
-            // Aplicar os novos parâmetros
             btnEditar.setLayoutParams(editarParams);
             btnSalvar.setLayoutParams(salvarParams);
             viewSpacing.setLayoutParams(spacingParams);
@@ -418,32 +611,24 @@ public class UserFragment extends Fragment {
         animator.addListener(new android.animation.AnimatorListenerAdapter() {
             @Override
             public void onAnimationEnd(android.animation.Animator animation) {
-                // Ocultar botão salvar e spacing ao final da animação
                 btnSalvar.setVisibility(View.GONE);
                 viewSpacing.setVisibility(View.GONE);
             }
         });
 
-        // Animar mudança de background, texto e ícone do botão editar com fade
         animateButtonBackgroundTextAndIcon(btnEditar, "Editar", btn_gradient_primary, R.drawable.ic_edit);
-
         animator.start();
     }
 
     /**
-     * Anima a mudança de background, texto e ícone do MaterialButton com transição direta suave
+     * Anima a mudança de background, texto e ícone do MaterialButton
      */
     private void animateButtonBackgroundTextAndIcon(MaterialButton button, String newText, int newBackgroundRes, int newIconRes) {
-        if (button == null || getContext() == null) {
-            android.util.Log.e("UserFragment", "Button ou Context null na animação");
-            return;
-        }
+        if (button == null || getContext() == null) return;
 
-        // Criar drawable do novo background e ícone
         final var newDrawable = AppCompatResources.getDrawable(getContext(), newBackgroundRes);
         final var newIcon = AppCompatResources.getDrawable(getContext(), newIconRes);
 
-        // Transição suave de alpha do background atual
         ValueAnimator backgroundTransition = ValueAnimator.ofFloat(1f, 0f);
         backgroundTransition.setDuration(ANIMATION_DURATION);
         backgroundTransition.setInterpolator(new AccelerateDecelerateInterpolator());
@@ -451,15 +636,12 @@ public class UserFragment extends Fragment {
         backgroundTransition.addUpdateListener(animation -> {
             float progress = animation.getAnimatedFraction();
 
-            // Mudança suave do alpha do background atual
             if (progress <= 0.5f) {
-                // Primeira metade: fade out do background atual
                 int alpha = (int) (255 * (1f - progress * 2f));
                 if (button.getBackground() != null) {
-                    button.getBackground().setAlpha(Math.max(alpha, 50)); // Mínimo de 50 para não ficar totalmente transparente
+                    button.getBackground().setAlpha(Math.max(alpha, 50));
                 }
             } else {
-                // Segunda metade: fade in do novo background + mudança de texto e ícone
                 if (progress >= 0.5f && !button.getText().toString().equals(newText)) {
                     button.setText(newText);
                     button.setBackground(newDrawable);
@@ -475,7 +657,6 @@ public class UserFragment extends Fragment {
         backgroundTransition.addListener(new android.animation.AnimatorListenerAdapter() {
             @Override
             public void onAnimationEnd(android.animation.Animator animation) {
-                // Garantir que o alpha final seja 255 (totalmente opaco)
                 if (button.getBackground() != null) {
                     button.getBackground().setAlpha(255);
                 }
@@ -486,10 +667,9 @@ public class UserFragment extends Fragment {
     }
 
     private void cancelEdit() {
-        // Limpar erros antes de recarregar dados
         clearAllErrors();
-        loadUserData(); // Recarregar dados originais
-        exitEditMode(); // Sair do modo de edição sem toggle
+        restoreOriginalData();
+        exitEditMode();
     }
 
     /**
@@ -502,53 +682,8 @@ public class UserFragment extends Fragment {
         if (layoutNomeSoc != null) layoutNomeSoc.setError(null);
     }
 
-    private void saveUserData() {
-        if (!areViewsInitialized()) {
-            android.util.Log.e("UserFragment", "Tentativa de salvar dados com views não inicializadas");
-            return;
-        }
-
-        // Validar todos os campos antes de salvar
-        if (!validateAllFields()) {
-            Toast.makeText(getContext(), "Por favor, corrija os erros antes de salvar", Toast.LENGTH_SHORT).show();
-            return;
-        }
-
-        // Desabilitar botão para evitar cliques duplos
-        btnSalvar.setEnabled(false);
-        btnSalvar.setText("Salvando...");
-
-        try {
-            // Coletar dados normalizados
-            String nome = Utils.normalizarNome(etNome.getText().toString());
-            String email = Utils.normalizarEmail(etEmail.getText().toString());
-            String telefone = Utils.extrairNumeros(etTelefone.getText().toString());
-            String nomeSocial = Utils.normalizarNome(etNomeSocial.getText().toString());
-
-            // TODO: Salvar os dados no banco/API
-            // Simular salvamento
-            btnSalvar.postDelayed(() -> {
-                Toast.makeText(getContext(), "Dados salvos com sucesso!", Toast.LENGTH_SHORT).show();
-
-                // Restaurar texto do botão
-                btnSalvar.setText("Salvar");
-                btnSalvar.setEnabled(true);
-
-                exitEditMode(); // Sair do modo de edição
-            }, 1500);
-
-        } catch (Exception e) {
-            android.util.Log.e("UserFragment", "Erro ao salvar dados: " + e.getMessage());
-            Toast.makeText(getContext(), "Erro ao salvar dados", Toast.LENGTH_SHORT).show();
-
-            // Restaurar botão em caso de erro
-            btnSalvar.setText("Salvar");
-            btnSalvar.setEnabled(true);
-        }
-    }
-
     /**
-     * Validação final de todos os campos editáveis
+     * Validação final de todos os campos editáveis antes de salvar
      */
     private boolean validateAllFields() {
         boolean isValid = true;
@@ -586,11 +721,14 @@ public class UserFragment extends Fragment {
         return isValid;
     }
 
+    /**
+     * Sai do modo de edição e volta ao modo de visualização
+     */
     private void exitEditMode() {
-        if (!isEditing) return; // Já está no modo view
+        if (!isEditing) return;
 
         if (!areViewsInitialized()) {
-            android.util.Log.e("UserFragment", "Tentativa de sair do modo de edição com views não inicializadas");
+            Log.e(TAG, "Tentativa de sair do modo de edição com views não inicializadas");
             return;
         }
 
@@ -607,9 +745,6 @@ public class UserFragment extends Fragment {
             // Limpar erros
             clearAllErrors();
 
-            // Remover validadores (limpar listeners)
-            removeValidators();
-
             // Animar volta ao modo view
             animateToViewMode();
 
@@ -619,29 +754,7 @@ public class UserFragment extends Fragment {
             isTelefoneValido = true;
             isNomeSocialValido = true;
         } catch (Exception e) {
-            android.util.Log.e("UserFragment", "Erro ao sair do modo de edição: " + e.getMessage());
-        }
-    }
-
-    /**
-     * Remove os validadores dos campos para evitar conflitos
-     */
-    private void removeValidators() {
-        try {
-            // Criar TextWatchers vazios para substituir os existentes
-            TextWatcher emptyWatcher = new TextWatcher() {
-                @Override
-                public void beforeTextChanged(CharSequence s, int start, int count, int after) {}
-                @Override
-                public void onTextChanged(CharSequence s, int start, int before, int count) {}
-                @Override
-                public void afterTextChanged(Editable s) {}
-            };
-
-            // A maneira mais segura é recriar os EditTexts ou simplesmente não adicionar
-            // novos listeners até que seja necessário novamente
-        } catch (Exception e) {
-            android.util.Log.e("UserFragment", "Erro ao remover validadores: " + e.getMessage());
+            Log.e(TAG, "Erro ao sair do modo de edição", e);
         }
     }
 }

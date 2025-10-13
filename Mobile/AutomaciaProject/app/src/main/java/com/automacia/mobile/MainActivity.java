@@ -142,14 +142,14 @@ public class MainActivity extends AppCompatActivity {
         chatFragment = ChatFragment.newInstance(usuario);
         notifFragment = new NotificationFragment();
         prefFragment = new PreferencesFragment();
-        userFragment = new UserFragment();
+        userFragment = UserFragment.newInstance(usuario);
 
         // Define o fragment inicial como ativo
         activeFragment = homeFragment;
 
         // Adiciona todos os fragments ao container e oculta todos exceto o inicial
         // Esta abordagem evita recriar fragments, melhorando a performance
-        fragmentManager.beginTransaction()
+        fragmentManager.beginTransaction()  
                 .add(R.id.flFragment, userFragment, "USER").hide(userFragment)
                 .add(R.id.flFragment, prefFragment, "PREF").hide(prefFragment)
                 .add(R.id.flFragment, notifFragment, "NOTIF").hide(notifFragment)
@@ -221,28 +221,21 @@ public class MainActivity extends AppCompatActivity {
     }
 
     /**
-     * Método público para programaticamente navegar para um item específico
-     */
-    public void navigateToItem(int itemId) {
-        binding.bottomNavigation.show(itemId, true);
-    }
-
-    /**
-     * Método para adicionar badge de notificação
+     * Metodo para adicionar badge de notificação
      */
     public void setNotificationBadge(String count) {
         binding.bottomNavigation.setCount(ID_NOTIF, count);
     }
 
     /**
-     * Método para limpar badge de notificação
+     * Metodo para limpar badge de notificação
      */
     public void clearNotificationBadge() {
         binding.bottomNavigation.clearCount(ID_NOTIF);
     }
 
     /**
-     * Método para limpar todos os badges
+     * Metodo para limpar todos os badges
      */
     public void clearAllBadges() {
         binding.bottomNavigation.clearAllCounts();

@@ -110,9 +110,10 @@ public class ChatFragment extends Fragment {
         inicializarViews(view);
         configurarRecyclerView();
         configurarListeners();
-        inicializarChatManager();
 
         isInitialized = true;
+
+        inicializarChatManager();
     }
 
     @Override
@@ -224,11 +225,21 @@ public class ChatFragment extends Fragment {
 
     private void inicializarChatManager() {
         try {
+            Log.d(TAG, "Inicializando ChatManager para usuário: " + usuarioLogado.getNome());
+
             chatManager = new ChatManager(getContext(), usuarioLogado);
             configurarChatManagerListeners();
 
-            // Conectar e carregar mensagens
-            conectarChat();
+            // MUDANÇA: Usar postDelayed para garantir que a view está pronta
+            // e dar tempo para o ChatManager se configurar completamente
+            new Handler(Looper.getMainLooper()).postDelayed(() -> {
+                if (isFragmentReady()) {
+                    Log.d(TAG, "Tentando conectar ao chat...");
+                    conectarChat();
+                } else {
+                    Log.e(TAG, "Fragment não está pronto para conectar");
+                }
+            }, 100); // 100ms de delay
 
         } catch (Exception e) {
             Log.e(TAG, "Erro ao inicializar ChatManager", e);
@@ -237,15 +248,12 @@ public class ChatFragment extends Fragment {
     }
 
     private void configurarChatManagerListeners() {
-        // Listener para mensagens recebidas - adiciona automaticamente
+        // Listener para mensagens recebidas
         chatManager.setOnMensagemRecebidaListener(mensagem -> {
-            Log.d(TAG, "isFragmentReady: " + isFragmentReady());
+            Log.d(TAG, "Mensagem recebida: " + mensagem.getMensagem() +
+                    " | Paciente: " + mensagem.isEhPaciente());
 
             if (isFragmentReady()) {
-                Log.d(TAG, "Mensagem recebida: " + mensagem.getMensagem() +
-                        " | Paciente: " + mensagem.isEhPaciente());
-
-                // Adicionar no adapter - SEMPRE
                 adapter.adicionarMensagem(mensagem);
                 rolarParaUltimaMensagem();
 
@@ -259,12 +267,17 @@ public class ChatFragment extends Fragment {
 
         // Listener para status de conexão
         chatManager.setOnStatusConexaoListener(conectado -> {
+            Log.d(TAG, "Status de conexão mudou: " + conectado);
+
             if (isFragmentReady()) {
                 atualizarStatusConexao(conectado);
 
                 // Tentar carregar mensagens quando conectar
                 if (conectado && !mensagensCarregadas) {
+                    Log.d(TAG, "Conectado! Carregando mensagens...");
                     carregarMensagens();
+                } else if (!conectado) {
+                    Log.w(TAG, "Desconectado do servidor");
                 }
             }
         });
@@ -272,7 +285,6 @@ public class ChatFragment extends Fragment {
         // Listener para digitação
         chatManager.setOnDigitandoListener((digitando, usuario) -> {
             if (isFragmentReady()) {
-                // Só mostrar se não é o próprio usuário
                 boolean mostrarIndicador = digitando &&
                         !usuarioLogado.getCpf().equals(usuario);
 
@@ -285,12 +297,20 @@ public class ChatFragment extends Fragment {
                         " (mostrar: " + mostrarIndicador + ")");
             }
         });
+
+        Log.d(TAG, "Listeners configurados com sucesso");
     }
 
     private void conectarChat() {
-        if (isChatManagerReady()) {
-            chatManager.conectar();
+        if (!isChatManagerReady()) {
+            Log.e(TAG, "ChatManager não está pronto para conectar. " +
+                    "chatManager null: " + (chatManager == null) +
+                    ", isFragmentReady: " + isFragmentReady());
+            return;
         }
+
+        Log.d(TAG, "Chamando chatManager.conectar()");
+        chatManager.conectar();
     }
 
     private void enviarMensagem() {
@@ -523,18 +543,30 @@ public class ChatFragment extends Fragment {
     }
 
     private boolean isChatManagerReady() {
-        return chatManager != null && isFragmentReady();
+        boolean ready = chatManager != null && isFragmentReady();
+
+        if (!ready) {
+            Log.d(TAG, "ChatManager não está pronto: " +
+                    "chatManager=" + (chatManager != null) +
+                    ", isFragmentReady=" + isFragmentReady());
+        }
+
+        return ready;
     }
 
     @Override
     public void onResume() {
         super.onResume();
-        Log.d(TAG, "onResume");
+        Log.d(TAG, "onResume - shouldReconnect: " + shouldReconnectOnResume);
 
-        // Só reconectar se necessário
-        if (shouldReconnectOnResume && isChatManagerReady()) {
-            Log.d(TAG, "Reconectando chat...");
-            conectarChat();
+        // MUDANÇA: Sempre tentar conectar se não estiver conectado
+        if (isChatManagerReady()) {
+            if (shouldReconnectOnResume || !chatManager.isConectado()) {
+                Log.d(TAG, "Reconectando chat no onResume...");
+                conectarChat();
+            } else {
+                Log.d(TAG, "Chat já conectado, não é necessário reconectar");
+            }
         }
     }
 

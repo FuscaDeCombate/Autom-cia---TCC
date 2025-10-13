@@ -299,20 +299,6 @@
             android:orientation="vertical"
             android:layout_marginBottom="24dp">
 
-            <!-- Alergias -->
-            <androidx.cardview.widget.CardView
-                android:id="@+id/card_allergies"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginBottom="16dp"
-                app:cardCornerRadius="16dp"
-                app:cardElevation="6dp"
-                app:cardBackgroundColor="@color/white"
-                android:clickable="true"
-                android:foreground="?attr/selectableItemBackground">
-
-            </androidx.cardview.widget.CardView>
-
             <!-- Histórico Médico -->
             <androidx.cardview.widget.CardView
                 android:id="@+id/card_medical_history"

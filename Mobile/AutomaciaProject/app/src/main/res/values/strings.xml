@@ -1,5 +1,5 @@
 <resources>
-    <string name="app_name">Automacia+</string>
+    <string name="app_name">Automacia</string>
     <string name="app_logo_description">Logo do Aplicativo</string>
     <string name="criar_conta">Criar Conta</string>
     <string name="preencha_dados">Preencha seus dados para continuar</string>
@@ -59,5 +59,6 @@
     <!-- TODO: Remove or change this placeholder text -->
     <string name="hello_blank_fragment">Hello blank fragment</string>
     <string name="baixas">Baixas</string>
+    <string name="sem_receitas">Sem Receitas</string>
 
 </resources>

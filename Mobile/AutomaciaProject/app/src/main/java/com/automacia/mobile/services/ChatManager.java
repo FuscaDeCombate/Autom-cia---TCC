@@ -33,7 +33,7 @@ import io.socket.emitter.Emitter;
 public class ChatManager {
 
     private static final String TAG = "ChatManager";
-    private static final String SERVER_URL = "http://192.168.1.17:6969";
+    private static final String SERVER_URL = "http://192.168.20.61:6969";
     private static final int FUNCIONARIO_ID = 1; // TODO: Tornar dinâmico baseado no usuário logado
     private static final int CONNECTION_TIMEOUT = 10000;
     private static final int DATABASE_TIMEOUT = 10000;
@@ -155,6 +155,8 @@ public class ChatManager {
 
             mSocket = IO.socket(SERVER_URL, options);
             configurarEventListeners();
+
+            mSocket.connect();
 
         } catch (URISyntaxException e) {
             Log.e(TAG, "Erro ao inicializar Socket.IO", e);

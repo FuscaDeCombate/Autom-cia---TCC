@@ -317,4 +317,17 @@ public class Utils {
 
         view.setBackground(paint);
     }
+
+    /**
+     * Formata o CPF no padrão 123.456.789-00
+     */
+    public static String formatCpf(String cpf) {
+        if (cpf == null || cpf.length() != 11) return cpf;
+
+        return cpf.substring(0, 3) + "." +
+                cpf.substring(3, 6) + "." +
+                cpf.substring(6, 9) + "-" +
+                cpf.substring(9, 11);
+    }
+
 }

@@ -7,6 +7,8 @@ import androidx.fragment.app.Fragment;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 import androidx.cardview.widget.CardView;
+
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -15,11 +17,14 @@ import android.widget.ProgressBar;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import com.automacia.mobile.FullPrescriptionsActivity;
+import com.automacia.mobile.MyApp;
 import com.automacia.mobile.R;
 import com.automacia.mobile.adapters.TimelinePrescriptionAdapter;
 import com.automacia.mobile.models.PrescriptionDTO;
 import com.automacia.mobile.models.UsuarioDTO;
 import com.automacia.mobile.services.PrescriptionService;
+import com.automacia.mobile.utils.Utils;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -35,7 +40,7 @@ public class HomeFragment extends Fragment {
     private RecyclerView rvPrescriptions;
     private ProgressBar progressBar;
     private CardView cardHelp, cardSendPrescription, cardMessages;
-    private CardView cardAllergies, cardMedicalHistory;
+    private CardView cardMedicalHistory;
     private CardView[] quickActionCards = new CardView[7];
 
     // Dados do usuário
@@ -118,12 +123,10 @@ public class HomeFragment extends Fragment {
         cardMessages = view.findViewById(R.id.card_messages);
 
         // Seções principais
-        cardAllergies = view.findViewById(R.id.card_allergies);
         cardMedicalHistory = view.findViewById(R.id.card_medical_history);
 
         // RecyclerView para receitas
         rvPrescriptions = view.findViewById(R.id.rv_prescriptions);
-
         // Ações rápidas
         quickActionCards[0] = view.findViewById(R.id.quick_action_1);
         quickActionCards[1] = view.findViewById(R.id.quick_action_2);
@@ -150,7 +153,7 @@ public class HomeFragment extends Fragment {
 
         // Atualizar UI com dados do usuário real
         tvUserName.setText(currentUser.getNomeExibicao());
-        tvCpf.setText(formatCpf(currentUser.getCpf()));
+        tvCpf.setText(Utils.formatCpf(currentUser.getCpf()));
 
         // Status inicial (será atualizado após carregar as receitas)
         tvPrescriptionStatus.setText("Carregando suas receitas...");
@@ -180,7 +183,6 @@ public class HomeFragment extends Fragment {
         cardMessages.setOnClickListener(v -> openMessages());
 
         // Seções principais
-        cardAllergies.setOnClickListener(v -> openAllergies());
         cardMedicalHistory.setOnClickListener(v -> openMedicalHistory());
 
         // Ações rápidas
@@ -269,7 +271,6 @@ public class HomeFragment extends Fragment {
 
         // Contar receitas válidas e enviadas
         int validCount = 0;
-        int sentCount = 0; // Você pode adicionar lógica para identificar receitas "enviadas"
 
         for (PrescriptionDTO prescription : prescriptions) {
             if (prescription.isValido()) {
@@ -308,22 +309,20 @@ public class HomeFragment extends Fragment {
      * Metodo para buscar usuário de sessão (SharedPreferences, Singleton, etc.)
      */
     private UsuarioDTO getUserFromSession() {
-        // TODO: Implementar busca do usuário da sessão
-        return null;
-    }
+        try {
+            MyApp app = (MyApp) requireActivity().getApplicationContext();
+            UsuarioDTO user = app.getUsuarioLogado();
 
-    /**
-     * Formata CPF para exibição (xxx.xxx.xxx-xx)
-     */
-    private String formatCpf(String cpf) {
-        if (cpf == null || cpf.length() != 11) {
-            return cpf;
+            if (user != null) {
+                Log.d("HomeFragment", "Usuário carregado: " + user.getNomeExibicao());
+                return user;
+            } else {
+                Log.e("HomeFragment", "Usuário não encontrado no MyApp");
+            }
+        } catch (Exception e) {
+            Log.e("HomeFragment", "Erro ao buscar usuário da sessão", e);
         }
-
-        return cpf.substring(0, 3) + "." +
-                cpf.substring(3, 6) + "." +
-                cpf.substring(6, 9) + "-" +
-                cpf.substring(9, 11);
+        return null;
     }
 
     // Métodos de ação
@@ -347,10 +346,6 @@ public class HomeFragment extends Fragment {
         Toast.makeText(getContext(), "Abrindo mensagens...", Toast.LENGTH_SHORT).show();
     }
 
-    private void openAllergies() {
-        Toast.makeText(getContext(), "Abrindo alergias...", Toast.LENGTH_SHORT).show();
-    }
-
     private void openMedicalHistory() {
         Toast.makeText(getContext(), "Abrindo histórico médico...", Toast.LENGTH_SHORT).show();
     }
@@ -364,8 +359,16 @@ public class HomeFragment extends Fragment {
     }
 
     private void viewAllPrescriptions() {
-        Toast.makeText(getContext(), "Abrindo todas as receitas...", Toast.LENGTH_SHORT).show();
-        // TODO: Abrir Activity com todas as receitas
+        Log.d("HomeFragment", "Abrindo tela de todas as receitas");
+
+        if (currentUser == null) {
+            Log.e("HomeFragment", "Usuário não encontrado ao tentar abrir receitas");
+            return;
+        }
+
+        Intent intent = new Intent(getActivity(), FullPrescriptionsActivity.class);
+        intent.putExtra("usuario", currentUser);
+        startActivity(intent);
     }
 
     private void handleQuickAction(int actionIndex) {
@@ -404,5 +407,64 @@ public class HomeFragment extends Fragment {
 
     private void openFAQ() {
         Toast.makeText(getContext(), "Abrindo FAQ...", Toast.LENGTH_SHORT).show();
+    }
+
+    /**
+     * Recarrega os dados do usuário da sessão
+     */
+    private void reloadUserData() {
+        Log.d("HomeFragment", "=== Iniciando reload dos dados do usuário ===");
+
+        try {
+            // Buscar usuário atualizado da sessão
+            UsuarioDTO updatedUser = getUserFromSession();
+
+            if (updatedUser != null) {
+                Log.d("HomeFragment", "Usuário encontrado: " + updatedUser.getNomeExibicao());
+                Log.d("HomeFragment", "CPF: " + updatedUser.getCpf());
+
+                // Verificar se houve mudanças
+                boolean dadosMudaram = false;
+                if (currentUser != null) {
+                    dadosMudaram = !currentUser.getNomeExibicao().equals(updatedUser.getNomeExibicao()) ||
+                            !currentUser.getCpf().equals(updatedUser.getCpf());
+
+                    if (dadosMudaram) {
+                        Log.d("HomeFragment", "Dados do usuário foram alterados!");
+                    } else {
+                        Log.d("HomeFragment", "Dados do usuário não mudaram");
+                    }
+                }
+
+                currentUser = updatedUser;
+                setupUserData();
+
+                // Recarregar as receitas se os dados mudaram ou se é a primeira carga
+                if (dadosMudaram || prescriptionList == null || prescriptionList.isEmpty()) {
+                    Log.d("HomeFragment", "Recarregando receitas do banco de dados");
+                    loadPrescriptionsFromDatabase();
+                }
+            } else {
+                Log.e("HomeFragment", "Usuário atualizado é NULL");
+                Toast.makeText(getContext(),
+                        "Erro ao atualizar dados do usuário",
+                        Toast.LENGTH_SHORT).show();
+            }
+        } catch (Exception e) {
+            Log.e("HomeFragment", "Erro ao recarregar dados do usuário", e);
+            Toast.makeText(getContext(),
+                    "Erro ao atualizar dados: " + e.getMessage(),
+                    Toast.LENGTH_SHORT).show();
+        }
+
+        Log.d("HomeFragment", "=== Fim do reload dos dados ===");
+    }
+
+    @Override
+    public void onResume() {
+        super.onResume();
+        // Recarregar dados do usuário toda vez que o fragment ficar visível
+        Log.d("HomeFragment", "onResume() - Recarregando dados do usuário");
+        reloadUserData();
     }
 }
