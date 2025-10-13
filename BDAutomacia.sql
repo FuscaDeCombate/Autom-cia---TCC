@@ -131,6 +131,14 @@ CREATE TABLE Mensagem (
         FOREIGN KEY (Funcionar_Rec) REFERENCES Funcionario(Funcionar_Rec)
 );
 GO
+CREATE TABLE Baixa (
+	ID_Receita INT NOT NULL,
+	Funcionar_Rec INT NOT NULL,
+	Data_Baixa DATETIME2 DEFAULT GETDATE()
+	FOREIGN KEY (ID_Receita) REFERENCES Receita(ID_Receita),
+	FOREIGN KEY (Funcionar_Rec) REFERENCES Funcionario(Funcionar_Rec)
+);
+GO
 CREATE INDEX IDX_CNPJ ON Contratante(CNPJ);
 CREATE INDEX IDX_Paciente_F ON Paciente(Paciente_F);
 CREATE INDEX IDX_Funcionario_Ativo ON Funcionario(Funcionar_Rec, Ativo);
@@ -473,6 +481,8 @@ BEGIN
                         RETURN;
                 END
                 UPDATE Receita SET Baixas = (Baixas + 1) WHERE ID_Receita = @ID_Receita;
+				--
+				INSERT INTO Baixa(ID_Receita, Funcionar_Rec) VALUES (@ID_Receita, @ID_Funcionario_Alt);
                 SELECT 'Baixa registrada com sucesso' AS 'Retorno_Altera_Receita';
         END TRY
         BEGIN CATCH
@@ -1092,9 +1102,38 @@ BEGIN
 		SELECT Nome_Funcionario, F.CNPJ, F.Ativo, C.Nome_Contratante FROM Funcionario F Inner Join Contratante C On F.CNPJ = C.CNPJ Where F.Funcionar_Rec = @ID_Funcionario;
 	END TRY
 	BEGIN CATCH
-		SELECT '' AS 'Mostra_Funcionário_Retorno';
+		SELECT 'Erro' AS 'Mostra_Funcionário_Retorno';
 	END CATCH
 END
+GO
+CREATE PROCEDURE Mostra_Receitas_Func (@ID_Funcionario INT) AS
+	BEGIN
+		BEGIN TRY
+			SELECT * FROM Receita WHERE Funcionar_Rec = @ID_Funcionario ORDER BY Data_Receita;
+		END TRY
+		BEGIN CATCH
+			SELECT 'Erro' AS 'Mostra_Receitas_Func_Retorno';
+		END CATCH
+	END
+GO
+CREATE PROCEDURE Mostra_Baixas(@ID_Funcionario_Ba INT) AS
+	BEGIN
+		BEGIN TRY
+			IF EXISTS (SELECT 1 FROM Funcionario WHERE Funcionar_Rec = @ID_Funcionario_Ba)
+				BEGIN
+					IF (SELECT COUNT(ID_Receita) FROM Baixa WHERE Funcionar_Rec = @ID_Funcionario_Ba) != 0
+						SELECT * FROM Baixa WHERE Funcionar_Rec = @ID_Funcionario_Ba;
+					ELSE SELECT 'Não há baixas' AS 'Mostra_Baixas_Retorno';
+				END
+			ELSE 
+				BEGIN
+					SELECT 'Funcionáro Inválido' AS 'Mostra_Baixas_Retorno';
+				END
+		END TRY
+		BEGIN CATCH
+			SELECT 'Erro' AS 'Mostra_Baixas_Retorno';
+		END CATCH
+	END
 GO
 CREATE TRIGGER Validade_Receita ON Receita AFTER UPDATE AS
 BEGIN
@@ -1805,47 +1844,71 @@ EXEC Altera_Receita 3, 'senha123?', '05642844083', 3;
 EXEC Altera_Receita 3, 'senha123?', '05642844083', 3;
 EXEC Altera_Receita 5, 'senha123?', '87949685000', 5;
 EXEC Altera_Receita 5, 'senha123?', '87949685000', 5;
-EXEC Altera_Receita 6, 'senha123?', '75974478096', 6;
-EXEC Altera_Receita 6, 'senha123?', '75974478096', 6;
-EXEC Altera_Receita 7, 'senha123?', '34731605040', 7;
-EXEC Altera_Receita 7, 'senha123?', '34731605040', 7;
-EXEC Altera_Receita 7, 'senha123?', '34731605040', 7;
-EXEC Altera_Receita 7, 'senha123?', '34731605040', 7;
-EXEC Altera_Receita 7, 'senha123?', '34731605040', 7;
-EXEC Altera_Receita 7, 'senha123?', '34731605040', 7;
-EXEC Altera_Receita 7, 'senha123?', '34731605040', 7;
-EXEC Altera_Receita 7, 'senha123?', '34731605040', 7;
-EXEC Altera_Receita 7, 'senha123?', '34731605040', 7;
-EXEC Altera_Receita 7, 'senha123?', '34731605040', 7;
-EXEC Altera_Receita 7, 'senha123?', '34731605040', 7;
-EXEC Altera_Receita 7, 'senha123?', '34731605040', 7;
-EXEC Altera_Receita 7, 'senha123?', '34731605040', 7;
-EXEC Altera_Receita 7, 'senha123?', '34731605040', 7;
-EXEC Altera_Receita 7, 'senha123?', '34731605040', 7;
-EXEC Altera_Receita 7, 'senha123?', '34731605040', 7;
-EXEC Altera_Receita 7, 'senha123?', '34731605040', 7;
-EXEC Altera_Receita 7, 'senha123?', '34731605040', 7;
-EXEC Altera_Receita 7, 'senha123?', '34731605040', 7;
-EXEC Altera_Receita 7, 'senha123?', '34731605040', 7;
-EXEC Altera_Receita 7, 'senha123?', '34731605040', 7;
-EXEC Altera_Receita 7, 'senha123?', '34731605040', 7;
-EXEC Altera_Receita 7, 'senha123?', '34731605040', 7;
-EXEC Altera_Receita 7, 'senha123?', '34731605040', 7;
-EXEC Altera_Receita 7, 'senha123?', '34731605040', 7;
-EXEC Altera_Receita 7, 'senha123?', '34731605040', 7;
-EXEC Altera_Receita 7, 'senha123?', '34731605040', 7;
-EXEC Altera_Receita 7, 'senha123?', '34731605040', 7;
-EXEC Altera_Receita 7, 'senha123?', '34731605040', 7;
-EXEC Altera_Receita 7, 'senha123?', '34731605040', 7;
-EXEC Altera_Receita 7, 'senha123?', '34731605040', 7;
-EXEC Altera_Receita 7, 'senha123?', '34731605040', 7;
-EXEC Altera_Receita 7, 'senha123?', '34731605040', 7;
-EXEC Altera_Receita 7, 'senha123?', '34731605040', 7;
-EXEC Altera_Receita 7, 'senha123?', '34731605040', 7;
-EXEC Altera_Receita 7, 'senha123?', '34731605040', 7;
-EXEC Altera_Receita 7, 'senha123?', '34731605040', 7;
-EXEC Altera_Receita 7, 'senha123?', '34731605040', 7;
-EXEC Altera_Receita 7, 'senha123?', '34731605040', 7;
+EXEC Altera_Receita 6, 'senha123?', '75974478096', 5;
+EXEC Altera_Receita 6, 'senha123?', '75974478096', 5;
+EXEC Altera_Receita 6, 'senha123?', '75974478096', 5;
+EXEC Altera_Receita 6, 'senha123?', '75974478096', 147;
+EXEC Altera_Receita 6, 'senha123?', '75974478096', 147;
+EXEC Altera_Receita 6, 'senha123?', '75974478096', 147;
+EXEC Altera_Receita 6, 'senha123?', '75974478096', 147;
+EXEC Altera_Receita 6, 'senha123?', '75974478096', 147;
+EXEC Altera_Receita 6, 'senha123?', '75974478096', 147;
+EXEC Altera_Receita 6, 'senha123?', '75974478096', 147;
+EXEC Altera_Receita 6, 'senha123?', '75974478096', 147;
+EXEC Altera_Receita 6, 'senha123?', '75974478096', 147;
+EXEC Altera_Receita 6, 'senha123?', '75974478096', 147;
+EXEC Altera_Receita 6, 'senha123?', '75974478096', 147;
+EXEC Altera_Receita 6, 'senha123?', '75974478096', 147;
+EXEC Altera_Receita 6, 'senha123?', '75974478096', 147;
+EXEC Altera_Receita 6, 'senha123?', '75974478096', 147;
+EXEC Altera_Receita 6, 'senha123?', '75974478096', 147;
+EXEC Altera_Receita 6, 'senha123?', '75974478096', 147;
+EXEC Altera_Receita 6, 'senha123?', '75974478096', 147;
+EXEC Altera_Receita 6, 'senha123?', '75974478096', 147;
+EXEC Altera_Receita 6, 'senha123?', '75974478096', 147;
+EXEC Altera_Receita 6, 'senha123?', '75974478096', 147;
+EXEC Altera_Receita 6, 'senha123?', '75974478096', 147;
+EXEC Altera_Receita 6, 'senha123?', '75974478096', 147;
+EXEC Altera_Receita 6, 'senha123?', '75974478096', 147;
+EXEC Altera_Receita 7, 'senha123?', '34731605040', 6;
+EXEC Altera_Receita 7, 'senha123?', '34731605040', 6;
+EXEC Altera_Receita 7, 'senha123?', '34731605040', 6;
+EXEC Altera_Receita 7, 'senha123?', '34731605040', 6;
+EXEC Altera_Receita 7, 'senha123?', '34731605040', 6;
+EXEC Altera_Receita 7, 'senha123?', '34731605040', 6;
+EXEC Altera_Receita 7, 'senha123?', '34731605040', 6;
+EXEC Altera_Receita 7, 'senha123?', '34731605040', 6;
+EXEC Altera_Receita 7, 'senha123?', '34731605040', 6;
+EXEC Altera_Receita 7, 'senha123?', '34731605040', 6;
+EXEC Altera_Receita 7, 'senha123?', '34731605040', 6;
+EXEC Altera_Receita 7, 'senha123?', '34731605040', 6;
+EXEC Altera_Receita 7, 'senha123?', '34731605040', 6;
+EXEC Altera_Receita 7, 'senha123?', '34731605040', 6;
+EXEC Altera_Receita 7, 'senha123?', '34731605040', 6;
+EXEC Altera_Receita 7, 'senha123?', '34731605040', 6;
+EXEC Altera_Receita 7, 'senha123?', '34731605040', 6;
+EXEC Altera_Receita 7, 'senha123?', '34731605040', 6;
+EXEC Altera_Receita 7, 'senha123?', '34731605040', 6;
+EXEC Altera_Receita 7, 'senha123?', '34731605040', 6;
+EXEC Altera_Receita 7, 'senha123?', '34731605040', 6;
+EXEC Altera_Receita 7, 'senha123?', '34731605040', 6;
+EXEC Altera_Receita 7, 'senha123?', '34731605040', 6;
+EXEC Altera_Receita 7, 'senha123?', '34731605040', 6;
+EXEC Altera_Receita 7, 'senha123?', '34731605040', 6;
+EXEC Altera_Receita 7, 'senha123?', '34731605040', 6;
+EXEC Altera_Receita 7, 'senha123?', '34731605040', 6;
+EXEC Altera_Receita 7, 'senha123?', '34731605040', 6;
+EXEC Altera_Receita 7, 'senha123?', '34731605040', 6;
+EXEC Altera_Receita 7, 'senha123?', '34731605040', 6;
+EXEC Altera_Receita 7, 'senha123?', '34731605040', 6;
+EXEC Altera_Receita 7, 'senha123?', '34731605040', 6;
+EXEC Altera_Receita 7, 'senha123?', '34731605040', 6;
+EXEC Altera_Receita 7, 'senha123?', '34731605040', 6;
+EXEC Altera_Receita 7, 'senha123?', '34731605040', 6;
+EXEC Altera_Receita 7, 'senha123?', '34731605040', 6;
+EXEC Altera_Receita 7, 'senha123?', '34731605040', 6;
+EXEC Altera_Receita 7, 'senha123?', '34731605040', 6;
+EXEC Altera_Receita 7, 'senha123?', '34731605040', 6;
 EXEC Altera_Receita 5, 'senha123?', '87949685000', 12;
 EXEC Altera_Receita 5, 'senha123?', '87949685000', 12;
 EXEC Altera_Receita 5, 'senha123?', '87949685000', 12;
@@ -1885,8 +1948,8 @@ EXEC Altera_Receita 5, 'senha123?', '87949685000', 12;
 EXEC Altera_Receita 5, 'senha123?', '87949685000', 12;
 EXEC Altera_Receita 5, 'senha123?', '87949685000', 12;
 EXEC Altera_Receita 5, 'senha123?', '87949685000', 12;
-EXEC Altera_Receita 4, 'senha123?', '58061315050', 4;
-EXEC Altera_Receita 4, 'senha123?', '58061315050', 4;
+EXEC Altera_Receita 4, 'senha123?', '58061315050', 145;
+EXEC Altera_Receita 4, 'senha123?', '58061315050', 145;
 EXEC Registra_Receita 10, 2, 'senha123', '15-06-2024', '54856098802', 'Amoxicilina 875mg', 'Tomar 1 comp 12/12h por 10 dias', 20;
 EXEC Registra_Receita 11, 2, 'senha123?', '20-07-2024', '03674704030', 'Diclofenaco Potássico 50mg', 'Tomar 1 comp 8/8h se dor', 15;
 EXEC Registra_Receita 12, 2, 'senha123?', '10-08-2024', '05642844083', 'Prednisona 20mg', 'Tomar 2 comp manhã por 5 dias', 10;
