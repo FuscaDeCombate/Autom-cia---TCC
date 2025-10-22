@@ -852,13 +852,10 @@ END
 GO
 CREATE PROCEDURE Lista_Funcionarios_Empresa(
         @CNPJ_Contratante VARCHAR(20),
-        @Senha_Contratante VARCHAR(256),
         @Mostrar_Inativos BIT
 ) AS
 BEGIN
         DECLARE
-                @SaltEmpresa VARCHAR(64),
-                @HashEmpresa VARCHAR(128),
                 @Empresa_Existe BIT,
                 @Senha_Valida BIT;
 		Set @Empresa_Existe = 0;
@@ -867,13 +864,6 @@ BEGIN
                 SET @CNPJ_Contratante = LTRIM(RTRIM(@CNPJ_Contratante));
                 IF EXISTS (SELECT 1 FROM Contratante WHERE CNPJ = @CNPJ_Contratante)
                         SET @Empresa_Existe = 1;
-                IF @Empresa_Existe = 1
-                BEGIN
-                        SELECT @SaltEmpresa = Salt_Contratante, @HashEmpresa = Senha_Hash
-                        FROM Contratante WHERE CNPJ = @CNPJ_Contratante;
-                        IF dbo.VerificarSenha(@Senha_Contratante, @SaltEmpresa, @HashEmpresa) = 1
-                                SET @Senha_Valida = 1;
-                END
                 IF (@Empresa_Existe = 1) AND (@Senha_Valida = 1)
                 BEGIN
                         SELECT 
