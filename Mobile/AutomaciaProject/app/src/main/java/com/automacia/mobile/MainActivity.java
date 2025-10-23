@@ -149,7 +149,7 @@ public class MainActivity extends AppCompatActivity {
 
         // Adiciona todos os fragments ao container e oculta todos exceto o inicial
         // Esta abordagem evita recriar fragments, melhorando a performance
-        fragmentManager.beginTransaction()  
+        fragmentManager.beginTransaction()
                 .add(R.id.flFragment, userFragment, "USER").hide(userFragment)
                 .add(R.id.flFragment, prefFragment, "PREF").hide(prefFragment)
                 .add(R.id.flFragment, notifFragment, "NOTIF").hide(notifFragment)

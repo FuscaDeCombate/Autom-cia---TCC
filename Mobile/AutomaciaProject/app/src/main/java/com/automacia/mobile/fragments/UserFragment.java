@@ -28,6 +28,7 @@ import com.automacia.mobile.MyApp;
 import com.automacia.mobile.R;
 import com.automacia.mobile.models.UsuarioDTO;
 import com.automacia.mobile.services.PerfilService;
+import com.automacia.mobile.utils.PasswordConfirmationDialog;
 import com.automacia.mobile.utils.Utils;
 import com.automacia.mobile.watchers.TelefoneMaskWatcher;
 import com.google.android.material.button.MaterialButton;
@@ -46,7 +47,6 @@ public class UserFragment extends Fragment {
     private static final int ANIMATION_DURATION = 300;
 
     // Views
-    private ImageButton btnBack;
     private CircleImageView icProfilePhoto;
     private TextView tvChangePhoto;
     private TextInputLayout layoutNomeCon, layoutCpf, layoutEmail, layoutTel, layoutNomeSoc;
@@ -123,7 +123,6 @@ public class UserFragment extends Fragment {
     }
 
     private void initViews(View view) {
-        btnBack = view.findViewById(R.id.btn_back);
         icProfilePhoto = view.findViewById(R.id.iv_profile_photo);
         tvChangePhoto = view.findViewById(R.id.tv_change_photo);
         etNome = view.findViewById(R.id.et_nome);
@@ -150,13 +149,6 @@ public class UserFragment extends Fragment {
     }
 
     private void setupClickListeners() {
-        if (btnBack != null) {
-            btnBack.setOnClickListener(v -> {
-                if (getActivity() != null) {
-                    getActivity().getOnBackPressedDispatcher().onBackPressed();
-                }
-            });
-        }
 
         if (tvChangePhoto != null) {
             tvChangePhoto.setOnClickListener(v -> {
@@ -184,52 +176,33 @@ public class UserFragment extends Fragment {
      * Exibe um AlertDialog para solicitar a senha do usuário
      */
     private void showPasswordDialog() {
-        if (getContext() == null) return;
+        if (getActivity() == null) return;
 
-        // Criar layout do dialog
-        final View dialogView = LayoutInflater.from(getContext()).inflate(R.layout.dialog_password_input, null);
-        final TextInputEditText etSenha = dialogView.findViewById(R.id.et_senha_confirmacao);
-        final TextInputLayout layoutSenha = dialogView.findViewById(R.id.lay_senha_confirmacao);
-
-        AlertDialog dialog = new AlertDialog.Builder(getContext())
-                .setTitle("Confirmar alterações")
-                .setMessage("Para sua segurança, digite sua senha para confirmar as alterações:")
-                .setView(dialogView)
-                .setPositiveButton("Confirmar", null)
-                .setNegativeButton("Cancelar", (d, which) -> d.dismiss())
-                .setCancelable(false)
-                .create();
-
-        dialog.setOnShowListener(dialogInterface -> {
-            MaterialButton btnConfirmar = (MaterialButton) dialog.getButton(AlertDialog.BUTTON_POSITIVE);
-            btnConfirmar.setOnClickListener(v -> {
-                String senha = etSenha.getText() != null ? etSenha.getText().toString() : "";
-
-                if (senha.isEmpty()) {
-                    layoutSenha.setError("Digite sua senha");
-                    return;
-                }
-
-                // Limpar erro
-                layoutSenha.setError(null);
-
-                // Desabilitar botão para evitar cliques duplos
-                btnConfirmar.setEnabled(false);
-                btnConfirmar.setText("Verificando...");
-
-                // Salvar dados
-                saveUserData(senha, dialog, btnConfirmar);
-            });
+        PasswordConfirmationDialog dialog = PasswordConfirmationDialog.newInstance(password -> {
+            saveUserDataWithPassword(password);
         });
 
-        dialog.show();
+        dialog.show(getParentFragmentManager(), "PasswordConfirmationDialog");
+    }
+
+    private void saveUserDataWithPassword(String senha) {
+        // Buscar o dialog do FragmentManager
+        PasswordConfirmationDialog dialog = (PasswordConfirmationDialog)
+                getParentFragmentManager().findFragmentByTag("PasswordConfirmationDialog");
+
+        if (dialog == null) {
+            Log.e(TAG, "Dialog não encontrado");
+            return;
+        }
+
+        saveUserData(senha, dialog);
     }
 
     /**
      * Salva os dados do usuário no banco de dados
      * Executa a operação em uma thread separada para não bloquear a UI
      */
-    private void saveUserData(String senha, AlertDialog dialog, MaterialButton btnConfirmar) {
+    private void saveUserData(String senha, PasswordConfirmationDialog dialog) {
         if (!areViewsInitialized() || usuario == null) {
             Log.e(TAG, "Tentativa de salvar dados com views não inicializadas ou usuário nulo");
             return;
@@ -238,8 +211,7 @@ public class UserFragment extends Fragment {
         // Validar todos os campos antes de salvar
         if (!validateAllFields()) {
             Toast.makeText(getContext(), "Por favor, corrija os erros antes de salvar", Toast.LENGTH_SHORT).show();
-            btnConfirmar.setEnabled(true);
-            btnConfirmar.setText("Confirmar");
+            dialog.resetButton();
             return;
         }
 
@@ -278,7 +250,7 @@ public class UserFragment extends Fragment {
                 // Voltar para a UI thread para atualizar a interface
                 if (getActivity() != null) {
                     getActivity().runOnUiThread(() -> {
-                        handleSaveResult(resultado, usuarioAtualizado, dialog, btnConfirmar);
+                        handleSaveResult(resultado, usuarioAtualizado, dialog);
                     });
                 }
 
@@ -288,12 +260,7 @@ public class UserFragment extends Fragment {
                 if (getActivity() != null) {
                     getActivity().runOnUiThread(() -> {
                         Toast.makeText(getContext(), "Erro inesperado ao salvar dados", Toast.LENGTH_LONG).show();
-
-                        // Restaurar botões
-                        if (btnConfirmar != null) {
-                            btnConfirmar.setText("Confirmar");
-                            btnConfirmar.setEnabled(true);
-                        }
+                        dialog.resetButton();
 
                         if (btnSalvar != null) {
                             btnSalvar.setText("Salvar");
@@ -310,8 +277,7 @@ public class UserFragment extends Fragment {
      */
     private void handleSaveResult(PerfilService.ResultadoAtualizacao resultado,
                                   UsuarioDTO usuarioAtualizado,
-                                  AlertDialog dialog,
-                                  MaterialButton btnConfirmar) {
+                                  PasswordConfirmationDialog dialog) {
         if (resultado.isSucesso()) {
             Log.i(TAG, "Dados salvos com sucesso");
 
@@ -330,27 +296,19 @@ public class UserFragment extends Fragment {
 
             // Atualizar dados originais
             saveOriginalData();
-
             Toast.makeText(getContext(), resultado.getMensagem(), Toast.LENGTH_SHORT).show();
 
-            // Fechar dialog
-            if (dialog != null && dialog.isShowing()) {
+            if (dialog != null) {
                 dialog.dismiss();
             }
 
-            // Sair do modo de edição
             exitEditMode();
 
         } else {
             Log.w(TAG, "Falha ao salvar dados: " + resultado.getMensagem());
-
             Toast.makeText(getContext(), resultado.getMensagem(), Toast.LENGTH_LONG).show();
 
-            // Restaurar botões
-            if (btnConfirmar != null) {
-                btnConfirmar.setText("Confirmar");
-                btnConfirmar.setEnabled(true);
-            }
+            dialog.resetButton();
 
             if (btnSalvar != null) {
                 btnSalvar.setText("Salvar");

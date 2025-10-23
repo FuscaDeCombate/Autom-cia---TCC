@@ -17,7 +17,7 @@ import android.widget.ProgressBar;
 import android.widget.TextView;
 import android.widget.Toast;
 
-import com.automacia.mobile.FullPrescriptionsActivity;
+import com.automacia.mobile.quickactions.FullPrescriptionsActivity;
 import com.automacia.mobile.MyApp;
 import com.automacia.mobile.R;
 import com.automacia.mobile.adapters.TimelinePrescriptionAdapter;
@@ -39,7 +39,6 @@ public class HomeFragment extends Fragment {
     private ImageButton btnHelp, btnLogout;
     private RecyclerView rvPrescriptions;
     private ProgressBar progressBar;
-    private CardView cardHelp, cardSendPrescription, cardMessages;
     private CardView cardMedicalHistory;
     private CardView[] quickActionCards = new CardView[7];
 
@@ -53,6 +52,9 @@ public class HomeFragment extends Fragment {
 
     // Constantes para argumentos
     private static final String ARG_USUARIO = "usuario";
+
+    // Flag para controlar se já carregou dados
+    private boolean hasLoadedData = false;
 
     /**
      * Factory method para criar uma instância do Fragment com usuário
@@ -88,8 +90,11 @@ public class HomeFragment extends Fragment {
         setupRecyclerView();
         setupClickListeners();
 
-        // Carregar receitas do banco de dados
-        loadPrescriptionsFromDatabase();
+        // Carregar receitas do banco de dados apenas na primeira vez
+        if (!hasLoadedData) {
+            loadPrescriptionsFromDatabase();
+            hasLoadedData = true;
+        }
 
         return view;
     }
@@ -116,11 +121,6 @@ public class HomeFragment extends Fragment {
 
         // ProgressBar
         progressBar = view.findViewById(R.id.progressBar);
-
-        // Botões de ação principais
-        cardHelp = view.findViewById(R.id.card_help);
-        cardSendPrescription = view.findViewById(R.id.card_send_prescription);
-        cardMessages = view.findViewById(R.id.card_messages);
 
         // Seções principais
         cardMedicalHistory = view.findViewById(R.id.card_medical_history);
@@ -155,8 +155,8 @@ public class HomeFragment extends Fragment {
         tvUserName.setText(currentUser.getNomeExibicao());
         tvCpf.setText(Utils.formatCpf(currentUser.getCpf()));
 
-        // Status inicial (será atualizado após carregar as receitas)
-        tvPrescriptionStatus.setText("Carregando suas receitas...");
+        // Status inicial - removido o "Carregando suas receitas..." daqui
+        // Será definido em loadPrescriptionsFromDatabase()
     }
 
     private void setupRecyclerView() {
@@ -176,11 +176,6 @@ public class HomeFragment extends Fragment {
         // Header buttons
         btnHelp.setOnClickListener(v -> showHelp());
         btnLogout.setOnClickListener(v -> logout());
-
-        // Botões de ação principais
-        cardHelp.setOnClickListener(v -> showHelp());
-        cardSendPrescription.setOnClickListener(v -> sendPrescription());
-        cardMessages.setOnClickListener(v -> openMessages());
 
         // Seções principais
         cardMedicalHistory.setOnClickListener(v -> openMedicalHistory());
@@ -204,11 +199,17 @@ public class HomeFragment extends Fragment {
 
         // Mostrar loading
         showLoading(true);
+        tvPrescriptionStatus.setText("Carregando suas receitas...");
 
         // Buscar receitas SIMPLES (apenas dados necessários para o adapter)
         prescriptionService.fetchSimplePrescription(currentUser.getCpf(), new PrescriptionService.PrescriptionCallback() {
             @Override
             public void onSuccess(List<PrescriptionDTO> prescriptions) {
+                // Verificar se o fragment ainda está anexado
+                if (!isAdded() || getContext() == null) {
+                    return;
+                }
+
                 showLoading(false);
 
                 if (prescriptions == null || prescriptions.isEmpty()) {
@@ -235,6 +236,11 @@ public class HomeFragment extends Fragment {
 
             @Override
             public void onError(String errorMessage) {
+                // Verificar se o fragment ainda está anexado
+                if (!isAdded() || getContext() == null) {
+                    return;
+                }
+
                 showLoading(false);
 
                 // Mostrar erro básico para o usuário
@@ -335,15 +341,6 @@ public class HomeFragment extends Fragment {
         if (currentUser != null) {
             currentUser.clearSensitiveData();
         }
-        // TODO: Limpar SharedPreferences, voltar para LoginActivity
-    }
-
-    private void sendPrescription() {
-        Toast.makeText(getContext(), "Abrindo envio de receita...", Toast.LENGTH_SHORT).show();
-    }
-
-    private void openMessages() {
-        Toast.makeText(getContext(), "Abrindo mensagens...", Toast.LENGTH_SHORT).show();
     }
 
     private void openMedicalHistory() {
@@ -461,10 +458,20 @@ public class HomeFragment extends Fragment {
     }
 
     @Override
-    public void onResume() {
-        super.onResume();
-        // Recarregar dados do usuário toda vez que o fragment ficar visível
-        Log.d("HomeFragment", "onResume() - Recarregando dados do usuário");
+    public void onHiddenChanged(boolean hidden) {
+        super.onHiddenChanged(hidden);
+        if (!hidden) {
+            // Fragment ficou visível
+            Log.d("HomeFragment", "onHiddenChanged() - Fragment ficou visível");
+            reloadUserData();
+        }
+    }
+
+    /**
+     * Metodo público para forçar recarga (pode ser chamado pela MainActivity se necessário)
+     */
+    public void forceReload() {
+        Log.d("HomeFragment", "forceReload() - Recarga forçada solicitada");
         reloadUserData();
     }
 }

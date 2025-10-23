@@ -6,6 +6,7 @@ androidActivation = "1.6.7"
 circleimageview = "3.1.0"
 firebaseBom = "32.2.3"
 firebaseAuth = "22.1.0"
+gsonVersion = "2.10.1"
 jtdsVersion = "1.3.1"
 junit = "4.13.2"
 junitVersion = "1.2.1"
@@ -20,6 +21,8 @@ lifecycleViewmodelKtx = "2.6.1"
 coordinatorlayout = "1.3.0"
 kotlin-stdlib = "2.1.0"
 nafisbottomnav = "5.0"
+okhttp = "4.12.0"
+osmdroidAndroid = "6.1.18"
 socketIoClient = "2.0.0"
 swiperefreshlayout = "1.1.0"
 
@@ -29,6 +32,7 @@ android-mail = { module = "com.sun.mail:android-mail", version.ref = "androidMai
 circleimageview = { module = "de.hdodenhof:circleimageview", version.ref = "circleimageview" }
 firebase-auth = { module = "com.google.firebase:firebase-auth", version.ref = "firebaseAuth" }
 firebase-bom = { module = "com.google.firebase:firebase-bom", version.ref = "firebaseBom" }
+google-gson = { module = "com.google.code.gson:gson", version.ref = "gsonVersion" }
 junit = { group = "junit", name = "junit", version.ref = "junit" }
 ext-junit = { group = "androidx.test.ext", name = "junit", version.ref = "junitVersion" }
 espresso-core = { group = "androidx.test.espresso", name = "espresso-core", version.ref = "espressoCore" }
@@ -43,6 +47,8 @@ coordinatorlayout = { group = "androidx.coordinatorlayout", name = "coordinatorl
 kotlin-stdlib-jdk7 = { group = "org.jetbrains.kotlin", name = "kotlin-stdlib-jdk7", version.ref = "kotlin-stdlib" }
 nafisbottomnav = { module = "com.github.Foysalofficial:NafisBottomNav", version.ref = "nafisbottomnav" }
 net-jtds = { module = "net.sourceforge.jtds:jtds", version.ref = "jtdsVersion" }
+okhttp = { module = "com.squareup.okhttp3:okhttp", version.ref = "okhttp" }
+osmdroid-android = { module = "org.osmdroid:osmdroid-android", version.ref = "osmdroidAndroid" }
 socket-io-client = { module = "io.socket:socket.io-client", version.ref = "socketIoClient" }
 swiperefreshlayout = { module = "androidx.swiperefreshlayout:swiperefreshlayout", version.ref = "swiperefreshlayout" }
 

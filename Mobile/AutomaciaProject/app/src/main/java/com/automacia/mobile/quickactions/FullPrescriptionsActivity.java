@@ -1,4 +1,4 @@
-package com.automacia.mobile;
+package com.automacia.mobile.quickactions;
 
 import android.os.Bundle;
 import android.util.Log;
@@ -16,6 +16,7 @@ import androidx.core.view.WindowInsetsCompat;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
+import com.automacia.mobile.R;
 import com.automacia.mobile.adapters.CompletePrescriptionAdapter;
 import com.automacia.mobile.models.PrescriptionDTO;
 import com.automacia.mobile.models.UsuarioDTO;
