@@ -15,6 +15,7 @@ import androidx.core.graphics.Insets;
 import androidx.core.view.ViewCompat;
 import androidx.core.view.WindowInsetsCompat;
 
+import com.automacia.mobile.dialogs.ConnectionErrorDialog;
 import com.automacia.mobile.models.UsuarioDTO;
 import com.automacia.mobile.services.LoginService;
 import com.automacia.mobile.utils.Utils;
@@ -59,29 +60,106 @@ public class LoginActivity extends AppCompatActivity {
         setupValidators();
         setupClickListeners();
         loadSavedPreferences();
+        testarConexaoBanco();
     }
 
     /**
-     * Testa conexão com banco de dados (método de debug)
+     * Testa conexão com banco de dados antes de permitir login
      */
     private void testarConexaoBanco() {
-        showToast("Testando conexão com banco...");
+        // Desabilitar interação durante teste
+        setUIEnabled(false);
+        showToast("Verificando conexão...");
 
         LoginService.testarConexaoAsync(new LoginService.LoginCallback() {
             @Override
             public void onSuccess(UsuarioDTO usuario) {
                 runOnUiThread(() -> {
-                    showToast("Conexão OK! Banco acessível.");
+                    // Habilitar UI após sucesso
+                    setUIEnabled(true);
+                    showToast("Conexão estabelecida!");
                 });
             }
 
             @Override
             public void onError(String mensagem) {
                 runOnUiThread(() -> {
-                    showToast("Erro na conexão: " + mensagem);
+                    // Manter UI desabilitada e mostrar dialog
+                    showConnectionErrorDialog(mensagem);
                 });
             }
         });
+    }
+
+    /**
+     * Mostra dialog de erro de conexão com opção de tentar novamente
+     */
+    private void showConnectionErrorDialog(String errorMessage) {
+        ConnectionErrorDialog dialog = new ConnectionErrorDialog(this);
+
+        // Determinar tipo de erro baseado na mensagem
+        ConnectionErrorDialog.DatabaseErrorType errorType =
+                determineErrorType(errorMessage);
+
+        dialog.setDatabaseErrorType(errorType)
+                .setErrorDetails(errorMessage)
+                .showTechnicalDetails(true) // Mostra detalhes técnicos
+                .setOnRetryListener(() -> {
+                    // Tentar conectar novamente
+                    testarConexaoBanco();
+                })
+                .setOnCancelListener(() -> {
+                    // Fechar o app ou voltar
+                    showToast("Não é possível continuar sem conexão");
+                    finish(); // Fecha a activity
+                });
+
+        dialog.setCancelable(false); // Não permite fechar tocando fora
+        dialog.show();
+    }
+
+    /**
+     * Determina o tipo de erro baseado na mensagem
+     */
+    private ConnectionErrorDialog.DatabaseErrorType determineErrorType(String errorMessage) {
+        String msg = errorMessage.toLowerCase();
+
+        if (msg.contains("timeout") || msg.contains("tempo")) {
+            return ConnectionErrorDialog.DatabaseErrorType.CONNECTION_TIMEOUT;
+        } else if (msg.contains("autenticação") || msg.contains("login failed") ||
+                msg.contains("authentication")) {
+            return ConnectionErrorDialog.DatabaseErrorType.AUTHENTICATION_FAILED;
+        } else if (msg.contains("database") && msg.contains("not found")) {
+            return ConnectionErrorDialog.DatabaseErrorType.DATABASE_NOT_FOUND;
+        } else if (msg.contains("network") || msg.contains("rede") ||
+                msg.contains("conexão") || msg.contains("host")) {
+            return ConnectionErrorDialog.DatabaseErrorType.NETWORK_ERROR;
+        } else if (msg.contains("query") || msg.contains("sql")) {
+            return ConnectionErrorDialog.DatabaseErrorType.QUERY_ERROR;
+        }
+
+        return ConnectionErrorDialog.DatabaseErrorType.UNKNOWN;
+    }
+
+    /**
+     * Habilita/desabilita toda a UI
+     */
+    private void setUIEnabled(boolean enabled) {
+        editCpf.setEnabled(enabled);
+        editSenha.setEnabled(enabled);
+        btnLogin.setEnabled(enabled && isCpfValid && isSenhaValid);
+        btnGoogle.setEnabled(enabled);
+        btnFacebook.setEnabled(enabled);
+        checkboxLembrar.setEnabled(enabled);
+        txtEsqueciSenha.setEnabled(enabled);
+        txtCadastro.setEnabled(enabled);
+
+        // Altera opacidade visual
+        float alpha = enabled ? 1.0f : 0.5f;
+        editCpf.setAlpha(alpha);
+        editSenha.setAlpha(alpha);
+        btnGoogle.setAlpha(alpha);
+        btnFacebook.setAlpha(alpha);
     }
 
     /**

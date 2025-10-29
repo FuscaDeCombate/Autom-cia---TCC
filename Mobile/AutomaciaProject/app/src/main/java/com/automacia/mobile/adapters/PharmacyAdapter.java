@@ -20,6 +20,7 @@ import com.automacia.mobile.models.PharmacyDTO;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
 
 public class PharmacyAdapter extends RecyclerView.Adapter<PharmacyAdapter.PharmacyViewHolder> {
 
@@ -191,14 +192,18 @@ public class PharmacyAdapter extends RecyclerView.Adapter<PharmacyAdapter.Pharma
                     listener.onRouteClick(pharmacy);
                 }
 
-                // Abre rotas no Google Maps ou navegador
                 try {
-                    String uri = String.format("geo:%f,%f?q=%f,%f(%s)",
-                            pharmacy.getLatitude(),
-                            pharmacy.getLongitude(),
-                            pharmacy.getLatitude(),
-                            pharmacy.getLongitude(),
-                            Uri.encode(pharmacy.getName()));
+                    // Se tiver endereço, usa ele
+                    String destination;
+                    if (pharmacy.getAddress() != null && !pharmacy.getAddress().isEmpty()) {
+                        destination = Uri.encode(pharmacy.getAddress());
+                    } else {
+                        // Fallback: coordenadas
+                        destination = pharmacy.getLatitude() + "," + pharmacy.getLongitude();
+                    }
+
+                    // URI de rota
+                    String uri = "https://www.google.com/maps/dir/?api=1&destination=" + destination + "&travelmode=driving";
 
                     Intent intent = new Intent(Intent.ACTION_VIEW, Uri.parse(uri));
                     intent.setPackage("com.google.android.apps.maps");
@@ -206,12 +211,11 @@ public class PharmacyAdapter extends RecyclerView.Adapter<PharmacyAdapter.Pharma
                     if (intent.resolveActivity(context.getPackageManager()) != null) {
                         context.startActivity(intent);
                     } else {
-                        // Fallback para navegador
-                        String url = String.format("https://www.google.com/maps/search/?api=1&query=%f,%f",
-                                pharmacy.getLatitude(), pharmacy.getLongitude());
-                        Intent webIntent = new Intent(Intent.ACTION_VIEW, Uri.parse(url));
+                        // fallback para navegador
+                        Intent webIntent = new Intent(Intent.ACTION_VIEW, Uri.parse(uri));
                         context.startActivity(webIntent);
                     }
+
                 } catch (Exception e) {
                     Toast.makeText(context, "Não foi possível abrir o mapa", Toast.LENGTH_SHORT).show();
                 }

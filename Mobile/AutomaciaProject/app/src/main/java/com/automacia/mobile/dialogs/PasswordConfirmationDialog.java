@@ -1,4 +1,4 @@
-package com.automacia.mobile.utils;
+package com.automacia.mobile.dialogs;
 
 import android.app.Dialog;
 import android.os.Bundle;

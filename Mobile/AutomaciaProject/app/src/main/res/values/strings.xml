@@ -56,9 +56,20 @@
     <string name="reenviar">Reenviar</string>
     <string name="codigo_reenviado">Código reenviado com sucesso!</string>
     <string name="cancelar">Cancelar</string>
-    <!-- TODO: Remove or change this placeholder text -->
-    <string name="hello_blank_fragment">Hello blank fragment</string>
     <string name="baixas">Baixas</string>
     <string name="sem_receitas">Sem Receitas</string>
-
+    <string name="pdf_manual_info">Adicione seu histórico médico em formato PDF para facilitar o acesso às suas informações de saúde.</string>
+    <string name="adicionar_pdf">Adicionar PDF</string>
+    <string name="gerencie_docs">Gerencie seus documentos médicos</string>
+    <string name="hist_rico_m_dico">Histórico Médico</string>
+    <string name="baixar">Baixar</string>
+    <string name="compartilhar">Compartilhar</string>
+    <string name="connection_error_title">Erro de Conexão</string>
+    <string name="connection_error_message">Não foi possível conectar ao banco de dados. Verifique sua conexão e tente novamente.</string>
+    <string name="error_icon">Ícone de erro</string>
+    <string name="retry">Tentar Novamente</string>
+    <string name="cancel">Cancelar</string>
+    <string name="_24_horas">24 horas</string>
+    <string name="aberto_agora">Aberto agora</string>
+    <string name="mais_pr_ximas">Mais próximas</string>
 </resources>

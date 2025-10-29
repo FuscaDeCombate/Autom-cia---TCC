@@ -23,6 +23,8 @@ import com.automacia.mobile.R;
 import com.automacia.mobile.adapters.TimelinePrescriptionAdapter;
 import com.automacia.mobile.models.PrescriptionDTO;
 import com.automacia.mobile.models.UsuarioDTO;
+import com.automacia.mobile.quickactions.MedicalHistoryActivity;
+import com.automacia.mobile.quickactions.Pharmacys;
 import com.automacia.mobile.services.PrescriptionService;
 import com.automacia.mobile.utils.Utils;
 
@@ -344,7 +346,24 @@ public class HomeFragment extends Fragment {
     }
 
     private void openMedicalHistory() {
-        Toast.makeText(getContext(), "Abrindo histórico médico...", Toast.LENGTH_SHORT).show();
+        if (getActivity() == null) {
+            Log.e("HomeFragment", "openMedicalHistory() chamado, mas Activity é nula");
+            return;
+        }
+
+        if (currentUser == null) {
+            Toast.makeText(getContext(), "Usuário não encontrado", Toast.LENGTH_SHORT).show();
+            Log.e("HomeFragment", "currentUser está null em openMedicalHistory()");
+            return;
+        }
+
+        Intent intent = new Intent(getActivity().getBaseContext(), MedicalHistoryActivity.class);
+        intent.putExtra("usuario", currentUser);
+
+        startActivity(intent);
+
+        // Animação de fade in / fade out
+        getActivity().overridePendingTransition(R.anim.fade_in, R.anim.fade_out);
     }
 
     private void openPrescriptionDetails(PrescriptionDTO prescription) {
@@ -375,7 +394,12 @@ public class HomeFragment extends Fragment {
         };
 
         if (actionIndex < actions.length) {
-            Toast.makeText(getContext(), "Abrindo: " + actions[actionIndex], Toast.LENGTH_SHORT).show();
+            if (actionIndex == 2) {
+                Intent intent = new Intent(getActivity().getBaseContext(), Pharmacys.class);
+                startActivity(intent);
+            } else {
+                Toast.makeText(getContext(), "Abrindo: " + actions[actionIndex], Toast.LENGTH_SHORT).show();
+            }
         }
     }
 

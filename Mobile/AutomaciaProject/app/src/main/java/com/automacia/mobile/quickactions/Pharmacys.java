@@ -1,12 +1,14 @@
 package com.automacia.mobile.quickactions;
 
 import android.Manifest;
+import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
 import android.location.Location;
 import android.os.Bundle;
 import android.text.Editable;
 import android.text.TextWatcher;
 import android.util.Log;
+import android.view.MotionEvent;
 import android.view.View;
 import android.widget.EditText;
 import android.widget.FrameLayout;
@@ -34,12 +36,12 @@ import com.google.android.material.chip.Chip;
 import com.google.android.material.floatingactionbutton.FloatingActionButton;
 
 import org.json.JSONArray;
+import org.json.JSONException;
 import org.json.JSONObject;
 import org.osmdroid.api.IMapController;
 import org.osmdroid.config.Configuration;
 import org.osmdroid.tileprovider.tilesource.TileSourceFactory;
 import org.osmdroid.util.GeoPoint;
-import org.osmdroid.views.CustomZoomButtonsController;
 import org.osmdroid.views.MapView;
 import org.osmdroid.views.overlay.Marker;
 import org.osmdroid.views.overlay.mylocation.GpsMyLocationProvider;
@@ -56,6 +58,7 @@ import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.List;
+import java.util.Locale;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
@@ -65,6 +68,24 @@ public class Pharmacys extends AppCompatActivity {
     private static final int LOCATION_PERMISSION_REQUEST = 1;
     private static final int SEARCH_RADIUS_KM = 5;
 
+    // Cache
+    private static final String PREFS_NAME = "PharmacyCache";
+    private static final String CACHE_KEY_PREFIX = "pharmacy_cache_";
+    private static final String CACHE_TIME_PREFIX = "cache_time_";
+    private static final long CACHE_DURATION_MS = 30 * 60 * 1000; // 30 minutos
+
+    // Retry
+    private static final int MAX_RETRY_ATTEMPTS = 3;
+    private static final long INITIAL_RETRY_DELAY_MS = 2000; // 2 segundos
+
+    // Alternativas de servidor Overpass
+    private static final String[] OVERPASS_SERVERS = {
+            "https://overpass-api.de/api/interpreter",
+            "https://overpass.kumi.systems/api/interpreter",
+            "https://overpass.openstreetmap.ru/api/interpreter"
+    };
+    private int currentServerIndex = 0;
+
     // Views
     private MapView mapView;
     private RecyclerView pharmacyRecyclerView;
@@ -73,9 +94,10 @@ public class Pharmacys extends AppCompatActivity {
     private EditText searchEditText;
     private ImageView filterButton;
     private Chip chip24h, chipOpen, chipNearby;
-    private FloatingActionButton myLocationButton, zoomInButton, zoomOutButton;
+    private FloatingActionButton myLocationButton;
     private FrameLayout loadingOverlay;
     private BottomSheetBehavior<View> bottomSheetBehavior;
+    private View bottomSheetHandle;
     private SwipeRefreshLayout swipeRefresh;
 
     // Map
@@ -134,9 +156,8 @@ public class Pharmacys extends AppCompatActivity {
         chipOpen = findViewById(R.id.chipOpen);
         chipNearby = findViewById(R.id.chipNearby);
         myLocationButton = findViewById(R.id.myLocationButton);
-        zoomInButton = findViewById(R.id.zoomInButton);
-        zoomOutButton = findViewById(R.id.zoomOutButton);
         loadingOverlay = findViewById(R.id.loadingOverlay);
+        bottomSheetHandle = findViewById(R.id.bottomSheetHandle);
     }
 
     private void setupMap() {
@@ -161,6 +182,13 @@ public class Pharmacys extends AppCompatActivity {
         swipeRefresh = findViewById(R.id.swipeRefresh);
         swipeRefresh.setOnRefreshListener(() -> {
             if (userLocation != null) {
+                // Limpa o cache para forçar atualização
+                String cacheKey = getCacheKey(userLocation.getLatitude(), userLocation.getLongitude());
+                SharedPreferences prefs = getSharedPreferences(PREFS_NAME, MODE_PRIVATE);
+                prefs.edit().remove(cacheKey).remove(CACHE_TIME_PREFIX + cacheKey).apply();
+
+                Toast.makeText(this, "Atualizando dados...", Toast.LENGTH_SHORT).show();
+
                 fetchPharmaciesFromOSM(
                         userLocation.getLatitude(),
                         userLocation.getLongitude()
@@ -205,6 +233,49 @@ public class Pharmacys extends AppCompatActivity {
         bottomSheetBehavior = BottomSheetBehavior.from(bottomSheet);
         bottomSheetBehavior.setPeekHeight(350);
         bottomSheetBehavior.setState(BottomSheetBehavior.STATE_COLLAPSED);
+
+        // DESABILITA arrasto no bottomSheet
+        bottomSheetBehavior.setDraggable(false);
+
+        // HABILITA arrasto APENAS no handle
+        bottomSheetHandle.setOnTouchListener(new View.OnTouchListener() {
+            private float startY;
+            private int startState;
+
+            @Override
+            public boolean onTouch(View v, MotionEvent event) {
+                switch (event.getAction()) {
+                    case MotionEvent.ACTION_DOWN:
+                        startY = event.getRawY();
+                        startState = bottomSheetBehavior.getState();
+                        return true;
+
+                    case MotionEvent.ACTION_MOVE:
+                        float deltaY = event.getRawY() - startY;
+
+                        // Se está collapsed e arrasta pra cima -> expande
+                        if (startState == BottomSheetBehavior.STATE_COLLAPSED && deltaY < -50) {
+                            bottomSheetBehavior.setState(BottomSheetBehavior.STATE_EXPANDED);
+                            return true;
+                        }
+
+                        // Se está expanded e arrasta pra baixo -> colapsa
+                        if (startState == BottomSheetBehavior.STATE_EXPANDED && deltaY > 50) {
+                            bottomSheetBehavior.setState(BottomSheetBehavior.STATE_COLLAPSED);
+                            return true;
+                        }
+                        break;
+
+                    case MotionEvent.ACTION_UP:
+                    case MotionEvent.ACTION_CANCEL:
+                        return true;
+                }
+                return false;
+            }
+        });
+
+        // GARANTE que o RecyclerView pode scrollar
+        pharmacyRecyclerView.setNestedScrollingEnabled(true);
     }
 
     private void setupListeners() {
@@ -212,17 +283,34 @@ public class Pharmacys extends AppCompatActivity {
         myLocationButton.setOnClickListener(v -> {
             if (myLocationOverlay.getMyLocation() != null) {
                 GeoPoint myLocation = myLocationOverlay.getMyLocation();
+
+                // Anima para a localização do usuário com zoom fixo
                 mapController.animateTo(myLocation);
+                mapController.setZoom(17.0); // Zoom fixo - ajuste conforme necessário
+
                 userLocation = myLocation;
-                fetchPharmaciesFromOSM(myLocation.getLatitude(), myLocation.getLongitude());
+
+                // Opcional: busca farmácias novamente se ainda não buscou
+                if (allPharmacies.isEmpty()) {
+                    fetchPharmaciesFromOSM(myLocation.getLatitude(), myLocation.getLongitude());
+                }
             } else {
                 Toast.makeText(this, "Obtendo localização...", Toast.LENGTH_SHORT).show();
+
+                // Tenta forçar atualização da localização
+                myLocationOverlay.enableMyLocation();
+                myLocationOverlay.runOnFirstFix(() -> {
+                    runOnUiThread(() -> {
+                        GeoPoint myLocation = myLocationOverlay.getMyLocation();
+                        if (myLocation != null) {
+                            mapController.animateTo(myLocation);
+                            mapController.setZoom(17.0);
+                            userLocation = myLocation;
+                        }
+                    });
+                });
             }
         });
-
-        // Botões de zoom
-        zoomInButton.setOnClickListener(v -> mapController.zoomIn());
-        zoomOutButton.setOnClickListener(v -> mapController.zoomOut());
 
         // Busca
         searchEditText.addTextChangedListener(new TextWatcher() {
@@ -239,18 +327,21 @@ public class Pharmacys extends AppCompatActivity {
         });
 
         // Chips de filtro
-        chip24h.setOnClickListener(v -> {
-            filter24h = chip24h.isChecked();
+        chip24h.setOnCheckedChangeListener((buttonView, isChecked) -> {
+            filter24h = isChecked;
+            Log.d(TAG, "Chip 24h mudou para: " + filter24h);
             applyFilters();
         });
 
-        chipOpen.setOnClickListener(v -> {
-            filterOpen = chipOpen.isChecked();
+        chipOpen.setOnCheckedChangeListener((buttonView, isChecked) -> {
+            filterOpen = isChecked;
+            Log.d(TAG, "Chip Open mudou para: " + filterOpen);
             applyFilters();
         });
 
-        chipNearby.setOnClickListener(v -> {
-            filterNearby = chipNearby.isChecked();
+        chipNearby.setOnCheckedChangeListener((buttonView, isChecked) -> {
+            filterNearby = isChecked;
+            Log.d(TAG, "Chip Nearby mudou para: " + filterNearby);
             applyFilters();
         });
     }
@@ -290,6 +381,14 @@ public class Pharmacys extends AppCompatActivity {
                     mapController.animateTo(userLocation);
                     fetchPharmaciesFromOSM(location.getLatitude(), location.getLongitude());
                 });
+            } else {
+                // Fallback
+                runOnUiThread(() -> {
+                    Toast.makeText(Pharmacys.this,
+                            "Não foi possível obter localização, usando localização padrão",
+                            Toast.LENGTH_SHORT).show();
+                    fetchPharmaciesFromOSM(-23.5505, -46.6333);
+                });
             }
         });
     }
@@ -297,26 +396,45 @@ public class Pharmacys extends AppCompatActivity {
     private void fetchPharmaciesFromOSM(double latitude, double longitude) {
         showLoading(true);
 
+        Log.d(TAG, "fetchPharmaciesFromOSM chamado em: " + latitude + ", " + longitude);
+
         executorService.execute(() -> {
             try {
-                // Query Overpass API
-                String query = buildOverpassQuery(latitude, longitude, SEARCH_RADIUS_KM);
-                String response = makeOverpassRequest(query);
-                List<PharmacyDTO> pharmacies = parseOverpassResponse(response, latitude, longitude);
+                String cacheKey = getCacheKey(latitude, longitude);
 
-                runOnUiThread(() -> {
-                    allPharmacies = pharmacies;
-                    applyFilters();
-                    addMarkersToMap(pharmacies);
+                // Primeiro tenta usar o cache
+                String cachedData = getFromCache(cacheKey);
+                if (cachedData != null) {
+                    Log.d(TAG, "Usando dados do cache");
+                    List<PharmacyDTO> pharmacies = parseOverpassResponse(cachedData, latitude, longitude);
+                    updateUIWithPharmacies(pharmacies);
                     showLoading(false);
-                });
+
+                    // Mostra mensagem que está usando cache
+                    runOnUiThread(() ->
+                            Toast.makeText(this, "Dados carregados do cache", Toast.LENGTH_SHORT).show()
+                    );
+                    return;
+                }
+
+                // Se não tem cache, busca da API com retry
+                String response = fetchWithRetry(latitude, longitude);
+
+                if (response != null) {
+                    // Salva no cache
+                    saveToCache(cacheKey, response);
+
+                    List<PharmacyDTO> pharmacies = parseOverpassResponse(response, latitude, longitude);
+                    updateUIWithPharmacies(pharmacies);
+                }
+
+                showLoading(false);
 
             } catch (Exception e) {
                 Log.e(TAG, "Erro ao buscar farmácias", e);
                 runOnUiThread(() -> {
                     showLoading(false);
-                    Toast.makeText(this, "Erro ao buscar farmácias: " + e.getMessage(),
-                            Toast.LENGTH_SHORT).show();
+                    Toast.makeText(this, "Erro: " + e.getMessage(), Toast.LENGTH_LONG).show();
                 });
             }
         });
@@ -324,59 +442,132 @@ public class Pharmacys extends AppCompatActivity {
 
     private String buildOverpassQuery(double lat, double lon, int radiusKm) {
         int radiusMeters = radiusKm * 1000;
-        return String.format(
-                "[out:json][timeout:25];" +
+
+        String query = String.format(
+                Locale.ROOT,
+                "[out:json][timeout:15];" +
                         "(" +
-                        "  node[\"amenity\"=\"pharmacy\"](around:%d,%f,%f);" +
-                        "  way[\"amenity\"=\"pharmacy\"](around:%d,%f,%f);" +
+                        "  node[\"amenity\"=\"pharmacy\"](around:%d,%.6f,%.6f);" +
+                        "  way[\"amenity\"=\"pharmacy\"](around:%d,%.6f,%.6f);" +
                         ");" +
                         "out body;" +
                         ">;out skel qt;",
                 radiusMeters, lat, lon, radiusMeters, lat, lon
         );
+
+        return query;
     }
 
     private String makeOverpassRequest(String query) throws Exception {
-        String urlString = "https://overpass-api.de/api/interpreter";
-        URL url = new URL(urlString);
-        HttpURLConnection conn = (HttpURLConnection) url.openConnection();
-        conn.setRequestMethod("POST");
-        conn.setDoOutput(true);
-        conn.setRequestProperty("Content-Type", "application/x-www-form-urlencoded; charset=UTF-8");
-        conn.setRequestProperty("Accept", "application/json");
-        conn.setConnectTimeout(15000);
-        conn.setReadTimeout(30000);
+        String urlString = OVERPASS_SERVERS[currentServerIndex];
+        HttpURLConnection conn = null;
 
-        String encodedQuery = "data=" + URLEncoder.encode(query, "UTF-8");
+        try {
+            Log.d(TAG, "Usando servidor: " + urlString);
 
-        try (OutputStream os = conn.getOutputStream()) {
-            os.write(encodedQuery.getBytes(StandardCharsets.UTF_8));
-            os.flush();
-        }
+            URL url = new URL(urlString);
+            conn = (HttpURLConnection) url.openConnection();
+            conn.setRequestMethod("POST");
+            conn.setDoOutput(true);
+            conn.setRequestProperty("Content-Type", "application/x-www-form-urlencoded; charset=UTF-8");
+            conn.setRequestProperty("Accept", "application/json");
+            conn.setRequestProperty("User-Agent", getPackageName());
+            conn.setConnectTimeout(15000);
+            conn.setReadTimeout(30000);
 
-        int status = conn.getResponseCode();
-        InputStream inputStream = (status >= 200 && status < 300)
-                ? conn.getInputStream()
-                : conn.getErrorStream();
+            String encodedQuery = "data=" + URLEncoder.encode(query, "UTF-8");
 
-        StringBuilder response = new StringBuilder();
-        try (BufferedReader reader = new BufferedReader(
-                new InputStreamReader(inputStream, StandardCharsets.UTF_8))) {
-            String line;
-            while ((line = reader.readLine()) != null) {
-                response.append(line);
+            try (OutputStream os = conn.getOutputStream()) {
+                os.write(encodedQuery.getBytes(StandardCharsets.UTF_8));
+                os.flush();
             }
-        }
 
-        return response.toString();
+            int status = conn.getResponseCode();
+            Log.d(TAG, "Response code: " + status);
+
+            InputStream inputStream = (status >= 200 && status < 300)
+                    ? conn.getInputStream()
+                    : conn.getErrorStream();
+
+            StringBuilder response = new StringBuilder();
+            try (BufferedReader reader = new BufferedReader(
+                    new InputStreamReader(inputStream, StandardCharsets.UTF_8))) {
+                String line;
+                while ((line = reader.readLine()) != null) {
+                    response.append(line);
+                }
+            }
+
+            String responseStr = response.toString();
+
+            // Log preview
+            Log.d(TAG, "Response preview: " +
+                    responseStr.substring(0, Math.min(200, responseStr.length())));
+
+            // Valida se é XML (erro)
+            if (responseStr.trim().startsWith("<?xml") || responseStr.trim().startsWith("<")) {
+                Log.e(TAG, "Received XML error response");
+
+                if (responseStr.contains("rate_limited") || status == 429) {
+                    throw new Exception("API com limite de requisições atingido. Aguarde um momento.");
+                } else if (responseStr.contains("timeout")) {
+                    throw new Exception("Timeout na API. Tente reduzir o raio de busca.");
+                } else {
+                    throw new Exception("Erro na API Overpass. Tentando servidor alternativo...");
+                }
+            }
+
+            if (status == 429) {
+                throw new Exception("Limite de requisições atingido (429)");
+            }
+
+            if (status == 504 || status == 503) {
+                throw new Exception("Servidor temporariamente indisponível");
+            }
+
+            if (status >= 400) {
+                throw new Exception("Erro HTTP " + status);
+            }
+
+            return responseStr;
+
+        } catch (java.net.SocketTimeoutException e) {
+            throw new Exception("Timeout de conexão. Verifique sua internet.");
+        } catch (java.io.IOException e) {
+            throw new Exception("Erro de rede: " + e.getMessage());
+        } finally {
+            if (conn != null) conn.disconnect();
+        }
     }
 
     private List<PharmacyDTO> parseOverpassResponse(String jsonResponse, double userLat, double userLon) {
         List<PharmacyDTO> pharmacies = new ArrayList<>();
 
         try {
+            if (jsonResponse == null || jsonResponse.trim().isEmpty()) {
+                Log.e(TAG, "Resposta vazia");
+                return pharmacies;
+            }
+
+            jsonResponse = jsonResponse.trim();
+            if (!jsonResponse.startsWith("{") && !jsonResponse.startsWith("[")) {
+                Log.e(TAG, "Resposta não é JSON");
+                return pharmacies;
+            }
+
             JSONObject root = new JSONObject(jsonResponse);
+
+            if (root.has("remark")) {
+                Log.w(TAG, "API remark: " + root.getString("remark"));
+            }
+
+            if (!root.has("elements")) {
+                Log.w(TAG, "Sem campo 'elements'");
+                return pharmacies;
+            }
+
             JSONArray elements = root.getJSONArray("elements");
+            Log.d(TAG, "Elementos encontrados: " + elements.length());
 
             for (int i = 0; i < elements.length(); i++) {
                 JSONObject element = elements.getJSONObject(i);
@@ -413,11 +604,14 @@ public class Pharmacys extends AppCompatActivity {
                 }
             }
 
-            // Ordena por distância
             pharmacies.sort((p1, p2) -> Double.compare(p1.getDistanceInKm(), p2.getDistanceInKm()));
 
+            Log.d(TAG, "Farmácias parseadas: " + pharmacies.size());
+
+        } catch (JSONException e) {
+            Log.e(TAG, "Erro JSON: " + e.getMessage());
         } catch (Exception e) {
-            Log.e(TAG, "Erro ao parsear resposta", e);
+            Log.e(TAG, "Erro ao parsear", e);
         }
 
         return pharmacies;
@@ -441,6 +635,75 @@ public class Pharmacys extends AppCompatActivity {
         }
 
         return addr.length() > 0 ? addr.toString() : "Endereço não disponível";
+    }
+
+    private String fetchWithRetry(double latitude, double longitude) throws Exception {
+        int attempt = 0;
+        Exception lastException = null;
+
+        while (attempt < MAX_RETRY_ATTEMPTS) {
+            try {
+                Log.d(TAG, "Tentativa " + (attempt + 1) + " de " + MAX_RETRY_ATTEMPTS);
+
+                String query = buildOverpassQuery(latitude, longitude, SEARCH_RADIUS_KM);
+                String response = makeOverpassRequest(query);
+
+                // Se chegou aqui, a requisição foi bem-sucedida
+                Log.d(TAG, "Requisição bem-sucedida na tentativa " + (attempt + 1));
+                return response;
+
+            } catch (Exception e) {
+                lastException = e;
+                attempt++;
+
+                Log.w(TAG, "Tentativa " + attempt + " falhou: " + e.getMessage());
+
+                // Se ainda há tentativas, aguarda antes de tentar novamente
+                if (attempt < MAX_RETRY_ATTEMPTS) {
+                    // Exponential backoff: 2s, 4s, 8s...
+                    long delay = INITIAL_RETRY_DELAY_MS * (long) Math.pow(2, attempt - 1);
+
+                    Log.d(TAG, "Aguardando " + delay + "ms antes da próxima tentativa");
+
+                    // Informa o usuário sobre a tentativa
+                    final int currentAttempt = attempt;
+                    runOnUiThread(() ->
+                            Toast.makeText(this,
+                                    "Tentando novamente (" + currentAttempt + "/" + MAX_RETRY_ATTEMPTS + ")...",
+                                    Toast.LENGTH_SHORT).show()
+                    );
+
+                    try {
+                        Thread.sleep(delay);
+                    } catch (InterruptedException ie) {
+                        Thread.currentThread().interrupt();
+                        throw new Exception("Busca cancelada");
+                    }
+
+                    // Tenta próximo servidor na rotação
+                    currentServerIndex = (currentServerIndex + 1) % OVERPASS_SERVERS.length;
+                    Log.d(TAG, "Usando servidor: " + OVERPASS_SERVERS[currentServerIndex]);
+                }
+            }
+        }
+
+        // Se todas as tentativas falharam
+        throw new Exception("Falha após " + MAX_RETRY_ATTEMPTS + " tentativas: " +
+                (lastException != null ? lastException.getMessage() : "Erro desconhecido"));
+    }
+
+    private void updateUIWithPharmacies(List<PharmacyDTO> pharmacies) {
+        runOnUiThread(() -> {
+            try {
+                allPharmacies = pharmacies;
+                applyFilters();
+                addMarkersToMap(pharmacies);
+                Log.d(TAG, "Total de farmácias: " + pharmacies.size());
+            } catch (Exception e) {
+                Log.e(TAG, "Erro ao atualizar UI", e);
+                Toast.makeText(Pharmacys.this, "Erro ao exibir farmácias", Toast.LENGTH_SHORT).show();
+            }
+        });
     }
 
     private double calculateDistance(double lat1, double lon1, double lat2, double lon2) {
@@ -556,16 +819,42 @@ public class Pharmacys extends AppCompatActivity {
     }
 
     private String getClosingTime(String openingHours) {
-        if (openingHours.isEmpty() || is24Hours(openingHours)) return "";
+        if (openingHours == null || openingHours.isEmpty()) return "";
 
-        // Parse simples - melhorar conforme necessário
-        if (openingHours.contains("-")) {
-            String[] parts = openingHours.split("-");
-            if (parts.length > 1) {
-                return parts[1].trim();
+        // Caso seja 24h
+        if (is24Hours(openingHours)) return "Aberto 24h";
+
+        try {
+            Calendar now = Calendar.getInstance();
+            int currentDay = now.get(Calendar.DAY_OF_WEEK);
+
+            // Exemplo: "Mo-Fr 08:00-20:00; Sa 09:00-18:00"
+            String[] periods = openingHours.split(";");
+
+            for (String period : periods) {
+                period = period.trim();
+
+                String[] parts = period.split(" ");
+                if (parts.length < 2) continue;
+
+                String days = parts[0];
+                String hours = parts[1];
+
+                if (isDayInRange(currentDay, days)) {
+                    if (hours.contains("-")) {
+                        String[] timeParts = hours.split("-");
+                        if (timeParts.length == 2) {
+                            return timeParts[1].trim(); // hora de fechamento
+                        }
+                    }
+                }
             }
+
+        } catch (Exception e) {
+            Log.e(TAG, "Erro ao obter horário de fechamento", e);
         }
-        return "22:00";
+
+        return "";
     }
 
     private void addMarkersToMap(List<PharmacyDTO> pharmacies) {
@@ -621,31 +910,26 @@ public class Pharmacys extends AppCompatActivity {
         filteredPharmacies.clear();
 
         for (PharmacyDTO pharmacy : allPharmacies) {
-            if (pharmacy.getName().toLowerCase().contains(searchText.toLowerCase()) ||
-                    pharmacy.getAddress().toLowerCase().contains(searchText.toLowerCase())) {
-                filteredPharmacies.add(pharmacy);
-            }
-        }
-
-        pharmacyAdapter.setPharmacies(filteredPharmacies);
-        updateResultCount();
-    }
-
-    private void applyFilters() {
-        filteredPharmacies.clear();
-
-        for (PharmacyDTO pharmacy : allPharmacies) {
             boolean matches = true;
 
-            if (filter24h && !pharmacy.is24Hours()) {
+            // Filtro de busca por texto
+            if (!searchText.isEmpty()) {
+                if (!pharmacy.getName().toLowerCase().contains(searchText.toLowerCase()) &&
+                        !pharmacy.getAddress().toLowerCase().contains(searchText.toLowerCase())) {
+                    matches = false;
+                }
+            }
+
+            // Aplica filtros dos chips
+            if (matches && filter24h && !pharmacy.is24Hours()) {
                 matches = false;
             }
 
-            if (filterOpen && !pharmacy.isOpen()) {
+            if (matches && filterOpen && !pharmacy.isOpen()) {
                 matches = false;
             }
 
-            if (filterNearby && pharmacy.getDistanceInKm() > 2.0) {
+            if (matches && filterNearby && pharmacy.getDistanceInKm() > 2.0) {
                 matches = false;
             }
 
@@ -656,6 +940,15 @@ public class Pharmacys extends AppCompatActivity {
 
         pharmacyAdapter.setPharmacies(filteredPharmacies);
         updateResultCount();
+    }
+
+    private void applyFilters() {
+        // Chama o método unificado passando o texto atual da busca
+        String currentSearchText = searchEditText.getText().toString();
+        filterPharmacies(currentSearchText);
+
+        Log.d(TAG, "Filtros aplicados. Total: " + allPharmacies.size() +
+                ", Filtrados: " + filteredPharmacies.size());
     }
 
     private void updateResultCount() {
@@ -670,10 +963,61 @@ public class Pharmacys extends AppCompatActivity {
     }
 
     private void showLoading(boolean show) {
-        loadingOverlay.setVisibility(show ? View.VISIBLE : View.GONE);
-        if (!show) {
-            resultCountText.setText("Buscando farmácias...");
+        runOnUiThread(() -> {
+            loadingOverlay.setVisibility(show ? View.VISIBLE : View.GONE);
+            if (show) {
+                resultCountText.setText("Buscando farmácias...");
+            } else {
+                // Se já houver resultados filtrados, mostra o count; senão, mensagem padrão
+                if (filteredPharmacies != null && !filteredPharmacies.isEmpty()) {
+                    updateResultCount();
+                } else {
+                    resultCountText.setText("Nenhuma farmácia encontrada");
+                }
+            }
+        });
+    }
+
+    private String getCacheKey(double lat, double lon) {
+        // Arredonda para 2 casas decimaias para agrupar localizazacao
+        String roundedLat = String.format(Locale.ROOT, "%.2f", lat);
+        String roundedLon = String.format(Locale.ROOT, "%.2f", lon);
+        return CACHE_KEY_PREFIX + roundedLat + "_" + roundedLon;
+    }
+
+    private void saveToCache(String key, String data) {
+        try {
+            SharedPreferences prefs = getSharedPreferences(PREFS_NAME, MODE_PRIVATE);
+            SharedPreferences.Editor editor = prefs.edit();
+            editor.putString(key, data);
+            editor.putLong(CACHE_TIME_PREFIX + key, System.currentTimeMillis());
+            editor.apply();
+            Log.d(TAG, "Dados salvos no cache: " + key);
+        } catch (Exception e) {
+            Log.e(TAG, "Erro ao salvar cache", e);
         }
+    }
+
+    private String getFromCache(String key) {
+        try {
+            SharedPreferences prefs = getSharedPreferences(PREFS_NAME, MODE_PRIVATE);
+            long cacheTime = prefs.getLong(CACHE_TIME_PREFIX + key, 0);
+
+            // Verifica se o cache ainda é válido
+            if (System.currentTimeMillis() - cacheTime < CACHE_DURATION_MS) {
+                String data = prefs.getString(key, null);
+                if (data != null) {
+                    Log.d(TAG, "Dados recuperaos do cache" + key);
+                    return data;
+                }
+            } else {
+                Log.d(TAG, "Cache expirado para: " + key);
+            }
+        } catch (Exception e) {
+            Log.e(TAG, "Erro ao ler cache", e);
+        }
+
+        return null;
     }
 
     @Override

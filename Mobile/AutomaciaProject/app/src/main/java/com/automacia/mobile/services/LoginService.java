@@ -25,43 +25,67 @@ public class LoginService {
             @Override
             protected LoginResult doInBackground(Void... voids) {
                 Connection connection = null;
+                java.sql.Statement stmt = null;
+                java.sql.ResultSet rs = null;
+
                 try {
                     Log.d(TAG, "Testando conexão com banco de dados...");
                     connection = DatabaseHelper.getConnection();
 
                     if (connection == null) {
-                        return new LoginResult(false, "Falha na conexão", null);
+                        return new LoginResult(false,
+                                "Falha ao estabelecer conexão com o servidor. Verifique se o servidor está acessível.",
+                                null);
                     }
 
-                    if (!connection.isValid(5)) {
-                        return new LoginResult(false, "Conexão inválida", null);
-                    }
+                    // REMOVIDO: connection.isValid() - não suportado pelo jTDS
+                    // Em vez disso, testa com uma query simples
 
-                    Log.d(TAG, "Conexão estabelecida com sucesso");
+                    Log.d(TAG, "Conexão estabelecida, testando consulta...");
 
                     // Testar uma consulta simples
-                    java.sql.Statement stmt = connection.createStatement();
-                    java.sql.ResultSet rs = stmt.executeQuery("SELECT COUNT(*) as total FROM Paciente WHERE Ativo = 1");
+                    stmt = connection.createStatement();
+                    stmt.setQueryTimeout(5); // 5 segundos de timeout
+                    rs = stmt.executeQuery(
+                            "SELECT COUNT(*) as total FROM Paciente WHERE Ativo = 1"
+                    );
 
                     if (rs.next()) {
                         int total = rs.getInt("total");
-                        Log.d(TAG, "Total de pacientes ativos: " + total);
-                        rs.close();
-                        stmt.close();
-                        return new LoginResult(true, "Conexão OK - " + total + " pacientes encontrados", null);
+                        Log.d(TAG, "Teste bem-sucedido! Total de pacientes ativos: " + total);
+                        return new LoginResult(true,
+                                "Conexão OK - " + total + " pacientes encontrados",
+                                null);
                     }
 
-                    rs.close();
-                    stmt.close();
-                    return new LoginResult(false, "Erro na consulta de teste", null);
+                    return new LoginResult(false,
+                            "Erro ao executar consulta de teste no banco de dados.",
+                            null);
 
                 } catch (SQLException e) {
                     Log.e(TAG, "Erro SQL no teste: " + e.getMessage(), e);
-                    return new LoginResult(false, "Erro SQL: " + e.getMessage(), null);
+                    String errorMsg = interpretSQLError(e);
+                    return new LoginResult(false, errorMsg, null);
+
                 } catch (Exception e) {
                     Log.e(TAG, "Erro no teste: " + e.getMessage(), e);
-                    return new LoginResult(false, "Erro: " + e.getMessage(), null);
+                    return new LoginResult(false,
+                            "Erro inesperado: " + e.getMessage(),
+                            null);
                 } finally {
+                    // Fechar recursos na ordem correta
+                    try {
+                        if (rs != null) rs.close();
+                    } catch (SQLException e) {
+                        Log.e(TAG, "Erro ao fechar ResultSet", e);
+                    }
+
+                    try {
+                        if (stmt != null) stmt.close();
+                    } catch (SQLException e) {
+                        Log.e(TAG, "Erro ao fechar Statement", e);
+                    }
+
                     if (connection != null) {
                         DatabaseHelper.closeConnection(connection);
                     }
@@ -71,12 +95,64 @@ public class LoginService {
             @Override
             protected void onPostExecute(LoginResult result) {
                 if (result.isSuccess()) {
-                    callback.onSuccess(null); // Apenas para indicar sucesso
+                    callback.onSuccess(null);
                 } else {
                     callback.onError(result.getMensagem());
                 }
             }
         }.execute();
+    }
+
+    /**
+     * Interpreta erros SQL para mensagens amigáveis
+     */
+    private static String interpretSQLError(SQLException e) {
+        String errorMsg = e.getMessage().toLowerCase();
+        int errorCode = e.getErrorCode();
+
+        // Erros de autenticação
+        if (errorCode == 18456 || errorMsg.contains("login failed")) {
+            return "Falha na autenticação: Usuário ou senha incorretos no banco de dados.";
+        }
+
+        // Erros de conexão/rede
+        if (errorMsg.contains("connection refused") ||
+                errorMsg.contains("unable to connect") ||
+                errorMsg.contains("i/o error")) {
+            return "Não foi possível conectar ao servidor. Verifique:\n" +
+                    "• Se o IP está correto (192.168.15.3)\n" +
+                    "• Se o servidor está ligado\n" +
+                    "• Se a porta 1433 está aberta";
+        }
+
+        // Timeout
+        if (errorMsg.contains("timeout") || errorMsg.contains("timed out")) {
+            return "Tempo de conexão esgotado. Verifique:\n" +
+                    "• Sua conexão com a internet\n" +
+                    "• Se está na mesma rede do servidor";
+        }
+
+        // Banco não encontrado
+        if (errorMsg.contains("cannot open database") ||
+                errorMsg.contains("database") && errorMsg.contains("not")) {
+            return "Banco de dados 'Automacia' não encontrado no servidor.";
+        }
+
+        // Host não encontrado
+        if (errorMsg.contains("unknown host") ||
+                errorMsg.contains("no route to host")) {
+            return "Servidor não encontrado. Verifique:\n" +
+                    "• Se o IP 192.168.15.3 está correto\n" +
+                    "• Se você está conectado à rede WiFi";
+        }
+
+        // SSL/TLS errors
+        if (errorMsg.contains("ssl") || errorMsg.contains("certificate")) {
+            return "Erro de certificado SSL. Verifique as configurações de segurança do banco.";
+        }
+
+        // Erro genérico
+        return "Erro SQL (" + errorCode + "): " + e.getMessage();
     }
 
     /**

@@ -75,6 +75,7 @@ dependencies {
     implementation(libs.kotlin.stdlib.jdk7)
     implementation(libs.firebase.auth)
     implementation(libs.firebase.bom)
+    implementation(libs.android.pdf.viewer)
     implementation(libs.osmdroid.android)
     implementation(libs.okhttp)
     implementation(libs.google.gson)

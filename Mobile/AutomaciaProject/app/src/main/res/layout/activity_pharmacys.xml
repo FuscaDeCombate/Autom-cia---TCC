@@ -80,7 +80,7 @@
                     android:layout_width="24dp"
                     android:layout_height="24dp"
                     android:layout_marginEnd="8dp"
-                    android:src="@android:drawable/ic_menu_search"
+                    android:src="@drawable/ic_search"
                     app:tint="@color/text_secondary" />
 
                 <EditText
@@ -121,10 +121,13 @@
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:layout_marginEnd="8dp"
-                        android:text="24 horas"
+                        android:checkable="true"
+                        android:text="@string/_24_horas"
                         android:textColor="@color/primary"
+                        app:checkedIconVisible="true"
                         app:chipBackgroundColor="@color/primary_light"
-                        app:chipIcon="@android:drawable/ic_dialog_info"
+                        app:chipIcon="@drawable/ic_info"
+                        app:chipIconTint="@color/primary"
                         app:chipStrokeColor="@color/primary"
                         app:chipStrokeWidth="1dp" />
 
@@ -133,10 +136,13 @@
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:layout_marginEnd="8dp"
-                        android:text="Aberto agora"
+                        android:checkable="true"
+                        android:text="@string/aberto_agora"
                         android:textColor="@color/green"
+                        app:checkedIconVisible="true"
                         app:chipBackgroundColor="@color/green_light"
-                        app:chipIcon="@android:drawable/ic_dialog_info"
+                        app:chipIcon="@drawable/ic_info"
+                        app:chipIconTint="@color/green"
                         app:chipStrokeColor="@color/green"
                         app:chipStrokeWidth="1dp" />
 
@@ -145,10 +151,13 @@
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:layout_marginEnd="8dp"
-                        android:text="Mais próximas"
+                        android:checkable="true"
+                        android:text="@string/mais_pr_ximas"
                         android:textColor="@color/blue"
+                        app:checkedIconVisible="true"
                         app:chipBackgroundColor="@color/blue_light"
-                        app:chipIcon="@android:drawable/ic_dialog_info"
+                        app:chipIcon="@drawable/ic_info"
+                        app:chipIconTint="@color/blue"
                         app:chipStrokeColor="@color/blue"
                         app:chipStrokeWidth="1dp" />
 
@@ -172,34 +181,6 @@
         app:fabSize="mini"
         app:tint="@color/white" />
 
-    <!-- Botão Zoom In -->
-    <com.google.android.material.floatingactionbutton.FloatingActionButton
-        android:id="@+id/zoomInButton"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_gravity="end|top"
-        android:layout_margin="16dp"
-        android:layout_marginTop="260dp"
-        android:contentDescription="Aumentar zoom"
-        android:src="@android:drawable/ic_menu_add"
-        app:backgroundTint="@color/white"
-        app:fabSize="mini"
-        app:tint="@color/text_primary" />
-
-    <!-- Botão Zoom Out -->
-    <com.google.android.material.floatingactionbutton.FloatingActionButton
-        android:id="@+id/zoomOutButton"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_gravity="end|top"
-        android:layout_margin="16dp"
-        android:layout_marginTop="320dp"
-        android:contentDescription="Diminuir zoom"
-        android:src="@android:drawable/ic_delete"
-        app:backgroundTint="@color/white"
-        app:fabSize="mini"
-        app:tint="@color/text_primary" />
-
     <!-- Bottom Sheet com lista de farmácias -->
     <LinearLayout
         android:id="@+id/bottomSheet"
@@ -212,63 +193,75 @@
         app:layout_behavior="com.google.android.material.bottomsheet.BottomSheetBehavior">
 
         <!-- Handle do Bottom Sheet -->
-        <View
-            android:layout_width="40dp"
-            android:layout_height="4dp"
-            android:layout_gravity="center_horizontal"
-            android:layout_marginTop="8dp"
-            android:background="@drawable/bottom_sheet_handle" />
+        <FrameLayout
+            android:id="@+id/bottomSheetHandle"
+            android:layout_width="match_parent"
+            android:layout_height="32dp"
+            android:gravity="center"
+            android:paddingVertical="8dp">
 
-        <!-- Contador de resultados -->
+            <View
+                android:layout_width="40dp"
+                android:layout_height="4dp"
+                android:background="@drawable/bottom_sheet_handle"
+                android:layout_gravity="center" />
+        </FrameLayout>
+
+        <!-- Conteúdo do Bottom Sheet -->
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:gravity="center_vertical"
-            android:orientation="horizontal"
-            android:padding="16dp">
+            android:orientation="vertical">
 
-            <ImageView
-                android:layout_width="24dp"
-                android:layout_height="24dp"
-                android:src="@android:drawable/ic_dialog_map"
-                app:tint="@color/primary" />
-
-            <TextView
-                android:id="@+id/resultCountText"
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:layout_marginStart="12dp"
-                android:layout_weight="1"
-                android:text="Buscando farmácias..."
-                android:textColor="@color/text_primary"
-                android:textSize="16sp"
-                android:textStyle="bold" />
-
-            <TextView
-                android:id="@+id/viewModeToggle"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:padding="8dp"
-                android:text="Lista"
-                android:textColor="@color/secondary"
-                android:textSize="14sp"
-                android:textStyle="bold" />
-        </LinearLayout>
-
-        <androidx.swiperefreshlayout.widget.SwipeRefreshLayout
-            android:id="@+id/swipeRefresh"
-            android:layout_width="match_parent"
-            android:layout_height="400dp">
-
-            <!-- Lista de farmácias -->
-            <androidx.recyclerview.widget.RecyclerView
-                android:id="@+id/pharmacyRecyclerView"
+            <!-- Cabeçalho -->
+            <LinearLayout
                 android:layout_width="match_parent"
-                android:layout_height="400dp"
-                android:clipToPadding="false"
-                android:paddingBottom="16dp" />
-        </androidx.swiperefreshlayout.widget.SwipeRefreshLayout>
+                android:layout_height="wrap_content"
+                android:gravity="center_vertical"
+                android:orientation="horizontal"
+                android:padding="16dp">
 
+                <ImageView
+                    android:layout_width="24dp"
+                    android:layout_height="24dp"
+                    android:src="@android:drawable/ic_dialog_map"
+                    app:tint="@color/primary" />
+
+                <TextView
+                    android:id="@+id/resultCountText"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="12dp"
+                    android:layout_weight="1"
+                    android:text="Buscando farmácias..."
+                    android:textColor="@color/text_primary"
+                    android:textSize="16sp"
+                    android:textStyle="bold" />
+
+                <TextView
+                    android:id="@+id/viewModeToggle"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:padding="8dp"
+                    android:text="Lista"
+                    android:textColor="@color/secondary"
+                    android:textSize="14sp"
+                    android:textStyle="bold" />
+            </LinearLayout>
+
+            <androidx.swiperefreshlayout.widget.SwipeRefreshLayout
+                android:id="@+id/swipeRefresh"
+                android:layout_width="match_parent"
+                android:layout_height="400dp">
+
+                <androidx.recyclerview.widget.RecyclerView
+                    android:id="@+id/pharmacyRecyclerView"
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:clipToPadding="false"
+                    android:paddingBottom="16dp" />
+            </androidx.swiperefreshlayout.widget.SwipeRefreshLayout>
+        </LinearLayout>
     </LinearLayout>
 
 </androidx.coordinatorlayout.widget.CoordinatorLayout>
