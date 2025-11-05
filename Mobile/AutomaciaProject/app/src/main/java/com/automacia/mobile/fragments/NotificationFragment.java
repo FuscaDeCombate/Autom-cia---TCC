@@ -1,60 +1,52 @@
 package com.automacia.mobile.fragments;
 
 import android.os.Bundle;
+import android.os.Handler;
+import android.os.Looper;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.LinearLayout;
-import android.widget.TextView;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.fragment.app.Fragment;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 import androidx.swiperefreshlayout.widget.SwipeRefreshLayout;
-
 import com.automacia.mobile.R;
 import com.automacia.mobile.adapters.NotificationAdapter;
-import com.automacia.mobile.models.Notification;
+import com.automacia.mobile.managers.AppNotificationManager;
+import com.automacia.mobile.models.NotificationDTO;
+import com.automacia.mobile.models.NotificationItem;
+import com.automacia.mobile.storage.NotificationStorage;
 import com.automacia.mobile.utils.NotificationUtils;
 import com.google.android.material.button.MaterialButton;
+import com.google.android.material.floatingactionbutton.FloatingActionButton;
+import com.google.android.material.snackbar.Snackbar;
 import java.util.List;
 import java.util.Map;
 
+/**
+ * Fragment refatorado com:
+ * - RecyclerView único com ViewTypes
+ * - Persistência com NotificationStorage
+ * - DiffUtil para updates eficientes
+ * - Estados de UI (loading, empty, content)
+ */
 public class NotificationFragment extends Fragment implements NotificationAdapter.OnNotificationClickListener {
 
+    // Views
     private SwipeRefreshLayout swipeRefreshLayout;
     private LinearLayout mainContent;
     private LinearLayout emptyStateLayout;
-    private MaterialButton btnClearAll;
+    private LinearLayout loadingLayout;
+    private RecyclerView rvNotifications;
+    private MaterialButton btnMarkAllRead;
 
-    // Seções de notificações
-    private LinearLayout todaySection;
-    private LinearLayout yesterdaySection;
-    private LinearLayout thisWeekSection;
-    private LinearLayout olderSection;
-
-    // Títulos das seções
-    private TextView tvToday;
-    private TextView tvYesterday;
-    private TextView tvThisWeek;
-    private TextView tvOlder;
-
-    // RecyclerViews para cada seção
-    private RecyclerView rvToday;
-    private RecyclerView rvYesterday;
-    private RecyclerView rvThisWeek;
-    private RecyclerView rvOlder;
-
-    // Adapters
-    private NotificationAdapter todayAdapter;
-    private NotificationAdapter yesterdayAdapter;
-    private NotificationAdapter thisWeekAdapter;
-    private NotificationAdapter olderAdapter;
-
-    // Dados
-    private List<Notification> allNotifications;
-    private Map<NotificationUtils.DateSection, List<Notification>> groupedNotifications;
+    // Adapter e dados
+    private NotificationAdapter adapter;
+    private NotificationStorage storage;
+    private List<NotificationDTO> allNotifications;
 
     public NotificationFragment() {
         // Required empty public constructor
@@ -74,119 +66,61 @@ public class NotificationFragment extends Fragment implements NotificationAdapte
         super.onViewCreated(view, savedInstanceState);
 
         initViews(view);
-        setupRecyclerViews();
+        setupRecyclerView();
         setupClickListeners();
         loadNotifications();
+        setuptestFAB(view);
+    }
+
+    // TODO: Remover essa funcionalidade em produção
+    private void setuptestFAB(View view) {
+        FloatingActionButton btnTestNotification = view.findViewById(R.id.btnTestNotification);
+        btnTestNotification.setOnClickListener(v -> {
+            // Criar notificação de teste usando o NotificationManager
+            AppNotificationManager manager = AppNotificationManager.getInstance(requireContext());
+
+            NotificationDTO testNotification = manager.notifyGeneral(
+                    "🧪 Notificação de Teste",
+                    "Esta é uma notificação temporária para testes. Será removida em 10 segundos."
+            );
+
+            showSnackbar("Notificação de teste criada!");
+
+            // Recarregar o Fragment para mostrar a nova notificação
+            loadNotifications();
+
+            // Remover automaticamente após 10 segundos
+            new Handler(Looper.getMainLooper()).postDelayed(() -> {
+                manager.removeNotification(testNotification.getId());
+                loadNotifications(); // Atualizar Fragment novamente
+                showSnackbar("Notificação de teste removida");
+            }, 10000); // 10 segundos
+        });
     }
 
     private void initViews(View view) {
         swipeRefreshLayout = view.findViewById(R.id.swipeRefreshLayout);
+        mainContent = view.findViewById(R.id.mainContent);
         emptyStateLayout = view.findViewById(R.id.emptyStateLayout);
-        btnClearAll = view.findViewById(R.id.btnClearAll);
+        loadingLayout = view.findViewById(R.id.loadingLayout);
+        rvNotifications = view.findViewById(R.id.rvNotifications);
+        btnMarkAllRead = view.findViewById(R.id.btnMarkAllRead);
 
-        // Criar seções dinamicamente
-        createNotificationSections(view);
+        // Inicializar storage
+        storage = new NotificationStorage(requireContext());
     }
 
-    private void createNotificationSections(View parentView) {
-        LinearLayout mainLinearLayout = parentView.findViewById(R.id.mainLinearLayout);
+    private void setupRecyclerView() {
+        adapter = new NotificationAdapter(requireContext());
+        adapter.setOnNotificationClickListener(this);
 
-        // Criar seções programaticamente para ter controle total
-        createSectionViews(mainLinearLayout);
-    }
-
-    private void createSectionViews(LinearLayout parent) {
-        LayoutInflater inflater = LayoutInflater.from(getContext());
-
-        // Seção Hoje
-        todaySection = createSectionLayout(parent, "Hoje");
-        rvToday = createRecyclerView();
-        todaySection.addView(rvToday);
-
-        // Seção Ontem
-        yesterdaySection = createSectionLayout(parent, "Ontem");
-        rvYesterday = createRecyclerView();
-        yesterdaySection.addView(rvYesterday);
-
-        // Seção Esta Semana
-        thisWeekSection = createSectionLayout(parent, "Esta Semana");
-        rvThisWeek = createRecyclerView();
-        thisWeekSection.addView(rvThisWeek);
-
-        // Seção Anteriores
-        olderSection = createSectionLayout(parent, "Anteriores");
-        rvOlder = createRecyclerView();
-        olderSection.addView(rvOlder);
-    }
-
-    private LinearLayout createSectionLayout(LinearLayout parent, String title) {
-        LinearLayout sectionLayout = new LinearLayout(getContext());
-        sectionLayout.setOrientation(LinearLayout.VERTICAL);
-        sectionLayout.setLayoutParams(new LinearLayout.LayoutParams(
-                ViewGroup.LayoutParams.MATCH_PARENT,
-                ViewGroup.LayoutParams.WRAP_CONTENT
-        ));
-
-        // Título da seção
-        TextView titleView = new TextView(getContext());
-        titleView.setText(title);
-        titleView.setTextSize(16);
-        titleView.setTextColor(getResources().getColor(R.color.text_primary));
-        titleView.setTypeface(null, android.graphics.Typeface.BOLD);
-
-        LinearLayout.LayoutParams titleParams = new LinearLayout.LayoutParams(
-                ViewGroup.LayoutParams.WRAP_CONTENT,
-                ViewGroup.LayoutParams.WRAP_CONTENT
-        );
-        titleParams.setMargins(
-                (int) getResources().getDimension(R.dimen.margin_small),
-                (int) getResources().getDimension(R.dimen.margin_medium),
-                0,
-                (int) getResources().getDimension(R.dimen.margin_small)
-        );
-        titleView.setLayoutParams(titleParams);
-
-        sectionLayout.addView(titleView);
-        parent.addView(sectionLayout);
-
-        return sectionLayout;
-    }
-
-    private RecyclerView createRecyclerView() {
-        RecyclerView recyclerView = new RecyclerView(getContext());
-        recyclerView.setLayoutParams(new LinearLayout.LayoutParams(
-                ViewGroup.LayoutParams.MATCH_PARENT,
-                ViewGroup.LayoutParams.WRAP_CONTENT
-        ));
-        recyclerView.setNestedScrollingEnabled(false);
-        recyclerView.setLayoutManager(new LinearLayoutManager(getContext()));
-        return recyclerView;
-    }
-
-    private void setupRecyclerViews() {
-        LinearLayoutManager layoutManager1 = new LinearLayoutManager(getContext());
-        layoutManager1.setAutoMeasureEnabled(true);
-        rvToday.setLayoutManager(layoutManager1);
-        rvToday.setHasFixedSize(false);
-
-        LinearLayoutManager layoutManager2 = new LinearLayoutManager(getContext());
-        layoutManager2.setAutoMeasureEnabled(true);
-        rvYesterday.setLayoutManager(layoutManager2);
-        rvYesterday.setHasFixedSize(false);
-
-        LinearLayoutManager layoutManager3 = new LinearLayoutManager(getContext());
-        layoutManager3.setAutoMeasureEnabled(true);
-        rvThisWeek.setLayoutManager(layoutManager3);
-        rvThisWeek.setHasFixedSize(false);
-
-        LinearLayoutManager layoutManager4 = new LinearLayoutManager(getContext());
-        layoutManager4.setAutoMeasureEnabled(true);
-        rvOlder.setLayoutManager(layoutManager4);
-        rvOlder.setHasFixedSize(false);
+        rvNotifications.setLayoutManager(new LinearLayoutManager(requireContext()));
+        rvNotifications.setAdapter(adapter);
+        rvNotifications.setHasFixedSize(false);
     }
 
     private void setupClickListeners() {
-        btnClearAll.setOnClickListener(v -> clearAllNotifications());
+        btnMarkAllRead.setOnClickListener(v -> markAllAsRead());
 
         swipeRefreshLayout.setOnRefreshListener(this::refreshNotifications);
         swipeRefreshLayout.setColorSchemeResources(
@@ -196,245 +130,222 @@ public class NotificationFragment extends Fragment implements NotificationAdapte
     }
 
     private void loadNotifications() {
-        // Simular carregamento de dados - substitua por chamada real da API
-        allNotifications = NotificationUtils.generateSampleNotifications();
-        updateNotificationSections();
+        showLoading();
+
+        // Simular delay de carregamento (remover em produção)
+        new Handler().postDelayed(() -> {
+            // Carregar do storage
+            allNotifications = storage.loadNotifications();
+
+            // Se vazio, gerar dados de exemplo (APENAS PARA TESTE)
+            if (allNotifications.isEmpty()) {
+                allNotifications = NotificationUtils.generateSampleNotifications();
+                storage.saveNotifications(allNotifications);
+            }
+
+            updateUI();
+        }, 500);
     }
 
     private void refreshNotifications() {
-        // Simular refresh - substitua por chamada real da API
-        swipeRefreshLayout.setRefreshing(true);
+        // TODO: Aqui você faria chamada à API real
+        // Por enquanto, apenas recarrega do storage
 
-        // Simular delay de rede
-        new android.os.Handler().postDelayed(() -> {
-            loadNotifications();
+        new Handler().postDelayed(() -> {
+            allNotifications = storage.loadNotifications();
+            updateUI();
             swipeRefreshLayout.setRefreshing(false);
+
+            showSnackbar("Notificações atualizadas");
         }, 1000);
     }
 
-    private void updateNotificationSections() {
+    private void updateUI() {
         if (allNotifications == null || allNotifications.isEmpty()) {
             showEmptyState();
             return;
         }
 
-        hideEmptyState();
+        showContent();
 
         // Agrupar notificações por data
-        groupedNotifications = NotificationUtils.groupNotificationsByDate(allNotifications);
+        Map<NotificationUtils.DateSection, List<NotificationDTO>> groupedNotifications =
+                NotificationUtils.groupNotificationsByDate(allNotifications);
 
-        // Configurar adapters para cada seção
-        setupSectionAdapter(NotificationUtils.DateSection.TODAY, rvToday, todaySection);
-        setupSectionAdapter(NotificationUtils.DateSection.YESTERDAY, rvYesterday, yesterdaySection);
-        setupSectionAdapter(NotificationUtils.DateSection.THIS_WEEK, rvThisWeek, thisWeekSection);
-        setupSectionAdapter(NotificationUtils.DateSection.OLDER, rvOlder, olderSection);
+        // Converter para lista plana com headers
+        List<NotificationItem> flatList = NotificationUtils.convertToFlatList(groupedNotifications);
 
-        // Atualizar botão "Limpar Todas"
-        updateClearAllButton();
+        // Atualizar adapter com DiffUtil
+        adapter.updateItems(flatList);
+
+        // Atualizar botão
+        updateMarkAllReadButton();
     }
 
-    private void setupSectionAdapter(NotificationUtils.DateSection section,
-                                     RecyclerView recyclerView,
-                                     LinearLayout sectionLayout) {
-        List<Notification> sectionNotifications = groupedNotifications.get(section);
-
-        if (sectionNotifications == null || sectionNotifications.isEmpty()) {
-            sectionLayout.setVisibility(View.GONE);
-            return;
-        }
-
-        sectionLayout.setVisibility(View.VISIBLE);
-
-        NotificationAdapter adapter = new NotificationAdapter(getContext(), sectionNotifications);
-        adapter.setOnNotificationClickListener(this);
-        recyclerView.setAdapter(adapter);
-    }
-
-    private void showEmptyState() {
-        emptyStateLayout.setVisibility(View.VISIBLE);
-        swipeRefreshLayout.getChildAt(0).setVisibility(View.GONE);
-        btnClearAll.setVisibility(View.GONE);
-    }
-
-    private void hideEmptyState() {
-        emptyStateLayout.setVisibility(View.GONE);
-        swipeRefreshLayout.getChildAt(0).setVisibility(View.VISIBLE);
-    }
-
-    private void updateClearAllButton() {
+    private void updateMarkAllReadButton() {
         int unreadCount = NotificationUtils.getUnreadCount(allNotifications);
 
         if (unreadCount > 0) {
-            btnClearAll.setVisibility(View.VISIBLE);
-            btnClearAll.setText(String.format("Limpar Todas (%d)", unreadCount));
+            btnMarkAllRead.setVisibility(View.VISIBLE);
+            btnMarkAllRead.setText(String.format("Marcar todas lidas (%d)", unreadCount));
         } else {
-            btnClearAll.setText("Limpar Todas");
+            btnMarkAllRead.setVisibility(View.GONE);
         }
     }
 
-    private void clearAllNotifications() {
-        if (allNotifications == null) return;
+    private void markAllAsRead() {
+        if (allNotifications == null || allNotifications.isEmpty()) return;
 
         // Marcar todas como lidas
-        for (Notification notification : allNotifications) {
-            notification.setRead(true);
-        }
+        storage.markAllAsRead();
 
-        // Atualizar adapters
-        updateAllAdapters();
-        updateClearAllButton();
+        // Recarregar
+        allNotifications = storage.loadNotifications();
+        updateUI();
 
-        // Opcional: Mostrar feedback ao usuário
-        if (getView() != null) {
-            com.google.android.material.snackbar.Snackbar.make(
-                    getView(),
-                    "Todas as notificações foram marcadas como lidas",
-                    com.google.android.material.snackbar.Snackbar.LENGTH_SHORT
-            ).show();
-        }
-    }
-
-    private void updateAllAdapters() {
-        if (rvToday.getAdapter() != null) {
-            rvToday.getAdapter().notifyDataSetChanged();
-        }
-        if (rvYesterday.getAdapter() != null) {
-            rvYesterday.getAdapter().notifyDataSetChanged();
-        }
-        if (rvThisWeek.getAdapter() != null) {
-            rvThisWeek.getAdapter().notifyDataSetChanged();
-        }
-        if (rvOlder.getAdapter() != null) {
-            rvOlder.getAdapter().notifyDataSetChanged();
-        }
+        showSnackbar("Todas as notificações foram marcadas como lidas");
     }
 
     @Override
-    public void onNotificationClick(Notification notification, int position) {
-        // Lógica para quando uma notificação é clicada
-        // Aqui você pode navegar para telas específicas baseado no tipo da notificação
+    public void onNotificationClick(NotificationDTO notification, int position) {
+        // Marcar como lida
+        if (!notification.isRead()) {
+            notification.setRead(true);
+            storage.markAsRead(notification.getId());
+
+            // Recarregar lista
+            allNotifications = storage.loadNotifications();
+            updateUI();
+        }
+
+        // Navegar baseado no tipo
+        handleNotificationNavigation(notification);
+    }
+
+    private void handleNotificationNavigation(NotificationDTO notification) {
+        String message;
 
         switch (notification.getType()) {
             case PRESCRIPTION_EXPIRING:
-                // Navegar para tela de renovação de receita
-                handlePrescriptionExpiring(notification);
+                message = "Abrindo renovação de receita...";
+                // TODO: navegar para tela de renovação
                 break;
             case NEW_PRESCRIPTION:
-                // Navegar para tela de receitas
-                handleNewPrescription(notification);
+                message = "Abrindo receita...";
+                // TODO: navegar para tela de receitas
                 break;
             case MEDICATION_REMINDER:
-                // Navegar para tela de medicamentos
-                handleMedicationReminder(notification);
+                message = "Abrindo medicamentos...";
+                // TODO: navegar para tela de medicamentos
                 break;
             case PHARMACY_READY:
-                // Navegar para tela da farmácia/pedidos
-                handlePharmacyReady(notification);
+                message = "Abrindo pedidos...";
+                // TODO: navegar para tela de pedidos
                 break;
             case SYSTEM_UPDATE:
-                // Mostrar dialog de atualização ou navegar para configurações
-                handleSystemUpdate(notification);
+                message = "Verificando atualizações...";
+                // TODO: mostrar dialog de atualização
                 break;
             case APPOINTMENT_REMINDER:
-                // Navegar para tela de consultas
-                handleAppointmentReminder(notification);
+                message = "Abrindo consultas...";
+                // TODO: navegar para tela de consultas
                 break;
             default:
-                // Ação padrão
-                handleGeneralNotification(notification);
+                message = "Abrindo detalhes...";
                 break;
         }
 
-        // Atualizar contador após marcar como lida
-        updateClearAllButton();
+        showSnackbar(message);
     }
 
-    private void handlePrescriptionExpiring(Notification notification) {
-        // TODO: Implementar navegação para tela de renovação de receita
-        showNotificationAction("Abrindo renovação de receita...");
+    // ========== Controle de estados da UI ==========
+
+    private void showLoading() {
+        loadingLayout.setVisibility(View.VISIBLE);
+        mainContent.setVisibility(View.GONE);
+        emptyStateLayout.setVisibility(View.GONE);
     }
 
-    private void handleNewPrescription(Notification notification) {
-        // TODO: Implementar navegação para tela de receitas
-        showNotificationAction("Abrindo receita...");
+    private void showContent() {
+        loadingLayout.setVisibility(View.GONE);
+        mainContent.setVisibility(View.VISIBLE);
+        emptyStateLayout.setVisibility(View.GONE);
     }
 
-    private void handleMedicationReminder(Notification notification) {
-        // TODO: Implementar navegação para tela de medicamentos
-        showNotificationAction("Abrindo medicamentos...");
+    private void showEmptyState() {
+        loadingLayout.setVisibility(View.GONE);
+        mainContent.setVisibility(View.GONE);
+        emptyStateLayout.setVisibility(View.VISIBLE);
     }
 
-    private void handlePharmacyReady(Notification notification) {
-        // TODO: Implementar navegação para tela de pedidos/farmácia
-        showNotificationAction("Abrindo pedidos...");
-    }
+    private void showSnackbar(String message) {
+        if (getActivity() == null) return;
 
-    private void handleSystemUpdate(Notification notification) {
-        // TODO: Implementar dialog de atualização ou configurações
-        showNotificationAction("Verificando atualizações...");
-    }
+        View rootView = getActivity().findViewById(android.R.id.content);
+        Snackbar snackbar = Snackbar.make(rootView, message, Snackbar.LENGTH_SHORT);
 
-    private void handleAppointmentReminder(Notification notification) {
-        // TODO: Implementar navegação para tela de consultas
-        showNotificationAction("Abrindo consultas...");
-    }
+        // Se o seu BottomNavigationView tiver um ID conhecido:
+        View bottomNav = getActivity().findViewById(R.id.bottomNavigation);
 
-    private void handleGeneralNotification(Notification notification) {
-        // TODO: Implementar ação padrão
-        showNotificationAction("Abrindo detalhes...");
-    }
-
-    private void showNotificationAction(String message) {
-        if (getView() != null) {
-            com.google.android.material.snackbar.Snackbar.make(
-                    getView(),
-                    message,
-                    com.google.android.material.snackbar.Snackbar.LENGTH_SHORT
-            ).show();
+        if (bottomNav != null) {
+            snackbar.setAnchorView(bottomNav); // faz o snackbar subir acima do bottom nav
         }
+
+        snackbar.show();
     }
 
-    // Método público para atualizar notificações externamente
-    public void updateNotifications(List<Notification> newNotifications) {
+    // ========== Métodos públicos para integração externa ==========
+
+    /**
+     * Atualiza notificações externamente (ex: após chamada de API)
+     */
+    public void updateNotifications(List<NotificationDTO> newNotifications) {
         this.allNotifications = newNotifications;
-        updateNotificationSections();
+        storage.saveNotifications(newNotifications);
+        updateUI();
     }
 
-    // Método público para obter contagem de notificações não lidas
+    /**
+     * Retorna contagem de notificações não lidas
+     */
     public int getUnreadNotificationCount() {
         if (allNotifications == null) return 0;
         return NotificationUtils.getUnreadCount(allNotifications);
     }
 
-    // Método público para marcar uma notificação específica como lida
-    public void markNotificationAsRead(int notificationId) {
-        if (allNotifications == null) return;
-
-        for (Notification notification : allNotifications) {
-            if (notification.getId() == notificationId) {
-                notification.setRead(true);
-                break;
-            }
-        }
-
-        updateAllAdapters();
-        updateClearAllButton();
+    /**
+     * Adiciona uma nova notificação
+     */
+    public void addNotification(NotificationDTO notification) {
+        storage.addNotification(notification);
+        allNotifications = storage.loadNotifications();
+        updateUI();
     }
+
+    /**
+     * Remove uma notificação específica
+     */
+    public void removeNotification(int notificationId) {
+        storage.removeNotification(notificationId);
+        allNotifications = storage.loadNotifications();
+        updateUI();
+    }
+
+    // ========== Lifecycle ==========
 
     @Override
     public void onResume() {
         super.onResume();
-        // Opcional: Refresh automático quando o fragment volta ao primeiro plano
-        // loadNotifications();
+        // Opcional: recarregar ao voltar para o fragment
+        // refreshNotifications();
     }
 
     @Override
     public void onDestroyView() {
         super.onDestroyView();
-        // Cleanup se necessário
-        if (todayAdapter != null) todayAdapter.setOnNotificationClickListener(null);
-        if (yesterdayAdapter != null) yesterdayAdapter.setOnNotificationClickListener(null);
-        if (thisWeekAdapter != null) thisWeekAdapter.setOnNotificationClickListener(null);
-        if (olderAdapter != null) olderAdapter.setOnNotificationClickListener(null);
+        // Cleanup
+        if (adapter != null) {
+            adapter.setOnNotificationClickListener(null);
+        }
     }
 }

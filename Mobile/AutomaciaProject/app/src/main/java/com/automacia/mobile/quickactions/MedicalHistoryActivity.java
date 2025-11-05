@@ -4,6 +4,7 @@ import android.Manifest;
 import android.app.AlertDialog;
 import android.content.Intent;
 import android.content.pm.PackageManager;
+import android.graphics.drawable.Drawable;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
@@ -73,6 +74,7 @@ public class MedicalHistoryActivity extends AppCompatActivity {
 
     // Launcher para seleção de arquivo
     private ActivityResultLauncher<Intent> pickPdfLauncher;
+    private PasswordConfirmationDialog passwordDialog;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -350,13 +352,12 @@ public class MedicalHistoryActivity extends AppCompatActivity {
     private void mostrarDialogSenha(byte[] pdfBytes) {
         Log.d(TAG, "Mostrando dialog de senha");
 
-        PasswordConfirmationDialog dialog = PasswordConfirmationDialog.newInstance(senha -> {
-            // Callback quando o usuario confirma a senha
+        passwordDialog = PasswordConfirmationDialog.newInstance(senha -> {
             Log.d(TAG, "Senha informada, iniciando upload");
             enviarPdfParaBanco(pdfBytes, senha);
         });
 
-        dialog.show(getSupportFragmentManager(), "PasswordConfirmationDialog");
+        passwordDialog.show(getSupportFragmentManager(), "PasswordConfirmationDialog");
     }
 
     private void enviarPdfParaBanco(byte[] pdfBytes, String senha) {
@@ -373,11 +374,20 @@ public class MedicalHistoryActivity extends AppCompatActivity {
                 showProgress(false);
 
                 if (sucesso) {
+                    // Fecha o dialog e mostra sucesso
+                    if (passwordDialog != null) {
+                        passwordDialog.closeDialog();
+                    }
                     Toast.makeText(this, "Histórico médico adicionado com sucesso!",
                             Toast.LENGTH_SHORT).show();
                     carregarHistoricoMedico();
                 } else {
-                    Toast.makeText(this, "Erro ao adicionar histórico médico. Verifique sua senha.",
+                    // Reseta o botão e mostra erro
+                    if (passwordDialog != null) {
+                        passwordDialog.resetButton();
+                        passwordDialog.showError("Senha incorreta. Tente novamente.");
+                    }
+                    Toast.makeText(this, "Senha incorreta. Verifique e tente novamente.",
                             Toast.LENGTH_LONG).show();
                 }
             });
@@ -490,7 +500,12 @@ public class MedicalHistoryActivity extends AppCompatActivity {
     private void confirmarDelecao() {
         Log.d(TAG, "Solicitando confirmação de deleção");
 
-        new AlertDialog.Builder(this)
+        Drawable icon = ContextCompat.getDrawable(this, R.drawable.ic_warning);
+        if (icon != null) {
+            icon.setTint(ContextCompat.getColor(this, R.color.red)); // ou qualquer cor do tema
+        }
+
+        new com.google.android.material.dialog.MaterialAlertDialogBuilder(this)
                 .setTitle("Excluir Histórico Médico")
                 .setMessage("Tem certeza que deseja excluir seu histórico médico? Esta ação não pode ser desfeita.")
                 .setPositiveButton("Excluir", (dialog, which) -> {
@@ -501,7 +516,7 @@ public class MedicalHistoryActivity extends AppCompatActivity {
                     Log.d(TAG, "Deleção cancelada pelo usuário");
                     dialog.dismiss();
                 })
-                .setIcon(android.R.drawable.ic_dialog_alert)
+                .setIcon(icon)
                 .show();
     }
 

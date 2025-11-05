@@ -12,60 +12,60 @@
         android:layout_width="match_parent"
         android:layout_height="match_parent">
 
-        <androidx.core.widget.NestedScrollView
+        <LinearLayout
+            android:id="@+id/mainContent"
             android:layout_width="match_parent"
             android:layout_height="match_parent"
-            android:fillViewport="true">
+            android:orientation="vertical">
 
+            <!-- Header -->
             <LinearLayout
-                android:id="@+id/mainLinearLayout"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:orientation="vertical"
-                android:padding="16dp">
+                android:orientation="horizontal"
+                android:gravity="center_vertical"
+                android:padding="16dp"
+                android:background="@android:color/white"
+                android:elevation="2dp">
 
-                <!-- Header -->
-                <LinearLayout
-                    android:layout_width="match_parent"
+                <TextView
+                    android:layout_width="0dp"
                     android:layout_height="wrap_content"
-                    android:orientation="horizontal"
-                    android:gravity="center_vertical"
-                    android:layout_marginBottom="16dp">
+                    android:layout_weight="1"
+                    android:text="Notificações"
+                    android:textColor="@color/text_primary"
+                    android:textSize="24sp"
+                    android:textStyle="bold" />
 
-                    <TextView
-                        android:layout_width="0dp"
-                        android:layout_height="wrap_content"
-                        android:layout_weight="1"
-                        android:text="Notificações"
-                        android:textColor="@color/text_primary"
-                        android:textSize="24sp"
-                        android:textStyle="bold" />
-
-                    <com.google.android.material.button.MaterialButton
-                        android:id="@+id/btnClearAll"
-                        style="@style/Widget.MaterialComponents.Button.TextButton"
-                        android:layout_width="wrap_content"
-                        android:layout_height="40dp"
-                        android:text="Limpar Todas"
-                        android:textColor="@color/primary"
-                        android:textSize="14sp"
-                        app:icon="@drawable/ic_clear_all"
-                        app:iconGravity="textStart"
-                        app:iconTint="@color/primary"
-                        app:iconSize="18dp" />
-
-                </LinearLayout>
-
-                <!-- As seções serão criadas programaticamente aqui -->
-                <!-- O conteúdo dinâmico será adicionado pelo código Java -->
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/btnMarkAllRead"
+                    style="@style/Widget.MaterialComponents.Button.TextButton"
+                    android:layout_width="wrap_content"
+                    android:layout_height="40dp"
+                    android:text="Marcar todas lidas"
+                    android:textColor="@color/primary"
+                    android:textSize="14sp"
+                    app:icon="@drawable/ic_clear_all"
+                    app:iconGravity="textStart"
+                    app:iconTint="@color/primary"
+                    app:iconSize="18dp" />
 
             </LinearLayout>
 
-        </androidx.core.widget.NestedScrollView>
+            <!-- RecyclerView único -->
+            <androidx.recyclerview.widget.RecyclerView
+                android:id="@+id/rvNotifications"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:padding="16dp"
+                android:clipToPadding="false"
+                tools:listitem="@layout/item_notification" />
+
+        </LinearLayout>
 
     </androidx.swiperefreshlayout.widget.SwipeRefreshLayout>
 
-    <!-- Estado vazio (quando não há notificações) -->
+    <!-- Estado vazio -->
     <LinearLayout
         android:id="@+id/emptyStateLayout"
         android:layout_width="match_parent"
@@ -102,5 +102,44 @@
             android:lineSpacingMultiplier="1.3" />
 
     </LinearLayout>
+
+    <!-- Estado de carregamento -->
+    <LinearLayout
+        android:id="@+id/loadingLayout"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:orientation="vertical"
+        android:gravity="center"
+        android:visibility="gone">
+
+        <ProgressBar
+            android:layout_width="48dp"
+            android:layout_height="48dp"
+            android:indeterminateTint="@color/primary" />
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Carregando notificações..."
+            android:textColor="@color/text_secondary"
+            android:textSize="16sp"
+            android:layout_marginTop="16dp" />
+
+    </LinearLayout>
+
+    <!-- Botão de teste de notificações (remover depois) -->
+    <com.google.android.material.floatingactionbutton.FloatingActionButton
+        android:id="@+id/btnTestNotification"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="bottom|end"
+        android:layout_margin="20dp"
+        android:contentDescription="Botão de teste de notificação"
+        android:visibility="visible"
+        android:clickable="true"
+        android:focusable="true"
+        app:backgroundTint="@color/primary"
+        app:tint="@android:color/white"
+        app:srcCompat="@drawable/ic_add" />
 
 </FrameLayout>

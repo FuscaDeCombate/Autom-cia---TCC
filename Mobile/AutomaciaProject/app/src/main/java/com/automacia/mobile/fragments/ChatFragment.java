@@ -28,7 +28,7 @@ import com.automacia.mobile.R;
 import com.automacia.mobile.adapters.MensagemAdapter;
 import com.automacia.mobile.models.MensagemDTO;
 import com.automacia.mobile.models.UsuarioDTO;
-import com.automacia.mobile.services.ChatManager;
+import com.automacia.mobile.managers.ChatManager;
 import com.google.android.material.button.MaterialButton;
 import com.google.android.material.textfield.TextInputEditText;
 

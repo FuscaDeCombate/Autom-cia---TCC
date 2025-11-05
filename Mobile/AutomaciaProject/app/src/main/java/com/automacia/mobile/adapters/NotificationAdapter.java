@@ -9,29 +9,36 @@ import android.widget.ImageView;
 import android.widget.TextView;
 import androidx.annotation.NonNull;
 import androidx.cardview.widget.CardView;
+import androidx.recyclerview.widget.DiffUtil;
 import androidx.recyclerview.widget.RecyclerView;
-
 import com.automacia.mobile.R;
-import com.automacia.mobile.models.Notification;
-
+import com.automacia.mobile.models.NotificationDTO;
+import com.automacia.mobile.models.NotificationItem;
 import java.text.SimpleDateFormat;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
 
-public class NotificationAdapter extends RecyclerView.Adapter<NotificationAdapter.NotificationViewHolder> {
+/**
+ * Adapter refatorado com suporte a ViewTypes (HEADER + NOTIFICATION)
+ */
+public class NotificationAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
 
-    private List<Notification> notifications;
-    private Context context;
+    private static final int VIEW_TYPE_HEADER = 0;
+    private static final int VIEW_TYPE_NOTIFICATION = 1;
+
+    private List<NotificationItem> items;
+    private final Context context;
     private OnNotificationClickListener listener;
-    private SimpleDateFormat timeFormat;
+    private final SimpleDateFormat timeFormat;
 
     public interface OnNotificationClickListener {
-        void onNotificationClick(Notification notification, int position);
+        void onNotificationClick(NotificationDTO notification, int position);
     }
 
-    public NotificationAdapter(Context context, List<Notification> notifications) {
+    public NotificationAdapter(Context context) {
         this.context = context;
-        this.notifications = notifications;
+        this.items = new ArrayList<>();
         this.timeFormat = new SimpleDateFormat("HH:mm", Locale.getDefault());
     }
 
@@ -39,65 +46,138 @@ public class NotificationAdapter extends RecyclerView.Adapter<NotificationAdapte
         this.listener = listener;
     }
 
+    @Override
+    public int getItemViewType(int position) {
+        return items.get(position).isHeader() ? VIEW_TYPE_HEADER : VIEW_TYPE_NOTIFICATION;
+    }
+
     @NonNull
     @Override
-    public NotificationViewHolder onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
-        View view = LayoutInflater.from(context).inflate(R.layout.item_notification, parent, false);
-        return new NotificationViewHolder(view);
+    public RecyclerView.ViewHolder onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
+        if (viewType == VIEW_TYPE_HEADER) {
+            View view = LayoutInflater.from(context)
+                    .inflate(R.layout.item_notification_header, parent, false);
+            return new HeaderViewHolder(view);
+        } else {
+            View view = LayoutInflater.from(context)
+                    .inflate(R.layout.item_notification, parent, false);
+            return new NotificationViewHolder(view);
+        }
     }
 
     @Override
-    public void onBindViewHolder(@NonNull NotificationViewHolder holder, int position) {
-        Notification notification = notifications.get(position);
+    public void onBindViewHolder(@NonNull RecyclerView.ViewHolder holder, int position) {
+        NotificationItem item = items.get(position);
 
-        holder.titleText.setText(notification.getTitle());
-        holder.messageText.setText(notification.getMessage());
-        holder.timeText.setText(timeFormat.format(notification.getTimestamp()));
-
-        // Configurar indicador de lida/não lida
-        if (notification.isRead()) {
-            holder.unreadIndicator.setVisibility(View.INVISIBLE);
-            holder.cardView.setAlpha(0.7f);
-            // Converte dp para pixels
-            float elevationInPx = TypedValue.applyDimension(
-                    TypedValue.COMPLEX_UNIT_DIP, 2f,
-                    holder.itemView.getContext().getResources().getDisplayMetrics()
-            );
-            holder.cardView.setCardElevation(elevationInPx);
-        } else {
-            holder.unreadIndicator.setVisibility(View.VISIBLE);
-            holder.cardView.setAlpha(1.0f);
-            float elevationInPx = TypedValue.applyDimension(
-                    TypedValue.COMPLEX_UNIT_DIP, 3f,
-                    holder.itemView.getContext().getResources().getDisplayMetrics()
-            );
-            holder.cardView.setCardElevation(elevationInPx);
+        if (holder instanceof HeaderViewHolder) {
+            ((HeaderViewHolder) holder).bind(item.getHeaderTitle());
+        } else if (holder instanceof NotificationViewHolder) {
+            ((NotificationViewHolder) holder).bind(item.getNotification(), position);
         }
-
-        // Configurar ícone e cores baseado no tipo
-        setNotificationIcon(holder, notification);
-
-        // Click listener
-        holder.itemView.setOnClickListener(v -> {
-            if (listener != null) {
-                // Marcar como lida ao clicar
-                if (!notification.isRead()) {
-                    notification.setRead(true);
-                    notifyItemChanged(position);
-                }
-                listener.onNotificationClick(notification, position);
-            }
-        });
     }
 
-    private void setNotificationIcon(NotificationViewHolder holder, Notification notification) {
-        int iconRes = getIconResource(notification.getIconResource());
-        int backgroundColorRes = getColorResource(notification.getBackgroundColorResource());
-        int iconTintRes = getColorResource(notification.getIconTintResource());
+    @Override
+    public int getItemCount() {
+        return items.size();
+    }
 
-        holder.iconImage.setImageResource(iconRes);
-        holder.iconBackground.setCardBackgroundColor(context.getColor(backgroundColorRes));
-        holder.iconImage.setColorFilter(context.getColor(iconTintRes));
+    /**
+     * Atualiza lista usando DiffUtil para performance
+     */
+    public void updateItems(List<NotificationItem> newItems) {
+        DiffUtil.DiffResult diffResult = DiffUtil.calculateDiff(
+                new NotificationDiffCallback(this.items, newItems)
+        );
+        this.items = new ArrayList<>(newItems);
+        diffResult.dispatchUpdatesTo(this);
+    }
+
+    /**
+     * Atualiza lista sem DiffUtil (mais rápido para mudanças pequenas)
+     */
+    public void setItems(List<NotificationItem> newItems) {
+        this.items = new ArrayList<>(newItems);
+        notifyDataSetChanged();
+    }
+
+    // ViewHolder para Header
+    static class HeaderViewHolder extends RecyclerView.ViewHolder {
+        private final TextView tvSectionHeader;
+
+        HeaderViewHolder(@NonNull View itemView) {
+            super(itemView);
+            tvSectionHeader = itemView.findViewById(R.id.tvSectionHeader);
+        }
+
+        void bind(String title) {
+            tvSectionHeader.setText(title);
+        }
+    }
+
+    // ViewHolder para Notificação
+    class NotificationViewHolder extends RecyclerView.ViewHolder {
+        private final CardView cardView;
+        private final View unreadIndicator;
+        private final CardView iconBackground;
+        private final ImageView iconImage;
+        private final TextView titleText;
+        private final TextView messageText;
+        private final TextView timeText;
+
+        NotificationViewHolder(@NonNull View itemView) {
+            super(itemView);
+            cardView = itemView.findViewById(R.id.cardNotification);
+            unreadIndicator = itemView.findViewById(R.id.unreadIndicator);
+            iconBackground = itemView.findViewById(R.id.iconBackground);
+            iconImage = itemView.findViewById(R.id.iconImage);
+            titleText = itemView.findViewById(R.id.titleText);
+            messageText = itemView.findViewById(R.id.messageText);
+            timeText = itemView.findViewById(R.id.timeText);
+        }
+
+        void bind(NotificationDTO notification, int position) {
+            titleText.setText(notification.getTitle());
+            messageText.setText(notification.getMessage());
+            timeText.setText(timeFormat.format(notification.getTimestamp()));
+
+            // Configurar indicador de lida/não lida
+            if (notification.isRead()) {
+                unreadIndicator.setVisibility(View.INVISIBLE);
+                cardView.setAlpha(0.7f);
+                cardView.setCardElevation(dpToPx(2f));
+            } else {
+                unreadIndicator.setVisibility(View.VISIBLE);
+                cardView.setAlpha(1.0f);
+                cardView.setCardElevation(dpToPx(3f));
+            }
+
+            // Configurar ícone e cores baseado no tipo
+            setNotificationIcon(notification);
+
+            // Click listener
+            itemView.setOnClickListener(v -> {
+                if (listener != null) {
+                    listener.onNotificationClick(notification, position);
+                }
+            });
+        }
+
+        private void setNotificationIcon(NotificationDTO notification) {
+            int iconRes = getIconResource(notification.getIconResource());
+            int backgroundColorRes = getColorResource(notification.getBackgroundColorResource());
+            int iconTintRes = getColorResource(notification.getIconTintResource());
+
+            iconImage.setImageResource(iconRes);
+            iconBackground.setCardBackgroundColor(context.getColor(backgroundColorRes));
+            iconImage.setColorFilter(context.getColor(iconTintRes));
+        }
+
+        private float dpToPx(float dp) {
+            return TypedValue.applyDimension(
+                    TypedValue.COMPLEX_UNIT_DIP, dp,
+                    context.getResources().getDisplayMetrics()
+            );
+        }
     }
 
     private int getIconResource(String iconName) {
@@ -127,44 +207,6 @@ public class NotificationAdapter extends RecyclerView.Adapter<NotificationAdapte
             case "gray": return R.color.gray;
             case "gray_light": return R.color.gray_light;
             default: return R.color.gray_light;
-        }
-    }
-
-    @Override
-    public int getItemCount() {
-        return notifications.size();
-    }
-
-    public void updateNotifications(List<Notification> newNotifications) {
-        this.notifications = newNotifications;
-        notifyDataSetChanged();
-    }
-
-    public void markAllAsRead() {
-        for (Notification notification : notifications) {
-            notification.setRead(true);
-        }
-        notifyDataSetChanged();
-    }
-
-    public static class NotificationViewHolder extends RecyclerView.ViewHolder {
-        CardView cardView;
-        View unreadIndicator;
-        CardView iconBackground;
-        ImageView iconImage;
-        TextView titleText;
-        TextView messageText;
-        TextView timeText;
-
-        public NotificationViewHolder(@NonNull View itemView) {
-            super(itemView);
-            cardView = itemView.findViewById(R.id.cardNotification);
-            unreadIndicator = itemView.findViewById(R.id.unreadIndicator);
-            iconBackground = itemView.findViewById(R.id.iconBackground);
-            iconImage = itemView.findViewById(R.id.iconImage);
-            titleText = itemView.findViewById(R.id.titleText);
-            messageText = itemView.findViewById(R.id.messageText);
-            timeText = itemView.findViewById(R.id.timeText);
         }
     }
 }

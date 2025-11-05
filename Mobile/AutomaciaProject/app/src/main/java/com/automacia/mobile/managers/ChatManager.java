@@ -1,4 +1,4 @@
-package com.automacia.mobile.services;
+package com.automacia.mobile.managers;
 
 import android.content.Context;
 import android.os.Handler;
@@ -7,6 +7,7 @@ import android.util.Log;
 
 import com.automacia.mobile.models.MensagemDTO;
 import com.automacia.mobile.models.UsuarioDTO;
+import com.automacia.mobile.services.DatabaseHelper;
 
 import org.json.JSONException;
 import org.json.JSONObject;

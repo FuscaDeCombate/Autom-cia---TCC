@@ -2,7 +2,7 @@ package com.automacia.mobile.models;
 
 import java.util.Date;
 
-public class Notification {
+public class NotificationDTO {
     public enum NotificationType {
         PRESCRIPTION_EXPIRING,
         NEW_PRESCRIPTION,
@@ -23,10 +23,10 @@ public class Notification {
     private String backgroundColorResource;
     private String iconTintResource;
 
-    public Notification() {}
+    public NotificationDTO() {}
 
-    public Notification(int id, String title, String message, Date timestamp,
-                        boolean isRead, NotificationType type) {
+    public NotificationDTO(int id, String title, String message, Date timestamp,
+                           boolean isRead, NotificationType type) {
         this.id = id;
         this.title = title;
         this.message = message;

@@ -17,7 +17,7 @@ import com.google.android.material.textfield.TextInputEditText;
 import com.google.android.material.textfield.TextInputLayout;
 
 public class PasswordConfirmationDialog extends DialogFragment {
-    private TextInputEditText etSennha;
+    private TextInputEditText etSenha;
     private TextInputLayout layoutSenha;
     private MaterialButton btnConfirmar;
     private PasswordConfirmationListener listener;
@@ -41,10 +41,10 @@ public class PasswordConfirmationDialog extends DialogFragment {
     @Nullable
     @Override
     public View onCreateView(@NonNull LayoutInflater inflater, @Nullable ViewGroup container,
-                             @Nullable Bundle savedInstaceState) {
+                             @Nullable Bundle savedInstanceState) {
         View view = inflater.inflate(R.layout.dialog_password_confirmation, container, false);
 
-        etSennha = view.findViewById(R.id.et_senha_confirmacao);
+        etSenha = view.findViewById(R.id.et_senha_confirmacao);
         layoutSenha = view.findViewById(R.id.lay_senha_confirmacao);
         btnConfirmar = view.findViewById(R.id.btn_confirmar);
 
@@ -60,8 +60,8 @@ public class PasswordConfirmationDialog extends DialogFragment {
 
     @Nullable
     @Override
-    public Dialog onCreateDialog(@Nullable Bundle savedInstaceState) {
-        Dialog dialog = super.onCreateDialog(savedInstaceState);
+    public Dialog onCreateDialog(@Nullable Bundle savedInstanceState) {
+        Dialog dialog = super.onCreateDialog(savedInstanceState);
 
         // Remove o fundo para aplicar o nosso
         if (dialog.getWindow() != null) {
@@ -72,7 +72,7 @@ public class PasswordConfirmationDialog extends DialogFragment {
     }
 
     private void confirmarSenha() {
-        String senha = etSennha.getText() != null ? etSennha.getText().toString() : "";
+        String senha = etSenha.getText() != null ? etSenha.getText().toString() : "";
 
         if (senha.isEmpty()) {
             layoutSenha.setError("Digite sua senha");
@@ -89,15 +89,21 @@ public class PasswordConfirmationDialog extends DialogFragment {
     }
 
     public void resetButton() {
-        if (btnConfirmar != null) {
+        if (btnConfirmar != null && isAdded()) {
             btnConfirmar.setEnabled(true);
             btnConfirmar.setText("Confirmar");
         }
     }
 
     public void showError(String message) {
-        if (layoutSenha != null) {
+        if (layoutSenha != null && isAdded()) {
             layoutSenha.setError(message);
+        }
+    }
+
+    public void closeDialog() {
+        if (isAdded()) {
+            dismiss();
         }
     }
 }

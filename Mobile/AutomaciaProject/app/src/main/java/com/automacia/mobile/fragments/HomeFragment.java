@@ -13,6 +13,7 @@ import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.ImageButton;
+import android.widget.LinearLayout;
 import android.widget.ProgressBar;
 import android.widget.TextView;
 import android.widget.Toast;
@@ -23,6 +24,7 @@ import com.automacia.mobile.R;
 import com.automacia.mobile.adapters.TimelinePrescriptionAdapter;
 import com.automacia.mobile.models.PrescriptionDTO;
 import com.automacia.mobile.models.UsuarioDTO;
+import com.automacia.mobile.quickactions.FuncionarioChat;
 import com.automacia.mobile.quickactions.MedicalHistoryActivity;
 import com.automacia.mobile.quickactions.Pharmacys;
 import com.automacia.mobile.services.PrescriptionService;
@@ -42,7 +44,7 @@ public class HomeFragment extends Fragment {
     private RecyclerView rvPrescriptions;
     private ProgressBar progressBar;
     private CardView cardMedicalHistory;
-    private CardView[] quickActionCards = new CardView[7];
+    private LinearLayout quickMedicos, quickFarmacias, quickEmergencias, quickRelatorio;
 
     // Dados do usuário
     private UsuarioDTO currentUser;
@@ -130,13 +132,10 @@ public class HomeFragment extends Fragment {
         // RecyclerView para receitas
         rvPrescriptions = view.findViewById(R.id.rv_prescriptions);
         // Ações rápidas
-        quickActionCards[0] = view.findViewById(R.id.quick_action_1);
-        quickActionCards[1] = view.findViewById(R.id.quick_action_2);
-        quickActionCards[2] = view.findViewById(R.id.quick_action_3);
-        quickActionCards[3] = view.findViewById(R.id.quick_action_4);
-        quickActionCards[4] = view.findViewById(R.id.quick_action_5);
-        quickActionCards[5] = view.findViewById(R.id.quick_action_6);
-        quickActionCards[6] = view.findViewById(R.id.quick_action_7);
+        quickMedicos = view.findViewById(R.id.quick_action_medicos);
+        quickFarmacias = view.findViewById(R.id.quick_action_farmacias);
+        quickEmergencias = view.findViewById(R.id.quick_action_emergencias);
+        quickRelatorio = view.findViewById(R.id.quick_action_relatorios);
 
         // Links do rodapé
         view.findViewById(R.id.layout_website).setOnClickListener(v -> openWebsite());
@@ -183,10 +182,10 @@ public class HomeFragment extends Fragment {
         cardMedicalHistory.setOnClickListener(v -> openMedicalHistory());
 
         // Ações rápidas
-        for (int i = 0; i < quickActionCards.length; i++) {
-            final int index = i;
-            quickActionCards[i].setOnClickListener(v -> handleQuickAction(index));
-        }
+        quickMedicos.setOnClickListener(v -> openChatDoctors());
+        quickFarmacias.setOnClickListener(v -> openPharmacys());
+        quickEmergencias.setOnClickListener(v -> openEmergnecyTab());
+        quickRelatorio.setOnClickListener(v -> openStatistics());
     }
 
     /**
@@ -387,20 +386,33 @@ public class HomeFragment extends Fragment {
         startActivity(intent);
     }
 
-    private void handleQuickAction(int actionIndex) {
-        String[] actions = {
-                "Médicos", "Farmácias", "Agendamentos", "Relatórios",
-                "Consultas", "Configurações", "Favoritos"
-        };
+    private void openPharmacys() {
+        Intent intent = new Intent(getActivity().getBaseContext(), Pharmacys.class);
+        startActivity(intent);
 
-        if (actionIndex < actions.length) {
-            if (actionIndex == 2) {
-                Intent intent = new Intent(getActivity().getBaseContext(), Pharmacys.class);
-                startActivity(intent);
-            } else {
-                Toast.makeText(getContext(), "Abrindo: " + actions[actionIndex], Toast.LENGTH_SHORT).show();
-            }
+        // Animação de fade in / fade out
+        getActivity().overridePendingTransition(R.anim.fade_in, R.anim.fade_out);
+    }
+
+    private void openChatDoctors() {
+        if (currentUser == null) {
+            Log.e("HomeFragment", "Usuário não encontrado ao tentar abrir receitas");
+            return;
         }
+
+        Intent intent = new Intent(getActivity().getBaseContext(), FuncionarioChat.class);
+        intent.putExtra("usuario", currentUser);
+        startActivity(intent);
+
+        getActivity().overridePendingTransition(R.anim.fade_in, R.anim.fade_out);
+    }
+
+    private void openEmergnecyTab() {
+
+    }
+
+    private void openStatistics() {
+
     }
 
     private void openWebsite() {

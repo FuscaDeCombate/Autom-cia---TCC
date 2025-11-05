@@ -72,4 +72,10 @@
     <string name="_24_horas">24 horas</string>
     <string name="aberto_agora">Aberto agora</string>
     <string name="mais_pr_ximas">Mais próximas</string>
+    <string name="limpar">Limpar</string>
+    <string name="sem_resultados">Sem resultados</string>
+    <string name="atualizar">Atualizar</string>
+    <string name="buscar">Buscar</string>
+    <string name="todos">Todos</string>
+    <string name="m_dicos">Médicos</string>
 </resources>

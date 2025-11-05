@@ -5,8 +5,6 @@ import android.util.Log;
 
 import java.sql.Connection;
 import java.sql.DriverManager;
-import java.sql.PreparedStatement;
-import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.Locale;
 
@@ -15,7 +13,7 @@ public class DatabaseHelper {
     private static final String TAG = "DatabaseHelper";
 
     // Configurações do banco
-    public static final String SERVER_IP = "192.168.15.8";
+    public static final String SERVER_IP = "192.168.1.13";
     private static final String DATABASE_NAME = "Automacia";
     private static final String USERNAME = "android_user";
     private static final String PASSWORD = "SenhaForte123!";
