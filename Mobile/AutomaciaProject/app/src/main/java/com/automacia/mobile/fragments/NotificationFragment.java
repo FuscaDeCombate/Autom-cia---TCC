@@ -148,9 +148,6 @@ public class NotificationFragment extends Fragment implements NotificationAdapte
     }
 
     private void refreshNotifications() {
-        // TODO: Aqui você faria chamada à API real
-        // Por enquanto, apenas recarrega do storage
-
         new Handler().postDelayed(() -> {
             allNotifications = storage.loadNotifications();
             updateUI();
@@ -249,6 +246,10 @@ public class NotificationFragment extends Fragment implements NotificationAdapte
             case APPOINTMENT_REMINDER:
                 message = "Abrindo consultas...";
                 // TODO: navegar para tela de consultas
+                break;
+            case NEW_MESSAGE:
+                message = "Abrindo mensagens...";
+                // TODO: navegar para tela de mensagens
                 break;
             default:
                 message = "Abrindo detalhes...";

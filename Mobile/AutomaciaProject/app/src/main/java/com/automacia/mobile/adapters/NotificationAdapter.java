@@ -188,6 +188,7 @@ public class NotificationAdapter extends RecyclerView.Adapter<RecyclerView.ViewH
             case "ic_store": return R.drawable.ic_store;
             case "ic_system_update": return R.drawable.ic_system_update;
             case "ic_calendar": return R.drawable.ic_calendar;
+            case "ic_chat": return R.drawable.ic_chat;
             default: return R.drawable.ic_notifications;
         }
     }
@@ -206,6 +207,8 @@ public class NotificationAdapter extends RecyclerView.Adapter<RecyclerView.ViewH
             case "orange_light": return R.color.orange_light;
             case "gray": return R.color.gray;
             case "gray_light": return R.color.gray_light;
+            case "purple": return R.color.purple;
+            case "purple_light": return R.color.purple_light;
             default: return R.color.gray_light;
         }
     }

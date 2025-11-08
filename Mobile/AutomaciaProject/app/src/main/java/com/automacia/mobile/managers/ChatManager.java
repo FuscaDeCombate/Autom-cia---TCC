@@ -34,8 +34,7 @@ import io.socket.emitter.Emitter;
 public class ChatManager {
 
     private static final String TAG = "ChatManager";
-    private static final String SERVER_URL = "http://192.168.15.8:6969";
-    private static final int FUNCIONARIO_ID = 1;
+    private static final String SERVER_URL = "http://192.168.1.13:6969";
     private static final int CONNECTION_TIMEOUT = 10000;
     private static final int DATABASE_TIMEOUT = 10000;
 
@@ -46,6 +45,7 @@ public class ChatManager {
         ENTRAR_SALA("entrar_sala"),
         ENVIAR_MENSAGEM("enviar_mensagem"),
         SAIR_SALA("sair_sala"),
+        TROCAR_FUNCIONARIO("trocar_funcionario"),
         MENSAGEM_CONFIRMADA("mensagem_confirmada");
 
         private final String value;
@@ -96,10 +96,11 @@ public class ChatManager {
     private Socket mSocket;
     private Context context;
     private UsuarioDTO usuarioLogado;
-    private int funcionarioId;
+    private int funcionarioIdAtual; // MUDANÇA: Agora é dinâmico
     private Handler mainHandler;
     private ExecutorService databaseExecutor;
     private volatile boolean isConnected = false;
+    private volatile boolean isTrocandoFuncionario = false; // Flag para controle de troca
 
     // Interfaces para callbacks
     public interface OnMensagemRecebidaListener {
@@ -129,14 +130,22 @@ public class ChatManager {
         void onErro(ErrorType tipo, String erro);
     }
 
+    // NOVO: Interface para troca de funcionário
+    public interface OnTrocaFuncionarioListener {
+        void onTrocaSucesso(int funcionarioIdAntigo, int funcionarioIdNovo);
+        void onTrocaErro(ErrorType tipo, String mensagem);
+    }
+
     // Listeners
     private OnMensagemRecebidaListener onMensagemRecebidaListener;
     private OnStatusConexaoListener onStatusConexaoListener;
     private OnDigitandoListener onDigitandoListener;
 
-    public ChatManager(Context context, UsuarioDTO usuario) {
+    // MUDANÇA: Construtor agora recebe funcionarioId inicial
+    public ChatManager(Context context, UsuarioDTO usuario, int funcionarioId) {
         this.context = context;
         this.usuarioLogado = usuario;
+        this.funcionarioIdAtual = funcionarioId;
         this.mainHandler = new Handler(Looper.getMainLooper());
         this.databaseExecutor = Executors.newSingleThreadExecutor();
         inicializarSocket();
@@ -150,7 +159,6 @@ public class ChatManager {
             options.reconnectionAttempts = 5;
             options.reconnectionDelay = 1000;
             options.timeout = CONNECTION_TIMEOUT;
-            // Configurações do WebSocket com o server
             options.transports = new String[]{"websocket", "polling"};
             options.upgrade = true;
             options.rememberUpgrade = true;
@@ -177,7 +185,11 @@ public class ChatManager {
                         onStatusConexaoListener.onStatusChanged(true);
                     }
                 });
-                entrarNaSala();
+
+                // Só entra na sala se não estiver trocando funcionário
+                if (!isTrocandoFuncionario) {
+                    entrarNaSala();
+                }
             }
         });
 
@@ -231,10 +243,22 @@ public class ChatManager {
                 try {
                     JSONObject data = (JSONObject) args[0];
                     String salaId = data.getString("sala");
-                    Log.d(TAG, "Confirmação de entrada na sala: " + salaId);
+                    int funcionarioId = data.getInt("funcionarioId");
+
+                    Log.d(TAG, "Confirmação de entrada na sala: " + salaId +
+                            " (Funcionário ID: " + funcionarioId + ")");
+
                 } catch (JSONException e) {
                     Log.e(TAG, "Erro ao processar confirmação de sala", e);
                 }
+            }
+        });
+
+        // NOVO: Escutar confirmação de troca de funcionário
+        mSocket.on("funcionario_trocado", new Emitter.Listener() {
+            @Override
+            public void call(Object... args) {
+                processarTrocaFuncionario(args);
             }
         });
 
@@ -256,6 +280,37 @@ public class ChatManager {
                 }
             }
         });
+    }
+
+    // NOVO: Processar confirmação de troca de funcionário
+    private void processarTrocaFuncionario(Object... args) {
+        try {
+            JSONObject data = (JSONObject) args[0];
+
+            String salaId = data.getString("sala");
+            int funcionarioIdAntigo = data.getInt("funcionarioIdAntigo");
+            int funcionarioIdNovo = data.getInt("funcionarioIdNovo");
+
+            Log.d(TAG, "=== TROCA DE FUNCIONÁRIO CONFIRMADA ===");
+            Log.d(TAG, "Sala nova: " + salaId);
+            Log.d(TAG, "Funcionário antigo: " + funcionarioIdAntigo);
+            Log.d(TAG, "Funcionário novo: " + funcionarioIdNovo);
+            Log.d(TAG, "======================================");
+
+            // Atualizar ID local
+            funcionarioIdAtual = funcionarioIdNovo;
+            isTrocandoFuncionario = false;
+
+            // Notificar sucesso na thread principal
+            mainHandler.post(() -> {
+                // Aqui o Fragment vai receber a notificação e pode recarregar mensagens
+                Log.i(TAG, "Troca concluída com sucesso! Funcionário atual: " + funcionarioIdAtual);
+            });
+
+        } catch (JSONException e) {
+            Log.e(TAG, "Erro ao processar confirmação de troca", e);
+            isTrocandoFuncionario = false;
+        }
     }
 
     private ErrorType parseErrorType(String errorType) {
@@ -281,14 +336,22 @@ public class ChatManager {
             Log.d(TAG, "=== NOVA MENSAGEM RECEBIDA ===");
             Log.d(TAG, "JSON completo: " + data.toString());
 
+            // MUDANÇA: Verificar se a mensagem é para o funcionário atual
+            int funcionarioIdMensagem = data.getInt("funcionarioId");
+            if (funcionarioIdMensagem != funcionarioIdAtual) {
+                Log.d(TAG, "Mensagem ignorada - Funcionário diferente: " +
+                        funcionarioIdMensagem + " (atual: " + funcionarioIdAtual + ")");
+                return;
+            }
+
             MensagemDTO mensagem = new MensagemDTO();
 
             // Campos obrigatórios
             mensagem.setMensagem(data.getString("mensagem"));
             mensagem.setPacienteCpf(data.getString("cpfPaciente"));
-            mensagem.setFuncionarioId(data.getInt("funcionarioId"));
+            mensagem.setFuncionarioId(funcionarioIdMensagem);
 
-            // Determinar se é paciente (verificar ambos os campos)
+            // Determinar se é paciente
             boolean ehPaciente = data.optBoolean("msgPaciente", false);
             if (!ehPaciente && data.has("tipo_remetente")) {
                 ehPaciente = "paciente".equals(data.getString("tipo_remetente"));
@@ -310,7 +373,6 @@ public class ChatManager {
                     horaEnvio = sdf.parse(timestamp);
                 } catch (ParseException e) {
                     Log.w(TAG, "Erro ao parsear timestamp formato completo", e);
-                    // Tentar formato ISO simples
                     try {
                         String timestamp = data.getString("timestamp");
                         SimpleDateFormat sdf = new SimpleDateFormat(
@@ -333,8 +395,6 @@ public class ChatManager {
             Log.d(TAG, "  - CPF Paciente: " + mensagem.getPacienteCpf());
             Log.d(TAG, "  - Funcionario ID: " + mensagem.getFuncionarioId());
             Log.d(TAG, "  - eh Paciente: " + ehPaciente);
-            Log.d(TAG, "  - Usuario logado CPF: " + usuarioLogado.getCpf());
-            Log.d(TAG, "  - É do proprio usuario: " + usuarioLogado.getCpf().equals(mensagem.getPacienteCpf()));
             Log.d(TAG, "=================================");
 
             // Notificar UI na thread principal
@@ -374,15 +434,115 @@ public class ChatManager {
         try {
             JSONObject data = new JSONObject();
             data.put("cpfPaciente", usuarioLogado.getCpf());
-            data.put("funcionarioId", FUNCIONARIO_ID);
+            data.put("funcionarioId", funcionarioIdAtual); // MUDANÇA: Usa ID dinâmico
             data.put("tipoUsuario", TipoUsuario.PACIENTE.getValue());
 
             mSocket.emit(ChatEvents.ENTRAR_SALA.getValue(), data);
-            Log.d(TAG, "Solicitando entrada na sala: " + usuarioLogado.getCpf());
+            Log.d(TAG, "Solicitando entrada na sala - CPF: " + usuarioLogado.getCpf() +
+                    ", Funcionário: " + funcionarioIdAtual);
 
         } catch (JSONException e) {
             Log.e(TAG, "Erro ao entrar na sala", e);
             notificarErro(ErrorType.SOCKET, "Erro ao entrar na sala de chat");
+        }
+    }
+
+    // NOVO: Metodo para trocar de funcionário
+    public void trocarFuncionario(int novoFuncionarioId, OnTrocaFuncionarioListener listener) {
+        if (!isConnected) {
+            if (listener != null) {
+                mainHandler.post(() -> listener.onTrocaErro(
+                        ErrorType.SOCKET,
+                        "Não conectado ao servidor"
+                ));
+            }
+            return;
+        }
+
+        if (novoFuncionarioId == funcionarioIdAtual) {
+            Log.w(TAG, "Tentativa de trocar para o mesmo funcionário: " + novoFuncionarioId);
+            if (listener != null) {
+                mainHandler.post(() -> listener.onTrocaErro(
+                        ErrorType.VALIDACAO,
+                        "Você já está conversando com este funcionário"
+                ));
+            }
+            return;
+        }
+
+        isTrocandoFuncionario = true;
+        final int funcionarioIdAntigoTemp = funcionarioIdAtual;
+
+        try {
+            JSONObject data = new JSONObject();
+            data.put("cpfPaciente", usuarioLogado.getCpf());
+            data.put("funcionarioIdAntigo", funcionarioIdAtual);
+            data.put("funcionarioIdNovo", novoFuncionarioId);
+
+            mSocket.emit(ChatEvents.TROCAR_FUNCIONARIO.getValue(), data);
+
+            Log.d(TAG, "Solicitando troca de funcionário:");
+            Log.d(TAG, "  - Funcionário antigo: " + funcionarioIdAtual);
+            Log.d(TAG, "  - Funcionário novo: " + novoFuncionarioId);
+
+            // Aguardar confirmação do servidor (timeout de 5 segundos)
+            mainHandler.postDelayed(() -> {
+                if (isTrocandoFuncionario) {
+                    Log.e(TAG, "Timeout ao aguardar confirmação de troca");
+                    isTrocandoFuncionario = false;
+
+                    if (listener != null) {
+                        listener.onTrocaErro(
+                                ErrorType.TIMEOUT,
+                                "Tempo esgotado ao trocar funcionário"
+                        );
+                    }
+                }
+            }, 5000);
+
+            // Listener temporário para capturar confirmação
+            mSocket.once("funcionario_trocado", new Emitter.Listener() {
+                @Override
+                public void call(Object... args) {
+                    try {
+                        JSONObject data = (JSONObject) args[0];
+                        int funcionarioIdNovo = data.getInt("funcionarioIdNovo");
+
+                        funcionarioIdAtual = funcionarioIdNovo;
+                        isTrocandoFuncionario = false;
+
+                        mainHandler.post(() -> {
+                            if (listener != null) {
+                                listener.onTrocaSucesso(funcionarioIdAntigoTemp, funcionarioIdNovo);
+                            }
+                        });
+
+                    } catch (JSONException e) {
+                        Log.e(TAG, "Erro ao processar confirmação de troca", e);
+                        isTrocandoFuncionario = false;
+
+                        mainHandler.post(() -> {
+                            if (listener != null) {
+                                listener.onTrocaErro(
+                                        ErrorType.SOCKET,
+                                        "Erro ao processar resposta do servidor"
+                                );
+                            }
+                        });
+                    }
+                }
+            });
+
+        } catch (JSONException e) {
+            Log.e(TAG, "Erro ao trocar funcionário", e);
+            isTrocandoFuncionario = false;
+
+            if (listener != null) {
+                mainHandler.post(() -> listener.onTrocaErro(
+                        ErrorType.SOCKET,
+                        "Erro ao trocar funcionário: " + e.getMessage()
+                ));
+            }
         }
     }
 
@@ -418,16 +578,16 @@ public class ChatManager {
             JSONObject data = new JSONObject();
             data.put("mensagem", mensagem.trim());
             data.put("cpfPaciente", usuarioLogado.getCpf());
-            data.put("funcionarioId", FUNCIONARIO_ID);
+            data.put("funcionarioId", funcionarioIdAtual); // MUDANÇA: Usa ID dinâmico
             data.put("tipoRemetente", TipoUsuario.PACIENTE.getValue());
-            data.put("msgPaciente", true); // Campo NeoAutomacia
+            data.put("msgPaciente", true);
 
             mSocket.emit(ChatEvents.ENVIAR_MENSAGEM.getValue(), data);
 
-            // Criar mensagem local temporária para retorno imediato
+            // Criar mensagem local temporária
             MensagemDTO mensagemTemp = new MensagemDTO(mensagem.trim(), true);
             mensagemTemp.setPacienteCpf(usuarioLogado.getCpf());
-            mensagemTemp.setFuncionarioId(FUNCIONARIO_ID);
+            mensagemTemp.setFuncionarioId(funcionarioIdAtual);
             mensagemTemp.setHoraEnvio(new Date());
 
             mainHandler.post(() -> {
@@ -457,15 +617,13 @@ public class ChatManager {
                 stmt = connection.prepareCall("{call Mostra_Chat(?, ?)}");
 
                 stmt.setString(1, usuarioLogado.getCpf());
-                stmt.setInt(2, FUNCIONARIO_ID);
+                stmt.setInt(2, funcionarioIdAtual); // MUDANÇA: Usa ID dinâmico
                 stmt.setQueryTimeout(DATABASE_TIMEOUT / 1000);
 
                 rs = stmt.executeQuery();
                 List<MensagemDTO> mensagens = new ArrayList<>();
 
-                // Verificar se há resultados
                 if (!rs.isBeforeFirst()) {
-                    // Sem resultados - chat vazio ou erro
                     mainHandler.post(() -> {
                         if (listener != null) {
                             listener.onMensagensCarregadas(new ArrayList<>());
@@ -474,9 +632,7 @@ public class ChatManager {
                     return;
                 }
 
-                // Processar resultados
                 while (rs.next()) {
-                    // Verificar se é mensagem de erro pela primeira coluna
                     String primeiraColuna = rs.getString(1);
                     if (isErrorMessage(primeiraColuna)) {
                         final String erro = primeiraColuna;
@@ -488,7 +644,6 @@ public class ChatManager {
                         return;
                     }
 
-                    // Criar mensagem a partir do ResultSet
                     try {
                         MensagemDTO mensagem = new MensagemDTO();
                         mensagem.setIdChat(rs.getInt("ID_Chat"));
@@ -501,7 +656,6 @@ public class ChatManager {
                         mensagens.add(mensagem);
                     } catch (SQLException e) {
                         Log.w(TAG, "Erro ao processar linha da mensagem", e);
-                        // Continua processando outras mensagens
                     }
                 }
 
@@ -551,7 +705,7 @@ public class ChatManager {
             data.put("digitando", digitando);
             data.put("usuario", usuarioLogado.getCpf());
             data.put("cpfPaciente", usuarioLogado.getCpf());
-            data.put("funcionarioId", FUNCIONARIO_ID);
+            data.put("funcionarioId", funcionarioIdAtual); // MUDANÇA: Usa ID dinâmico
 
             mSocket.emit(ChatEvents.DIGITANDO.getValue(), data);
 
@@ -564,9 +718,23 @@ public class ChatManager {
         return mSocket != null && mSocket.connected() && isConnected;
     }
 
+    // NOVO: Getter para o funcionário atual
+    public int getFuncionarioIdAtual() {
+        return funcionarioIdAtual;
+    }
+
+    // NOVO: Setter para quando vier da Intent (antes de conectar)
+    public void setFuncionarioId(int funcionarioId) {
+        if (!isConnected) {
+            this.funcionarioIdAtual = funcionarioId;
+            Log.d(TAG, "Funcionário ID definido para: " + funcionarioId);
+        } else {
+            Log.w(TAG, "Não é possível alterar funcionário diretamente quando conectado. Use trocarFuncionario()");
+        }
+    }
+
     private void notificarErro(ErrorType tipo, String mensagem) {
         Log.e(TAG, tipo.getValue() + ": " + mensagem);
-        // Aqui você pode adicionar notificação para o usuário se necessário
     }
 
     // Setters para listeners

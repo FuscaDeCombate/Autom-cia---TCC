@@ -186,6 +186,8 @@ public class NotificationScheduler {
                 return R.drawable.ic_system_update;
             case APPOINTMENT_REMINDER:
                 return R.drawable.ic_calendar;
+            case NEW_MESSAGE:
+                return R.drawable.ic_chat;
             default:
                 return R.drawable.ic_notifications;
         }
@@ -205,6 +207,8 @@ public class NotificationScheduler {
                 return R.color.gray;
             case APPOINTMENT_REMINDER:
                 return R.color.orange;
+            case NEW_MESSAGE:
+                return R.color.purple;
             default:
                 return R.color.gray;
         }

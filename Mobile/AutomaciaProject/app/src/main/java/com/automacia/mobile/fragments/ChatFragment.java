@@ -1,7 +1,9 @@
 package com.automacia.mobile.fragments;
 
+import android.app.Activity;
 import android.app.NotificationChannel;
 import android.app.NotificationManager;
+import android.content.Intent;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.Handler;
@@ -17,6 +19,8 @@ import android.widget.LinearLayout;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import androidx.activity.result.ActivityResultLauncher;
+import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.core.app.NotificationCompat;
@@ -25,10 +29,13 @@ import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
 import com.automacia.mobile.R;
+import com.automacia.mobile.quickactions.FuncionarioChat;
 import com.automacia.mobile.adapters.MensagemAdapter;
+import com.automacia.mobile.models.FuncionarioChatDTO;
 import com.automacia.mobile.models.MensagemDTO;
 import com.automacia.mobile.models.UsuarioDTO;
 import com.automacia.mobile.managers.ChatManager;
+import com.automacia.mobile.utils.ChatPreferences;
 import com.google.android.material.button.MaterialButton;
 import com.google.android.material.textfield.TextInputEditText;
 
@@ -39,20 +46,27 @@ public class ChatFragment extends Fragment {
     private static final String TAG = "ChatFragment";
     private static final String CHANNEL_ID = "chat_notifications";
     private static final String ARG_USUARIO = "usuario";
+    private static final String ARG_FUNCIONARIO = "funcionario";
 
     // Views
     private RecyclerView rvMensagens;
     private TextInputEditText etMensagem;
     private MaterialButton btnEnviar;
+    private MaterialButton btnSelecionarFuncionario;
     private TextView tvStatusConexao;
+    private TextView tvFuncionarioNome;
     private ImageView ivStatusIndicator;
     private LinearLayout layoutDigitando;
+    private LinearLayout layoutEmptyState;
+    private LinearLayout layoutChatPrincipal;
 
     // Components
     private MensagemAdapter adapter;
     private ChatManager chatManager;
     private UsuarioDTO usuarioLogado;
+    private FuncionarioChatDTO funcionarioAtual;
     private NotificationManager notificationManager;
+    private ChatPreferences chatPreferences;
 
     // Controle de digitação
     private Handler digitandoHandler;
@@ -63,6 +77,10 @@ public class ChatFragment extends Fragment {
     private boolean isInitialized = false;
     private boolean shouldReconnectOnResume = false;
     private boolean mensagensCarregadas = false;
+    private boolean isTrocandoFuncionario = false;
+
+    // ActivityResultLauncher para selecionar funcionário
+    private ActivityResultLauncher<Intent> selecionarFuncionarioLauncher;
 
     public ChatFragment() {
         // Required empty public constructor
@@ -76,18 +94,31 @@ public class ChatFragment extends Fragment {
         return fragment;
     }
 
+    public static ChatFragment newInstance(UsuarioDTO usuario, FuncionarioChatDTO funcionario) {
+        ChatFragment fragment = new ChatFragment();
+        Bundle args = new Bundle();
+        args.putSerializable(ARG_USUARIO, usuario);
+        args.putSerializable(ARG_FUNCIONARIO, funcionario);
+        fragment.setArguments(args);
+        return fragment;
+    }
+
     @Override
     public void onCreate(@Nullable Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
 
-        // Inicializar handler
+        // Inicializar handler e preferências
         digitandoHandler = new Handler(Looper.getMainLooper());
+        chatPreferences = new ChatPreferences(requireContext());
 
         // Carregar dados do usuário
         if (!carregarUsuarioArguments()) {
             Log.e(TAG, "Não foi possível carregar dados do usuário");
             return;
         }
+
+        // Registrar launcher para seleção de funcionário
+        registrarActivityResultLauncher();
 
         // Criar canal de notificação
         criarCanalNotificacao();
@@ -113,7 +144,173 @@ public class ChatFragment extends Fragment {
 
         isInitialized = true;
 
-        inicializarChatManager();
+        // Verificar se tem funcionário (via args ou SharedPreferences)
+        verificarEInicializarChat();
+    }
+
+    private void registrarActivityResultLauncher() {
+        selecionarFuncionarioLauncher = registerForActivityResult(
+                new ActivityResultContracts.StartActivityForResult(),
+                result -> {
+                    if (result.getResultCode() == Activity.RESULT_OK && result.getData() != null) {
+                        FuncionarioChatDTO funcionarioSelecionado =
+                                (FuncionarioChatDTO) result.getData().getSerializableExtra("funcionario");
+
+                        if (funcionarioSelecionado != null) {
+                            Log.d(TAG, "Funcionário selecionado: " + funcionarioSelecionado.getNomeFuncionario());
+                            processarNovoFuncionario(funcionarioSelecionado);
+                        }
+                    }
+                }
+        );
+    }
+
+    private void processarNovoFuncionario(FuncionarioChatDTO novoFuncionario) {
+        // Validar funcionário
+        if (!isFuncionarioValido(novoFuncionario)) {
+            mostrarToast("Dados do funcionário inválidos");
+            return;
+        }
+
+        // Verificar se é o mesmo funcionário
+        if (funcionarioAtual != null &&
+                funcionarioAtual.getFuncionarioRec().equals(novoFuncionario.getFuncionarioRec())) {
+            Log.d(TAG, "Mesmo funcionário selecionado, ignorando...");
+            return;
+        }
+
+        // Caso 1: Primeiro funcionário (chat ainda não inicializado)
+        if (funcionarioAtual == null) {
+            funcionarioAtual = novoFuncionario;
+            chatPreferences.salvarUltimoFuncionario(novoFuncionario);
+
+            ocultarEmptyState();
+            inicializarChatManager();
+
+        } else {
+            // Caso 2: Trocar de funcionário
+            trocarFuncionario(novoFuncionario);
+        }
+    }
+
+    private void trocarFuncionario(FuncionarioChatDTO novoFuncionario) {
+        if (!isChatManagerReady() || isTrocandoFuncionario) {
+            Log.w(TAG, "ChatManager não está pronto ou já está trocando funcionário");
+            return;
+        }
+
+        isTrocandoFuncionario = true;
+        mostrarToast("Conectando com " + novoFuncionario.getNomeFuncionario() + "...");
+
+        final FuncionarioChatDTO funcionarioAntigo = funcionarioAtual;
+
+        try {
+            int novoFuncionarioId = Integer.parseInt(novoFuncionario.getFuncionarioRec());
+
+            chatManager.trocarFuncionario(novoFuncionarioId,
+                    new ChatManager.OnTrocaFuncionarioListener() {
+                        @Override
+                        public void onTrocaSucesso(int antigoId, int novoId) {
+                            if (!isFragmentReady()) return;
+
+                            Log.d(TAG, "Troca de funcionário bem-sucedida: " + antigoId + " → " + novoId);
+
+                            // Atualizar funcionário atual
+                            funcionarioAtual = novoFuncionario;
+                            chatPreferences.salvarUltimoFuncionario(novoFuncionario);
+
+                            // Atualizar UI
+                            atualizarHeaderFuncionario();
+
+                            // Limpar mensagens antigas
+                            adapter.limparMensagens();
+                            mensagensCarregadas = false;
+
+                            // Carregar mensagens do novo funcionário
+                            carregarMensagens();
+
+                            isTrocandoFuncionario = false;
+                            mostrarToast("Conectado com " + novoFuncionario.getNomeFuncionario());
+                        }
+
+                        @Override
+                        public void onTrocaErro(ChatManager.ErrorType tipo, String mensagem) {
+                            if (!isFragmentReady()) return;
+
+                            Log.e(TAG, "Erro ao trocar funcionário: " + mensagem);
+                            isTrocandoFuncionario = false;
+
+                            mostrarToast("Erro ao conectar: " + mensagem);
+
+                            // Se erro crítico, manter funcionário antigo
+                            if (tipo == ChatManager.ErrorType.VALIDACAO) {
+                                funcionarioAtual = funcionarioAntigo;
+                            }
+                        }
+                    });
+
+        } catch (NumberFormatException e) {
+            Log.e(TAG, "ID de funcionário inválido: " + novoFuncionario.getFuncionarioRec(), e);
+            isTrocandoFuncionario = false;
+            mostrarToast("Erro: ID de funcionário inválido");
+        }
+    }
+
+    private void verificarEInicializarChat() {
+        // Prioridade 1: Funcionário via Arguments
+        if (getArguments() != null && getArguments().containsKey(ARG_FUNCIONARIO)) {
+            funcionarioAtual = (FuncionarioChatDTO) getArguments().getSerializable(ARG_FUNCIONARIO);
+
+            if (isFuncionarioValido(funcionarioAtual)) {
+                Log.d(TAG, "Funcionário carregado via Arguments: " + funcionarioAtual.getNomeFuncionario());
+                chatPreferences.salvarUltimoFuncionario(funcionarioAtual);
+                ocultarEmptyState();
+                inicializarChatManager();
+                return;
+            }
+        }
+
+        // Prioridade 2: Último funcionário salvo
+        FuncionarioChatDTO ultimoFuncionario = chatPreferences.getUltimoFuncionario();
+        if (ultimoFuncionario != null && isFuncionarioValido(ultimoFuncionario)) {
+            Log.d(TAG, "Último funcionário carregado: " + ultimoFuncionario.getNomeFuncionario());
+            funcionarioAtual = ultimoFuncionario;
+            ocultarEmptyState();
+            inicializarChatManager();
+            return;
+        }
+
+        // Nenhum funcionário: mostrar Empty State
+        Log.d(TAG, "Nenhum funcionário selecionado - mostrando Empty State");
+        mostrarEmptyState();
+    }
+
+    private boolean isFuncionarioValido(FuncionarioChatDTO funcionario) {
+        if (funcionario == null) return false;
+
+        String id = funcionario.getFuncionarioRec();
+        if (id == null || id.trim().isEmpty()) return false;
+
+        try {
+            int numId = Integer.parseInt(id);
+            return numId > 0;
+        } catch (NumberFormatException e) {
+            return false;
+        }
+    }
+
+    private void mostrarEmptyState() {
+        if (layoutEmptyState != null && layoutChatPrincipal != null) {
+            layoutEmptyState.setVisibility(View.VISIBLE);
+            layoutChatPrincipal.setVisibility(View.GONE);
+        }
+    }
+
+    private void ocultarEmptyState() {
+        if (layoutEmptyState != null && layoutChatPrincipal != null) {
+            layoutEmptyState.setVisibility(View.GONE);
+            layoutChatPrincipal.setVisibility(View.VISIBLE);
+        }
     }
 
     @Override
@@ -145,12 +342,21 @@ public class ChatFragment extends Fragment {
     }
 
     private void inicializarViews(View view) {
+        // Views principais
         rvMensagens = view.findViewById(R.id.rvMensagens);
         etMensagem = view.findViewById(R.id.etMensagem);
         btnEnviar = view.findViewById(R.id.btnEnviar);
         tvStatusConexao = view.findViewById(R.id.tvStatusConexao);
+        tvFuncionarioNome = view.findViewById(R.id.tvFuncionarioNome);
         ivStatusIndicator = view.findViewById(R.id.ivStatusIndicator);
         layoutDigitando = view.findViewById(R.id.layoutDigitando);
+
+        // Layouts de estado
+        layoutEmptyState = view.findViewById(R.id.layoutEmptyState);
+        layoutChatPrincipal = view.findViewById(R.id.layoutChatPrincipal);
+
+        // Botão do Empty State
+        btnSelecionarFuncionario = view.findViewById(R.id.btnSelecionarFuncionario);
     }
 
     private void configurarRecyclerView() {
@@ -165,6 +371,9 @@ public class ChatFragment extends Fragment {
     private void configurarListeners() {
         // Botão enviar
         btnEnviar.setOnClickListener(v -> enviarMensagem());
+
+        // Botão selecionar funcionário (Empty State)
+        btnSelecionarFuncionario.setOnClickListener(v -> abrirSelecaoFuncionario());
 
         // Enter para enviar
         etMensagem.setOnEditorActionListener((v, actionId, event) -> {
@@ -187,10 +396,16 @@ public class ChatFragment extends Fragment {
         });
     }
 
+    private void abrirSelecaoFuncionario() {
+        Intent intent = new Intent(getActivity(), FuncionarioChat.class);
+        intent.putExtra("usuario", usuarioLogado);
+        intent.putExtra("modo_selecao", true);
+        selecionarFuncionarioLauncher.launch(intent);
+    }
+
     private void gerenciarIndicadorDigitacao(CharSequence texto) {
         boolean temTexto = texto.length() > 0;
 
-        // Só enviar se mudou o estado
         if (temTexto && !estaDigitando) {
             estaDigitando = true;
             if (isChatManagerReady()) {
@@ -198,12 +413,10 @@ public class ChatFragment extends Fragment {
             }
         }
 
-        // Cancelar timer anterior
         if (pararDigitando != null) {
             digitandoHandler.removeCallbacks(pararDigitando);
         }
 
-        // Criar novo timer se há texto
         if (temTexto) {
             pararDigitando = () -> {
                 if (estaDigitando) {
@@ -215,7 +428,6 @@ public class ChatFragment extends Fragment {
             };
             digitandoHandler.postDelayed(pararDigitando, 2000);
         } else if (estaDigitando) {
-            // Se não há texto e estava digitando, parar imediatamente
             estaDigitando = false;
             if (isChatManagerReady()) {
                 chatManager.indicarDigitando(false);
@@ -225,21 +437,33 @@ public class ChatFragment extends Fragment {
 
     private void inicializarChatManager() {
         try {
-            Log.d(TAG, "Inicializando ChatManager para usuário: " + usuarioLogado.getNome());
+            if (funcionarioAtual == null || !isFuncionarioValido(funcionarioAtual)) {
+                Log.e(TAG, "Tentativa de inicializar ChatManager sem funcionário válido");
+                return;
+            }
 
-            chatManager = new ChatManager(getContext(), usuarioLogado);
+            Log.d(TAG, "Inicializando ChatManager - Usuário: " + usuarioLogado.getNome() +
+                    ", Funcionário: " + funcionarioAtual.getNomeFuncionario());
+
+            // Atualizar header
+            atualizarHeaderFuncionario();
+
+            // Criar ChatManager com funcionário
+            chatManager = new ChatManager(
+                    getContext(),
+                    usuarioLogado,
+                    Integer.parseInt(funcionarioAtual.getFuncionarioRec())
+            );
+
             configurarChatManagerListeners();
 
-            // MUDANÇA: Usar postDelayed para garantir que a view está pronta
-            // e dar tempo para o ChatManager se configurar completamente
+            // Delay para garantir inicialização completa
             new Handler(Looper.getMainLooper()).postDelayed(() -> {
                 if (isFragmentReady()) {
-                    Log.d(TAG, "Tentando conectar ao chat...");
+                    Log.d(TAG, "Conectando ao chat...");
                     conectarChat();
-                } else {
-                    Log.e(TAG, "Fragment não está pronto para conectar");
                 }
-            }, 100); // 100ms de delay
+            }, 100);
 
         } catch (Exception e) {
             Log.e(TAG, "Erro ao inicializar ChatManager", e);
@@ -247,17 +471,28 @@ public class ChatFragment extends Fragment {
         }
     }
 
+    private void atualizarHeaderFuncionario() {
+        if (tvFuncionarioNome != null && funcionarioAtual != null) {
+            String nome = funcionarioAtual.getNomeFuncionario();
+            String tipo = funcionarioAtual.getTipoFuncionario();
+
+            String displayName = nome;
+            if (tipo != null && !tipo.isEmpty()) {
+                displayName = nome + " - " + tipo;
+            }
+
+            tvFuncionarioNome.setText(displayName);
+        }
+    }
+
     private void configurarChatManagerListeners() {
-        // Listener para mensagens recebidas
         chatManager.setOnMensagemRecebidaListener(mensagem -> {
-            Log.d(TAG, "Mensagem recebida: " + mensagem.getMensagem() +
-                    " | Paciente: " + mensagem.isEhPaciente());
+            Log.d(TAG, "Mensagem recebida: " + mensagem.getMensagem());
 
             if (isFragmentReady()) {
                 adapter.adicionarMensagem(mensagem);
                 rolarParaUltimaMensagem();
 
-                // Notificar apenas se não é do próprio usuário
                 if (!mensagem.isEhPaciente() ||
                         !usuarioLogado.getCpf().equals(mensagem.getPacienteCpf())) {
                     mostrarNotificacao(mensagem);
@@ -265,14 +500,12 @@ public class ChatFragment extends Fragment {
             }
         });
 
-        // Listener para status de conexão
         chatManager.setOnStatusConexaoListener(conectado -> {
-            Log.d(TAG, "Status de conexão mudou: " + conectado);
+            Log.d(TAG, "Status de conexão: " + conectado);
 
             if (isFragmentReady()) {
                 atualizarStatusConexao(conectado);
 
-                // Tentar carregar mensagens quando conectar
                 if (conectado && !mensagensCarregadas) {
                     Log.d(TAG, "Conectado! Carregando mensagens...");
                     carregarMensagens();
@@ -282,7 +515,6 @@ public class ChatFragment extends Fragment {
             }
         });
 
-        // Listener para digitação
         chatManager.setOnDigitandoListener((digitando, usuario) -> {
             if (isFragmentReady()) {
                 boolean mostrarIndicador = digitando &&
@@ -291,21 +523,15 @@ public class ChatFragment extends Fragment {
                 layoutDigitando.setVisibility(
                         mostrarIndicador ? View.VISIBLE : View.GONE
                 );
-
-                Log.d(TAG, "Indicador digitação: " + digitando +
-                        " para usuário: " + usuario +
-                        " (mostrar: " + mostrarIndicador + ")");
             }
         });
 
-        Log.d(TAG, "Listeners configurados com sucesso");
+        Log.d(TAG, "Listeners configurados");
     }
 
     private void conectarChat() {
         if (!isChatManagerReady()) {
-            Log.e(TAG, "ChatManager não está pronto para conectar. " +
-                    "chatManager null: " + (chatManager == null) +
-                    ", isFragmentReady: " + isFragmentReady());
+            Log.e(TAG, "ChatManager não está pronto para conectar");
             return;
         }
 
@@ -322,23 +548,20 @@ public class ChatFragment extends Fragment {
         }
 
         if (!isChatManagerReady() || !chatManager.isConectado()) {
-            mostrarToast("Não conectado ao servidor. Tentando reconectar...");
+            mostrarToast("Não conectado. Tentando reconectar...");
             conectarChat();
             return;
         }
 
-        // Desabilitar botão e limpar campo
         setBotaoEnviarEnabled(false);
         etMensagem.getText().clear();
 
-        // Enviar para servidor - mensagem aparecerá via onMensagemRecebida
         chatManager.enviarMensagem(mensagem, new ChatManager.OnMensagemEnviadaListener() {
             @Override
             public void onSucesso(MensagemDTO mensagem) {
                 if (isFragmentReady()) {
                     setBotaoEnviarEnabled(true);
-                    Log.d(TAG, "Mensagem enviada com sucesso: " + mensagem.getMensagem());
-                    // NÃO adiciona no adapter aqui - aguarda confirmação do servidor
+                    Log.d(TAG, "Mensagem enviada com sucesso");
                 }
             }
 
@@ -346,15 +569,11 @@ public class ChatFragment extends Fragment {
             public void onErro(ChatManager.ErrorType tipo, String erro) {
                 if (isFragmentReady()) {
                     setBotaoEnviarEnabled(true);
+                    Log.e(TAG, "Erro ao enviar: " + erro);
 
-                    Log.e(TAG, "Erro ao enviar - Tipo: " + tipo.getValue() +
-                            " - Erro: " + erro);
-
-                    // Mostrar mensagem específica para o usuário
                     String mensagemUsuario = obterMensagemErroEnvio(tipo);
                     mostrarToast(mensagemUsuario);
 
-                    // Restaurar texto se erro crítico
                     if (shouldRestoreMessage(tipo)) {
                         etMensagem.setText(mensagem);
                         etMensagem.setSelection(mensagem.length());
@@ -365,7 +584,6 @@ public class ChatFragment extends Fragment {
     }
 
     private boolean shouldRestoreMessage(ChatManager.ErrorType tipo) {
-        // Restaurar texto apenas em erros temporários
         return tipo == ChatManager.ErrorType.SOCKET ||
                 tipo == ChatManager.ErrorType.TIMEOUT;
     }
@@ -410,13 +628,11 @@ public class ChatFragment extends Fragment {
             @Override
             public void onErro(ChatManager.ErrorType tipo, String erro) {
                 if (isFragmentReady()) {
-                    Log.e(TAG, "Erro ao carregar mensagens - Tipo: " +
-                            tipo.getValue() + " - Erro: " + erro);
+                    Log.e(TAG, "Erro ao carregar mensagens: " + erro);
 
                     String mensagemUsuario = obterMensagemErroCarregamento(tipo);
                     mostrarToast(mensagemUsuario);
 
-                    // Em alguns casos, tentar novamente
                     if (shouldRetryLoading(tipo)) {
                         scheduleRetryLoading();
                     }
@@ -451,7 +667,7 @@ public class ChatFragment extends Fragment {
                 Log.d(TAG, "Tentando recarregar mensagens...");
                 carregarMensagens();
             }
-        }, 3000); // Retry após 3 segundos
+        }, 3000);
     }
 
     private void rolarParaUltimaMensagem() {
@@ -480,8 +696,6 @@ public class ChatFragment extends Fragment {
             }
             shouldReconnectOnResume = true;
         }
-
-        Log.d(TAG, "Status conexão: " + (conectado ? "Online" : "Desconectado"));
     }
 
     private void setBotaoEnviarEnabled(boolean enabled) {
@@ -522,7 +736,6 @@ public class ChatFragment extends Fragment {
     }
 
     private void mostrarNotificacao(MensagemDTO mensagem) {
-        // Só mostrar se fragment não está visível
         if (!isVisible() || !getUserVisibleHint()) {
             if (getContext() != null && notificationManager != null) {
                 NotificationCompat.Builder builder = new NotificationCompat.Builder(getContext(), CHANNEL_ID)
@@ -537,35 +750,56 @@ public class ChatFragment extends Fragment {
         }
     }
 
-    // Métodos de verificação de estado
+    /**
+     * Metodo público para atualizar o funcionário externamente
+     * Usado quando a MainActivity recebe uma Intent com funcionário
+     */
+    public void atualizarFuncionario(FuncionarioChatDTO novoFuncionario) {
+        if (!isAdded() || getContext() == null) {
+            Log.w(TAG, "Fragment não está anexado, salvando funcionário para depois");
+            chatPreferences.salvarUltimoFuncionario(novoFuncionario);
+            return;
+        }
+
+        Log.d(TAG, "Atualizando funcionário via método público: " +
+                novoFuncionario.getNomeFuncionario());
+
+        processarNovoFuncionario(novoFuncionario);
+    }
+
     private boolean isFragmentReady() {
         return isInitialized && isAdded() && getContext() != null;
     }
 
     private boolean isChatManagerReady() {
-        boolean ready = chatManager != null && isFragmentReady();
-
-        if (!ready) {
-            Log.d(TAG, "ChatManager não está pronto: " +
-                    "chatManager=" + (chatManager != null) +
-                    ", isFragmentReady=" + isFragmentReady());
-        }
-
-        return ready;
+        return chatManager != null && isFragmentReady();
     }
 
     @Override
     public void onResume() {
         super.onResume();
-        Log.d(TAG, "onResume - shouldReconnect: " + shouldReconnectOnResume);
+        Log.d(TAG, "onResume");
 
-        // MUDANÇA: Sempre tentar conectar se não estiver conectado
+        // Se não tem funcionário, não faz nada
+        if (funcionarioAtual == null) {
+            return;
+        }
+
+        // Verificar se funcionário mudou via SharedPreferences
+        FuncionarioChatDTO ultimoFuncionario = chatPreferences.getUltimoFuncionario();
+        if (ultimoFuncionario != null &&
+                !funcionarioAtual.getFuncionarioRec().equals(ultimoFuncionario.getFuncionarioRec())) {
+
+            Log.d(TAG, "Funcionário mudou - trocando...");
+            processarNovoFuncionario(ultimoFuncionario);
+            return;
+        }
+
+        // Reconectar se necessário
         if (isChatManagerReady()) {
             if (shouldReconnectOnResume || !chatManager.isConectado()) {
-                Log.d(TAG, "Reconectando chat no onResume...");
+                Log.d(TAG, "Reconectando chat...");
                 conectarChat();
-            } else {
-                Log.d(TAG, "Chat já conectado, não é necessário reconectar");
             }
         }
     }
@@ -573,9 +807,6 @@ public class ChatFragment extends Fragment {
     @Override
     public void onPause() {
         super.onPause();
-        Log.d(TAG, "onPause");
-
-        // Parar digitação
         pararIndicadorDigitacao();
     }
 
@@ -593,23 +824,19 @@ public class ChatFragment extends Fragment {
     @Override
     public void onDestroy() {
         super.onDestroy();
-        Log.d(TAG, "onDestroy - limpando recursos");
+        Log.d(TAG, "onDestroy");
 
-        // Limpar digitação
         pararIndicadorDigitacao();
 
-        // Limpar handlers
         if (digitandoHandler != null) {
             digitandoHandler.removeCallbacksAndMessages(null);
         }
 
-        // Destruir ChatManager
         if (chatManager != null) {
             chatManager.destroy();
             chatManager = null;
         }
 
-        // Reset state
         mensagensCarregadas = false;
         shouldReconnectOnResume = false;
 

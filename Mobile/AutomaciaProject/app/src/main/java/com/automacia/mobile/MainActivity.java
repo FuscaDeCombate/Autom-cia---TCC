@@ -1,6 +1,9 @@
 package com.automacia.mobile;
 
+import android.content.Intent;
+import android.graphics.Rect;
 import android.os.Bundle;
+import android.view.View;
 
 import androidx.activity.EdgeToEdge;
 import androidx.appcompat.app.AppCompatActivity;
@@ -17,6 +20,7 @@ import com.automacia.mobile.fragments.HomeFragment;
 import com.automacia.mobile.fragments.NotificationFragment;
 import com.automacia.mobile.fragments.PreferencesFragment;
 import com.automacia.mobile.fragments.UserFragment;
+import com.automacia.mobile.models.FuncionarioChatDTO;
 import com.automacia.mobile.models.UsuarioDTO;
 import com.nafis.bottomnavigation.NafisBottomNavigation;
 
@@ -64,12 +68,22 @@ public class MainActivity extends AppCompatActivity {
         setupWindowInsets();
         setupNafisBottomNavigation();
         setupUserDTO();
+        setupKeyboardListener();
 
         // Carrega fragments iniciais apenas se não houver estado salvo
         if (savedInstanceState == null) {
             initFragments();
             binding.bottomNavigation.show(ID_HOME, true);
         }
+
+        verificarNavegacaoChat(getIntent());
+    }
+
+    @Override
+    protected void onNewIntent(Intent intent) {
+        super.onNewIntent(intent);
+        setIntent(intent);
+        verificarNavegacaoChat(intent);
     }
 
     /**
@@ -218,6 +232,54 @@ public class MainActivity extends AppCompatActivity {
                 // Por exemplo: refresh do perfil
                 break;
         }
+    }
+
+    /**
+     * Verifica se deve navegar para o ChatFragment
+     */
+    private void verificarNavegacaoChat(Intent intent) {
+        if (intent == null) return;
+
+        if (intent.getBooleanExtra("navegar_para_chat", false)) {
+            FuncionarioChatDTO funcionario =
+                    (FuncionarioChatDTO) intent.getSerializableExtra("funcionario");
+
+            // Navegar para a aba do chat
+            binding.bottomNavigation.show(ID_CHAT, true);
+
+            // Força a troca real do fragment ativo
+            handleNavigationClick(ID_CHAT);
+
+            // Se há um funcionário específico, atualizar o ChatFragment
+            if (funcionario != null && chatFragment instanceof ChatFragment) {
+                ((ChatFragment) chatFragment).atualizarFuncionario(funcionario);
+            }
+
+            // Limpar flag da intent para não processar novamente
+            intent.removeExtra("navegar_para_chat");
+        }
+    }
+
+    /**
+     * Detecta quando o teclado é mostrado/escondido e ajusta a visibilidade do bottom navigation
+     */
+    private void setupKeyboardListener() {
+        binding.getRoot().getViewTreeObserver().addOnGlobalLayoutListener(() -> {
+            Rect r = new Rect();
+            binding.getRoot().getWindowVisibleDisplayFrame(r);
+
+            int screenHeight = binding.getRoot().getRootView().getHeight();
+            int keypadHeight = screenHeight - r.bottom;
+
+            // Se a altura do teclado for maior que 15% da tela, considera que está aberto
+            if (keypadHeight > screenHeight * 0.15) {
+                // Teclado aberto - escond  e o bottom navigation
+                binding.bottomNavigation.setVisibility(View.GONE);
+            } else {
+                // Teclado fechado - mostra o bottom navigation
+                binding.bottomNavigation.setVisibility(View.VISIBLE);
+            }
+        });
     }
 
     /**

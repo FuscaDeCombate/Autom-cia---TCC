@@ -15,7 +15,7 @@
         android:layout_height="match_parent"
         android:layout_marginBottom="80dp"
         android:clipToPadding="false"
-        android:paddingBottom="16dp"/>
+        android:paddingBottom="20dp"/>
 
     <!-- Nafis Bottom Navigation Bar -->
     <com.nafis.bottomnavigation.NafisBottomNavigation

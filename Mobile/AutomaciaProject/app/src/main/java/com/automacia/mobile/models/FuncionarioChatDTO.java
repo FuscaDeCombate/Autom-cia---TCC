@@ -1,6 +1,8 @@
 package com.automacia.mobile.models;
 
-public class FuncionarioChatDTO {
+import java.io.Serializable;
+
+public class FuncionarioChatDTO implements Serializable {
     private String funcionarioRec;
     private String nomeFuncionario;
     private String tipoFuncionario;

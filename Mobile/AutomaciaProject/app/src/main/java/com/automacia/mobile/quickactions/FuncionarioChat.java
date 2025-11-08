@@ -1,5 +1,6 @@
 package com.automacia.mobile.quickactions;
 
+import android.content.Intent;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
@@ -21,11 +22,13 @@ import androidx.core.view.WindowInsetsCompat;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
+import com.automacia.mobile.MainActivity;
 import com.automacia.mobile.R;
 import com.automacia.mobile.adapters.FuncionarioChatAdapter;
 import com.automacia.mobile.models.FuncionarioChatDTO;
 import com.automacia.mobile.models.UsuarioDTO;
 import com.automacia.mobile.services.FuncionarioChatService;
+import com.automacia.mobile.utils.ChatPreferences;
 import com.google.android.material.chip.Chip;
 import com.google.android.material.floatingactionbutton.FloatingActionButton;
 
@@ -36,6 +39,7 @@ public class FuncionarioChat extends AppCompatActivity {
 
     private static final String TAG = "FuncionarioChat";
     private static final String EXTRA_USUARIO = "usuario";
+    private static final String EXTRA_MODO_SELECAO = "modo_selecao";
 
     // Views
     private ImageButton btnVoltar;
@@ -65,6 +69,9 @@ public class FuncionarioChat extends AppCompatActivity {
     // Filtro atual
     private String filtroAtual = "TODOS";
 
+    // Modo de operacao
+    private boolean modoSelecao = false;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -79,6 +86,7 @@ public class FuncionarioChat extends AppCompatActivity {
 
         // Recupera usuário da intent
         recuperarUsuario();
+        verificarModoSelecao();
 
         // Inicializa componentes
         inicializarViews();
@@ -103,6 +111,14 @@ public class FuncionarioChat extends AppCompatActivity {
         } else {
             Log.d(TAG, "Usuário recuperado: " + usuarioLogado.getCpf());
         }
+    }
+
+    /**
+     * Verifica se foi aberto em modo seleção
+     */
+    private void verificarModoSelecao() {
+        modoSelecao = getIntent().getBooleanExtra(EXTRA_MODO_SELECAO, false);
+        Log.d(TAG, "Modo seleção: " + modoSelecao);
     }
 
     /**
@@ -139,20 +155,55 @@ public class FuncionarioChat extends AppCompatActivity {
      */
     private void inicializarRecyclerView() {
         adapter = new FuncionarioChatAdapter(funcionario -> {
-            // TODO: Implementar abertura do chat com o funcionário selecionado
-            // Intent intent = new Intent(FuncionarioChat.this, ChatActivity.class);
-            // intent.putExtra("usuario", usuarioLogado);
-            // intent.putExtra("funcionario", funcionario);
-            // startActivity(intent);
-
-            Toast.makeText(this,
-                    "Chat com " + funcionario.getNomeFuncionario() + " (em desenvolvimento)",
-                    Toast.LENGTH_SHORT).show();
+            if (modoSelecao) {
+                // MODO 1: Foi aberto pelo ChatFragment - retorna resultado
+                retornarFuncionarioSelecionado(funcionario);
+            } else {
+                // MODO 2: Foi aberto de outro lugar - abre chat diretamente
+                abrirChatComFuncionario(funcionario);
+            }
         });
 
         recyclerViewFuncionarios.setLayoutManager(new LinearLayoutManager(this));
         recyclerViewFuncionarios.setAdapter(adapter);
         recyclerViewFuncionarios.setHasFixedSize(true);
+    }
+
+    /**
+     * MODO 1: Retorna funcionário para quem chamou (ChatFragment)
+     */
+    private void retornarFuncionarioSelecionado(FuncionarioChatDTO funcionario) {
+        Intent resultIntent = new Intent();
+        resultIntent.putExtra("funcionario", funcionario);
+        setResult(RESULT_OK, resultIntent);
+
+        Toast.makeText(this,
+                "Conectando com " + funcionario.getNomeFuncionario(),
+                Toast.LENGTH_SHORT).show();
+
+        finish();
+    }
+
+    /**
+     * MODO 2: Abre MainActivity e navega para ChatFragment com funcionário
+     */
+    private void abrirChatComFuncionario(FuncionarioChatDTO funcionario) {
+        // Salvar funcionário em SharedPreferences
+        ChatPreferences prefs = new ChatPreferences(this);
+        prefs.salvarUltimoFuncionario(funcionario);
+
+        // Voltar para MainActivity e ir para aba do Chat
+        Intent intent = new Intent(this, MainActivity.class);
+        intent.putExtra("navegar_para_chat", true); // Flag para MainActivity
+        intent.putExtra("funcionario", funcionario);
+        intent.setFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP | Intent.FLAG_ACTIVITY_SINGLE_TOP);
+        startActivity(intent);
+
+        Toast.makeText(this,
+                "Abrindo chat com " + funcionario.getNomeFuncionario(),
+                Toast.LENGTH_SHORT).show();
+
+        finish();
     }
 
     /**
@@ -402,6 +453,15 @@ public class FuncionarioChat extends AppCompatActivity {
     private void esconderEmptyState() {
         emptyState.setVisibility(View.GONE);
         recyclerViewFuncionarios.setVisibility(View.VISIBLE);
+    }
+
+    @Override
+    public void onBackPressed() {
+        if (modoSelecao) {
+            // Cancelou seleção
+            setResult(RESULT_CANCELED);
+        }
+        super.onBackPressed();
     }
 
     @Override

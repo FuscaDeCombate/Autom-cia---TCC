@@ -7,6 +7,7 @@ public class NotificationDTO {
         PRESCRIPTION_EXPIRING,
         NEW_PRESCRIPTION,
         MEDICATION_REMINDER,
+        NEW_MESSAGE,
         PHARMACY_READY,
         SYSTEM_UPDATE,
         APPOINTMENT_REMINDER,
@@ -67,6 +68,11 @@ public class NotificationDTO {
                 iconResource = "ic_calendar";
                 backgroundColorResource = "orange_light";
                 iconTintResource = "orange";
+                break;
+            case NEW_MESSAGE:
+                iconResource = "ic_chat"; // ← Criar este drawable
+                backgroundColorResource = "purple_light";
+                iconTintResource = "purple";
                 break;
             default:
                 iconResource = "ic_notifications";

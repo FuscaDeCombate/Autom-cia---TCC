@@ -171,6 +171,17 @@ public class AppNotificationManager {
     }
 
     /**
+     * Cria notificação de NOVA MENSAGEM
+     */
+    public NotificationDTO notifyNewMessage(String senderName, String messagePreview) {
+        return createImmediateNotification(
+                "Nova mensagem de " + senderName,
+                messagePreview,
+                NotificationDTO.NotificationType.NEW_MESSAGE
+        );
+    }
+
+    /**
      * Cancela uma notificação agendada
      */
     public void cancelScheduledNotification(int notificationId) {

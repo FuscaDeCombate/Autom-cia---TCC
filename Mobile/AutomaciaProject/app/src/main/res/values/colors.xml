@@ -28,6 +28,8 @@
     <color name="blue_light">#E3F2FD</color>
     <color name="orange">#FF9800</color>
     <color name="orange_light">#FFF3E0</color>
+    <color name="purple">#9C27B0</color>
+    <color name="purple_light">#E1BEE7</color>
 
     <!-- Cores de fundo -->
     <color name="background">#F5F5F5</color>
