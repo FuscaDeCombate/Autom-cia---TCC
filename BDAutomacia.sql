@@ -275,7 +275,6 @@ BEGIN
                 BEGIN
                         SELECT 'Senha incorreta' AS 'Login_Paciente_Retorno';
                 END
-
         END TRY
         BEGIN CATCH
                 SELECT 'Erro no processo de login' AS 'Login_Paciente_Retorno';
@@ -662,30 +661,41 @@ CREATE PROCEDURE Mostra_Chat(
         @ID_Funcionario_M_Chat INT
 ) AS
 BEGIN
+	DECLARE @Nome_P VARCHAR(50),
+			@Nome_F VARCHAR(50);
         BEGIN TRY
                 IF NOT EXISTS (SELECT 1 FROM Paciente WHERE Paciente_F = @CPF_M_Chat AND Ativo = 1)
                 BEGIN
                         SELECT 'CPF do paciente não encontrado ou inativo' AS 'Retorno_Mostra_Chat';
                         RETURN;
                 END
-                IF NOT EXISTS (SELECT 1 FROM Funcionario WHERE Funcionar_Rec = @ID_Funcionario_M_Chat AND Ativo = 1)
+				ELSE IF NOT EXISTS (SELECT 1 FROM Funcionario WHERE Funcionar_Rec = @ID_Funcionario_M_Chat AND Ativo = 1)
                 BEGIN
                         SELECT 'Funcionário não encontrado ou inativo' AS 'Retorno_Mostra_Chat';
                         RETURN;
                 END
-                OPEN SYMMETRIC KEY EnK_Mensag DECRYPTION BY CERTIFICATE Cert_Mensag;
-                SELECT 
-                        ID_Chat,
-                        Paciente_F,
-                        Funcionar_Rec,
-                        CONVERT(VARCHAR(500), DECRYPTBYKEY(Mensagem)) AS Mensagem,
-                        Hora_Envio,
-						MsgPaciente
-                FROM Mensagem 
-                WHERE Paciente_F = @CPF_M_Chat 
-                  AND Funcionar_Rec = @ID_Funcionario_M_Chat
-                ORDER BY Hora_Envio ASC;
-                CLOSE SYMMETRIC KEY EnK_Mensag;
+				ELSE
+					BEGIN
+						SET @Nome_F = (SELECT Nome_Funcionario FROM Funcionario WHERE Funcionar_Rec = @ID_Funcionario_M_Chat);
+						IF (SELECT Nome_Social FROM Paciente WHERE Paciente_F = @CPF_M_Chat) is null SET @Nome_P = (SELECT Nome_Paciente FROM Paciente WHERE Paciente_F = @CPF_M_Chat)
+						ELSE SET @Nome_P = (SELECT Nome_Social FROM Paciente WHERE Paciente_F = @CPF_M_Chat)
+						OPEN SYMMETRIC KEY EnK_Mensag DECRYPTION BY CERTIFICATE Cert_Mensag;
+						SELECT 
+								ID_Chat,
+								Paciente_F,
+								@Nome_P AS 'Nome_Paciente',
+								Funcionar_Rec,
+								@Nome_F AS 'Nome_Funcionario',
+								CONVERT(VARCHAR(500), DECRYPTBYKEY(Mensagem)) AS Mensagem,
+								Hora_Envio,
+								MsgPaciente
+						FROM Mensagem 
+						WHERE Paciente_F = @CPF_M_Chat 
+						  AND Funcionar_Rec = @ID_Funcionario_M_Chat
+						ORDER BY Hora_Envio ASC;
+						CLOSE SYMMETRIC KEY EnK_Mensag;
+					END
+                
         END TRY
         BEGIN CATCH
                 IF EXISTS (SELECT 1 FROM sys.openkeys WHERE key_name = 'EnK_Mensag')
@@ -856,15 +866,13 @@ CREATE PROCEDURE Lista_Funcionarios_Empresa(
 ) AS
 BEGIN
         DECLARE
-                @Empresa_Existe BIT,
-                @Senha_Valida BIT;
+                @Empresa_Existe BIT;
 		Set @Empresa_Existe = 0;
-		Set @Senha_Valida = 0;
         BEGIN TRY
                 SET @CNPJ_Contratante = LTRIM(RTRIM(@CNPJ_Contratante));
                 IF EXISTS (SELECT 1 FROM Contratante WHERE CNPJ = @CNPJ_Contratante)
                         SET @Empresa_Existe = 1;
-                IF (@Empresa_Existe = 1) AND (@Senha_Valida = 1)
+                IF (@Empresa_Existe = 1)
                 BEGIN
                         SELECT 
                                 f.Funcionar_Rec,
@@ -885,8 +893,6 @@ BEGIN
                 BEGIN
                         IF (@Empresa_Existe = 0) 
                                 SELECT 'Empresa não encontrada' AS 'Retorno_Lista_Funcionarios';
-                        ELSE IF (@Senha_Valida = 0) 
-                                SELECT 'Senha da empresa incorreta' AS 'Retorno_Lista_Funcionarios';
                 END
         END TRY
         BEGIN CATCH
@@ -1158,6 +1164,37 @@ BEGIN
         BEGIN CATCH
                 SELECT 'Erro ao atualizar receitas vencidas' AS 'Retorno_Atualiza_Receita';
         END CATCH
+END
+GO
+CREATE PROCEDURE Funcionarios_Paciente_Chat (
+    @CPF_Paciente VARCHAR(11)
+)
+AS
+BEGIN
+    BEGIN TRY
+        SELECT 
+            f.Funcionar_Rec,
+            f.Nome_Funcionario,
+            tf.Tipo_Funci AS Tipo_Funcionario,
+            c.Nome_Contratante AS Hospital,
+            CASE 
+                WHEN EXISTS (
+                    SELECT 1 
+                    FROM Mensagem m 
+                    WHERE m.Funcionar_Rec = f.Funcionar_Rec 
+                      AND m.Paciente_F = @CPF_Paciente
+                ) THEN 1
+                ELSE 0
+            END AS ChatAberto,
+            f.Ativo
+        FROM Funcionario f
+        INNER JOIN Tipo_Funcionario tf ON f.ID_Tipo_Funcionario = tf.ID_Tipo_Funcionario
+        INNER JOIN Contratante c ON f.CNPJ = c.CNPJ
+        ORDER BY c.Nome_Contratante, f.Nome_Funcionario;
+    END TRY
+    BEGIN CATCH
+        SELECT 'Erro ao listar funcionários e status de chat' AS Retorno;
+    END CATCH
 END
 GO
 Exec Contrata '1', 0xABCDEF, 'CayoLandia',			'senha';
@@ -2294,9 +2331,9 @@ EXEC Alt_Paciente '84629517038', 'Pass$321', 'gustavo.rocha.novo@email.com', 'Gu
 EXEC Alt_Paciente '92837465010', 'Acesso!654', 'larissa.dias.novo@email.com', 'Larissa Dias Santos', 'Lari', '11915678999';
 EXEC Alt_Funcionario 20, 'NovaSenhaFunc@123', '9', 'senha7';
 EXEC Alt_Funcionario 30, 'SenhaAtualizada#456', '7', 'senha123?';
-EXEC Lista_Funcionarios_Empresa '1', 'senha', 0;
-EXEC Lista_Funcionarios_Empresa '6', 'senhaMuitoBoa', 1;
-EXEC Lista_Funcionarios_Empresa '9', 'senha7', 0;
+EXEC Lista_Funcionarios_Empresa '1', 0;
+EXEC Lista_Funcionarios_Empresa '6', 1;
+EXEC Lista_Funcionarios_Empresa '9', 0;
 EXEC Envia_Mensagem_P 7, '26395817042', 'Meloxicam funcionou muito bem! Dor sumiu em 2 dias!';
 EXEC Envia_Mensagem_F '26395817042', 7, 'Excelente! Continue por mais 5 dias e pare. Retorno em 15 dias.';
 EXEC Envia_Mensagem_P 8, '58174629033', 'Farmácia só tinha genérico do Tramadol. Funciona igual?';
@@ -2320,3 +2357,5 @@ EXEC Registra_Receita 12, 2, 'senha123?', '22-02-2026', '28496375041', 'Fluconaz
 EXEC Registra_Receita 13, 2, 'senha123?', '24-02-2026', '53714928063', 'Propranolol 40mg', 'Tomar 1 comp 2x ao dia', 60;
 EXEC Registra_Receita 14, 2, 'senha123?', '26-02-2026', '84629517038', 'Topiramato 25mg', 'Tomar 1 comp 2x ao dia', 60;
 EXEC Registra_Receita 15, 2, 'senha123?', '28-02-2026', '92837465010', 'Pregabalina 75mg + Duloxetina 60mg', 'Pregabalina 1 cáps 2x, Duloxetina 1 cáps manhã', 1;
+
+Exec Mostra_Chat '34719628057', 15;
