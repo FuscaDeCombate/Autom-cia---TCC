@@ -1,0 +1,474 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Automácia - Início</title>
+    <link rel="stylesheet" href="../CSS/headerfoot.css">
+    <link rel="stylesheet" href="../CSS/intro.css">
+    <link rel="shortcut icon" href="../Imagem/file.png">
+        <style>
+        /* Mobile Menu Overlay Styles */
+        .mobile-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.95);
+            backdrop-filter: blur(10px);
+            z-index: 9999;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            opacity: 0;
+            visibility: hidden;
+            transition: opacity 0.3s ease, visibility 0.3s ease;
+        }
+
+        .mobile-overlay.active {
+            opacity: 1;
+            visibility: visible;
+        }
+
+        .mobile-overlay-close {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            width: 40px;
+            height: 40px;
+            background: transparent;
+            border: none;
+            cursor: pointer;
+            padding: 0;
+            z-index: 10000;
+        }
+
+        .mobile-overlay-close::before,
+        .mobile-overlay-close::after {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 30px;
+            height: 3px;
+            background: #66ccff;
+            transition: all 0.3s ease;
+        }
+
+        .mobile-overlay-close::before {
+            transform: translate(-50%, -50%) rotate(45deg);
+        }
+
+        .mobile-overlay-close::after {
+            transform: translate(-50%, -50%) rotate(-45deg);
+        }
+
+        .mobile-overlay-close:hover::before,
+        .mobile-overlay-close:hover::after {
+            background: #fff;
+        }
+
+        .mobile-nav-menu {
+            display: flex;
+            flex-direction: column;
+            gap: 30px;
+            align-items: center;
+            padding: 40px;
+        }
+
+        .mobile-nav-item {
+            opacity: 0;
+            transform: translateY(20px);
+            transition: all 0.4s ease;
+        }
+
+        .mobile-overlay.active .mobile-nav-item {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        .mobile-overlay.active .mobile-nav-item:nth-child(1) { transition-delay: 0.1s; }
+        .mobile-overlay.active .mobile-nav-item:nth-child(2) { transition-delay: 0.2s; }
+        .mobile-overlay.active .mobile-nav-item:nth-child(3) { transition-delay: 0.3s; }
+        .mobile-overlay.active .mobile-nav-item:nth-child(4) { transition-delay: 0.4s; }
+
+        .mobile-nav-item a {
+            font-size: 2rem;
+            font-weight: bold;
+            color: #fff;
+            text-decoration: none;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            padding: 15px 30px;
+            border-radius: 10px;
+            transition: all 0.3s ease;
+            display: block;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .mobile-nav-item a::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(102, 204, 255, 0.3), transparent);
+            transition: left 0.5s ease;
+        }
+
+        .mobile-nav-item a:hover {
+            color: #66ccff;
+            transform: scale(1.1);
+        }
+
+        .mobile-nav-item a:hover::before {
+            left: 100%;
+        }
+
+        .mobile-menu {
+            cursor: pointer;
+            transition: transform 0.3s ease;
+        }
+
+        .mobile-menu:hover {
+            transform: rotate(90deg);
+        }
+
+        footer {
+            max-width: none;
+        }
+    </style>
+</head>
+<body>
+         <!-- Mobile Menu Overlay -->
+    <div class="mobile-overlay" id="mobileOverlay">
+        <button class="mobile-overlay-close" id="closeOverlay" aria-label="Fechar menu"></button>
+        <nav class="mobile-nav-menu">
+            <div class="mobile-nav-item">
+                <a href="download.html">Baixar</a>
+            </div>
+            <div class="mobile-nav-item">
+                <a href="sobre.html">Sobre</a>
+            </div>
+            <div class="mobile-nav-item">
+                <a href="faq.html">FAQ</a>
+            </div>
+            <div class="mobile-nav-item">
+                <a href="../index.php">Minha Conta</a>
+            </div>
+        </nav>
+    </div>
+
+    <!-- Animated Background -->
+    <div class="animated-bg">
+        <div class="floating-shapes">
+            <div class="shape"></div>
+            <div class="shape"></div>
+            <div class="shape"></div>
+            <div class="shape"></div>
+            <div class="shape"></div>
+        </div>
+    </div>
+    
+    <!-- Particles Effect -->
+    <canvas id="particles-canvas"></canvas>
+    
+    <header>
+        <div id="headerimg">
+            <a href="Páginas/introdução.html" class="logo-link">
+                <img src="../Imagem/file.png" alt="Logo" class="logo-img">
+                <div class="logo-glow"></div>
+            </a>
+        </div>
+        <div class="headerdiv nav-item" data-nav="download">
+            <a href="../Páginas/download.html">
+                <span>Baixar</span>
+                <div class="nav-ripple"></div>
+            </a>
+        </div>
+        <div class="headerdiv nav-item" data-nav="sobre">
+            <a href="../Páginas/sobre.html">
+                <span>Sobre</span>
+                <div class="nav-ripple"></div>
+            </a>
+        </div>
+        <div class="headerdiv nav-item" data-nav="faq">
+            <a href="../Páginas/faq.html">
+                <span>FAQ</span>
+                <div class="nav-ripple"></div>
+            </a>
+        </div>
+        <div class="headerdiv user-section">
+            <a href="../index.php" class="user-btn">
+                <img src="../Imagem/user.png" alt="Usuário">
+                <div class="user-indicator"></div>
+            </a>
+            <img src="../Imagem/cardapio.png" id="bubulgue" alt="Menu" class="mobile-menu">
+        </div>
+    </header>
+    
+    <main>
+        <div class="intro-section" data-aos="fade-up">
+            <h1 class="main-title">Bem-vindo ao Automácia</h1>
+            <p class="intro-text">
+                Automácia é um serviço para clínicas, hospitais, farmácias e seus clientes.
+            </p>
+            <p class="intro-text">
+                Temos diversas funções que visam facilitar a comunicação entre o cliente e a clínica/hospital.
+            </p>
+            <p class="intro-highlight">
+                Alguns exemplos são:
+            </p>
+        </div>
+
+        <div class="features-container">
+            <div class="feature-card left-aligned" data-aos="fade-right">
+                <div class="feature-content">
+                    <div class="feature-text">
+                        <div class="feature-icon">
+                            <svg viewBox="0 0 24 24" fill="currentColor">
+                                <path d="M12,3C6.5,3 2,6.58 2,11C2.05,13.15 3.06,15.17 4.75,16.5C4.75,17.1 4.33,18.67 2,21C4.37,20.89 6.64,20 8.47,18.5C9.61,18.83 10.81,19 12,19C17.5,19 22,15.42 22,11C22,6.58 17.5,3 12,3M12,17C7.58,17 4,14.31 4,11C4,7.69 7.58,5 12,5C16.42,5 20,7.69 20,11C20,14.31 16.42,17 12,17Z"/>
+                            </svg>
+                        </div>
+                        <h2>Chat Seguro</h2>
+                        <p>
+                            Converse de forma rápida, fácil e segura com profissionais da saúde utilizando o nosso chat.
+                        </p>
+                    </div>
+                    <div class="feature-image">
+                        <div class="image-wrapper">
+                            <img src="../Imagem/chat.webp" alt="Chat">
+                            <div class="image-glow"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="feature-card right-aligned" data-aos="fade-left">
+                <div class="feature-content">
+                    <div class="feature-image">
+                        <div class="image-wrapper">
+                            <img src="../Imagem/cell.webp" alt="Celular">
+                            <div class="image-glow"></div>
+                        </div>
+                    </div>
+                    <div class="feature-text">
+                        <div class="feature-icon">
+                            <svg viewBox="0 0 24 24" fill="currentColor">
+                                <path d="M19,19H5V5H19M19,3H5A2,2 0 0,0 3,5V19A2,2 0 0,0 5,21H19A2,2 0 0,0 21,19V5A2,2 0 0,0 19,3M13.96,12.29L11.21,15.83L9.25,13.47L6.5,17H17.5L13.96,12.29Z"/>
+                            </svg>
+                        </div>
+                        <h2>Receitas Online</h2>
+                        <p>
+                            Visualize suas receitas online, sem o medo de não entender o que está escrito nela ou perdê-la.
+                        </p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="feature-card left-aligned" data-aos="fade-right">
+                <div class="feature-content">
+                    <div class="feature-text">
+                        <div class="feature-icon">
+                            <svg viewBox="0 0 24 24" fill="currentColor">
+                                <path d="M4,6H20V16H4M20,18A2,2 0 0,0 22,16V6C22,4.89 21.1,4 20,4H4C2.89,4 2,4.89 2,6V16A2,2 0 0,0 4,18H0V20H24V18H20Z"/>
+                            </svg>
+                        </div>
+                        <h2>Multiplataforma</h2>
+                        <p>
+                            É possível utilizar nossos serviços em nosso site e/ou Mobile caso seja cliente, e temos em Desktop para hospitais e clínicas parceiras.
+                        </p>
+                    </div>
+                    <div class="feature-image">
+                        <div class="image-wrapper">
+                            <img src="../Imagem/cellputer.webp" alt="Multiplataforma">
+                            <div class="image-glow"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="cta-section" data-aos="fade-up">
+            <h2>Pronto para começar?</h2>
+            <p>Experimente o Automácia e transforme a gestão de receitas médicas</p>
+            <a href="download.html" class="cta-button">
+                <span>Baixar Agora</span>
+                <svg viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M5,20H19V18H5M19,9H15V3H9V9H5L12,16L19,9Z"/>
+                </svg>
+            </a>
+        </div>
+    </main>
+    
+    <footer>
+        <div id="direitos">
+            <img src="../Imagem/file.png" alt="Logo">
+            <p>Todos os direitos reservados ao grupo Automácia co.</p>
+        </div>
+        <div class="spacer"></div>
+        <div id="abas">
+            <div class="footer-section">
+                <p class="footer-title">ABAS PRINCIPAIS</p>
+                <a href="download.html">BAIXAR</a>
+                <a href="sobre.html">SOBRE</a>
+                <a href="faq.html">FAQ</a>
+            </div>
+            <div class="footer-section">
+                <p class="footer-title">REDES SOCIAIS</p>
+                <a href="#" aria-label="Twitter">X</a>
+                <a href="#" aria-label="Instagram">Instagram</a>
+                <a href="#" aria-label="Github">Github</a>
+            </div>
+        </div>
+    </footer>
+
+    <!-- JavaScript -->
+    <script>
+        // Simple Particles System (like index.html)
+        function initParticles() {
+            const canvas = document.getElementById('particles-canvas');
+            const ctx = canvas.getContext('2d');
+            let particles = [];
+
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+
+            class Particle {
+                constructor() {
+                    this.x = Math.random() * canvas.width;
+                    this.y = Math.random() * canvas.height;
+                    this.size = Math.random() * 3 + 1;
+                    this.speedX = Math.random() * 2 - 1;
+                    this.speedY = Math.random() * 2 - 1;
+                    this.opacity = Math.random() * 0.5 + 0.2;
+                }
+
+                update() {
+                    this.x += this.speedX;
+                    this.y += this.speedY;
+
+                    if (this.x > canvas.width) this.x = 0;
+                    else if (this.x < 0) this.x = canvas.width;
+
+                    if (this.y > canvas.height) this.y = 0;
+                    else if (this.y < 0) this.y = canvas.height;
+                }
+
+                draw() {
+                    ctx.globalAlpha = this.opacity;
+                    ctx.fillStyle = '#66ccff';
+                    ctx.beginPath();
+                    ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
+                    ctx.fill();
+                }
+            }
+
+            for (let i = 0; i < 50; i++) {
+                particles.push(new Particle());
+            }
+
+            function animate() {
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+                particles.forEach(particle => {
+                    particle.update();
+                    particle.draw();
+                });
+                requestAnimationFrame(animate);
+            }
+
+            animate();
+
+            window.addEventListener('resize', () => {
+                canvas.width = window.innerWidth;
+                canvas.height = window.innerHeight;
+            });
+        }
+
+        // Ripple Effect
+        function createRipple(e, element) {
+            const ripple = element.querySelector('.nav-ripple');
+            if (!ripple) return;
+
+            const rect = element.getBoundingClientRect();
+            const size = Math.max(rect.width, rect.height);
+            const x = e.clientX - rect.left - size / 2;
+            const y = e.clientY - rect.top - size / 2;
+
+            ripple.style.width = ripple.style.height = size + 'px';
+            ripple.style.left = x + 'px';
+            ripple.style.top = y + 'px';
+            ripple.classList.add('active');
+
+            setTimeout(() => {
+                ripple.classList.remove('active');
+            }, 600);
+        }
+
+        // Scroll Animation Observer
+        const observerOptions = {
+            threshold: 0.1,
+            rootMargin: '0px 0px -50px 0px'
+        };
+
+        const observer = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    entry.target.classList.add('animate-in');
+                }
+            });
+        }, observerOptions);
+
+        // Initialize
+        document.addEventListener('DOMContentLoaded', () => {
+            initParticles();
+
+            const navItems = document.querySelectorAll('.nav-item');
+            navItems.forEach(item => {
+                item.addEventListener('click', (e) => {
+                    createRipple(e, item);
+                });
+            });
+
+            const animatedElements = document.querySelectorAll('[data-aos]');
+            animatedElements.forEach(el => observer.observe(el));
+        });
+
+                // Mobile Menu Toggle
+        const bubulgue = document.getElementById('bubulgue');
+        const mobileOverlay = document.getElementById('mobileOverlay');
+        const closeOverlay = document.getElementById('closeOverlay');
+
+        bubulgue.addEventListener('click', () => {
+            mobileOverlay.classList.add('active');
+            document.body.style.overflow = 'hidden';
+        });
+
+        closeOverlay.addEventListener('click', () => {
+            mobileOverlay.classList.remove('active');
+            document.body.style.overflow = '';
+        });
+
+        // Close overlay when clicking outside menu
+        mobileOverlay.addEventListener('click', (e) => {
+            if (e.target === mobileOverlay) {
+                mobileOverlay.classList.remove('active');
+                document.body.style.overflow = '';
+            }
+        });
+
+        // Close overlay when clicking on a link
+        const mobileNavLinks = document.querySelectorAll('.mobile-nav-item a');
+        mobileNavLinks.forEach(link => {
+            link.addEventListener('click', () => {
+                mobileOverlay.classList.remove('active');
+                document.body.style.overflow = '';
+            });
+        });
+    </script>
+</body>
+</html>

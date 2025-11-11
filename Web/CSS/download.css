@@ -1,0 +1,477 @@
+/* Download Page Styles */
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    background: linear-gradient(135deg, #004c9e 0%, #002a5c 50%, #000000 100%);
+    background-attachment: fixed;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    overflow-x: hidden;
+}
+
+/* Animated Background */
+.animated-bg {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    z-index: -2;
+    overflow: hidden;
+}
+
+.floating-shapes {
+    position: absolute;
+    width: 100%;
+    height: 100%;
+}
+
+.shape {
+    position: absolute;
+    background: linear-gradient(45deg, rgba(102, 204, 255, 0.1), rgba(0, 76, 158, 0.05));
+    border-radius: 50%;
+    animation: float 15s infinite ease-in-out;
+}
+
+.shape:nth-child(1) {
+    width: 100px;
+    height: 100px;
+    top: 20%;
+    left: 10%;
+    animation-delay: 0s;
+}
+
+.shape:nth-child(2) {
+    width: 150px;
+    height: 150px;
+    top: 60%;
+    right: 10%;
+    animation-delay: -5s;
+}
+
+.shape:nth-child(3) {
+    width: 80px;
+    height: 80px;
+    top: 80%;
+    left: 20%;
+    animation-delay: -10s;
+}
+
+.shape:nth-child(4) {
+    width: 120px;
+    height: 120px;
+    top: 30%;
+    right: 30%;
+    animation-delay: -7s;
+}
+
+.shape:nth-child(5) {
+    width: 200px;
+    height: 200px;
+    top: 10%;
+    left: 70%;
+    animation-delay: -3s;
+}
+
+@keyframes float {
+    0%, 100% { transform: translateY(0px) rotate(0deg); }
+    33% { transform: translateY(-30px) rotate(120deg); }
+    66% { transform: translateY(30px) rotate(240deg); }
+}
+
+/* Particles Canvas */
+#particles-canvas {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    z-index: -1;
+    pointer-events: none;
+}
+
+/* Main Content */
+main {
+    flex: 1;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: 3rem 2rem;
+    min-height: calc(100vh - 20vh);
+    position: relative;
+}
+
+.main-container {
+    display: flex;
+    flex-direction: column;
+    gap: 3rem;
+    max-width: 1200px;
+    width: 100%;
+    align-items: center;
+}
+
+.welcome-text {
+    text-align: center;
+    margin-bottom: 1rem;
+}
+
+.page-title {
+    font-size: 3rem;
+    color: white;
+    font-family: 'Segoe UI', sans-serif;
+    font-weight: 700;
+    margin-bottom: 1rem;
+    text-shadow: 0 0 30px rgba(102, 204, 255, 0.5);
+}
+
+.subtitle {
+    font-size: 1.3rem;
+    color: rgba(255, 255, 255, 0.8);
+    font-family: 'Segoe UI', sans-serif;
+    font-weight: 300;
+}
+
+.download-container {
+    display: flex;
+    gap: 3rem;
+    width: 100%;
+    max-width: 1000px;
+    justify-content: center;
+}
+
+/* Download Cards */
+.download-card {
+    flex: 1;
+    max-width: 450px;
+    background: linear-gradient(135deg, 
+        rgba(255, 255, 255, 0.1) 0%,
+        rgba(255, 255, 255, 0.05) 50%,
+        rgba(255, 255, 255, 0.02) 100%);
+    backdrop-filter: blur(20px);
+    border: 1px solid rgba(255, 255, 255, 0.18);
+    border-radius: 24px;
+    padding: 3rem 2rem;
+    position: relative;
+    overflow: hidden;
+    transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+    box-shadow: 
+        0 8px 32px rgba(0, 76, 158, 0.2),
+        inset 0 1px 0 rgba(255, 255, 255, 0.2);
+}
+
+.card-bg-effect {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: linear-gradient(45deg, 
+        rgba(102, 204, 255, 0.05) 0%,
+        transparent 50%,
+        rgba(0, 76, 158, 0.05) 100%);
+    opacity: 0;
+    transition: opacity 0.3s ease;
+}
+
+.download-card:hover .card-bg-effect {
+    opacity: 1;
+}
+
+.card-content {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 1.5rem;
+    position: relative;
+    z-index: 2;
+}
+
+.platform-icon {
+    position: relative;
+    width: 120px;
+    height: 120px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 1rem;
+}
+
+.platform-icon img {
+    width: 90px;
+    height: 90px;
+    object-fit: contain;
+    filter: drop-shadow(0 8px 16px rgba(0, 76, 158, 0.4));
+    transition: all 0.3s ease;
+    position: relative;
+    z-index: 2;
+}
+
+.icon-pulse {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 120px;
+    height: 120px;
+    background: radial-gradient(circle, rgba(102, 204, 255, 0.3) 0%, transparent 70%);
+    border-radius: 50%;
+    animation: pulse-glow 2s ease-in-out infinite;
+}
+
+@keyframes pulse-glow {
+    0%, 100% { transform: translate(-50%, -50%) scale(1); opacity: 0.6; }
+    50% { transform: translate(-50%, -50%) scale(1.2); opacity: 0.2; }
+}
+
+.download-card h2 {
+    color: white;
+    font-size: 2rem;
+    font-weight: 700;
+    font-family: 'Segoe UI', sans-serif;
+    text-align: center;
+    text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+    margin: 0;
+}
+
+.download-card p {
+    color: rgba(255, 255, 255, 0.85);
+    font-size: 1rem;
+    font-family: 'Segoe UI', sans-serif;
+    text-align: center;
+    line-height: 1.5;
+    margin: 0;
+}
+
+.download-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.8rem;
+    padding: 1rem 2.5rem;
+    background: linear-gradient(135deg, #00366e, #004c9e);
+    border: 2px solid rgba(102, 204, 255, 0.3);
+    border-radius: 50px;
+    color: white;
+    font-family: 'Segoe UI', sans-serif;
+    font-size: 1.1rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    position: relative;
+    overflow: hidden;
+    margin-top: 1rem;
+}
+
+.download-btn::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+    transition: left 0.5s ease;
+}
+
+.download-btn:hover::before {
+    left: 100%;
+}
+
+.download-btn img {
+    width: 24px;
+    height: 24px;
+    filter: brightness(0) invert(1);
+    transition: transform 0.3s ease;
+}
+
+.download-btn:hover {
+    background: linear-gradient(135deg, #004c9e, #0066cc);
+    border-color: rgba(102, 204, 255, 0.6);
+    transform: translateY(-3px);
+    box-shadow: 0 12px 40px rgba(102, 204, 255, 0.4);
+}
+
+.download-btn:hover img {
+    transform: scale(1.1) translateY(2px);
+}
+
+.download-btn:active {
+    transform: translateY(-1px);
+}
+
+/* Card Hover Effects */
+.download-card:hover {
+    transform: translateY(-8px);
+    box-shadow: 
+        0 20px 60px rgba(0, 76, 158, 0.4),
+        0 0 40px rgba(102, 204, 255, 0.3),
+        inset 0 1px 0 rgba(255, 255, 255, 0.3);
+    border-color: rgba(102, 204, 255, 0.4);
+}
+
+.download-card:hover .platform-icon img {
+    transform: scale(1.1);
+    filter: drop-shadow(0 12px 24px rgba(102, 204, 255, 0.6));
+}
+
+/* Responsive Design */
+@media only screen and (max-width: 1024px) {
+    .download-container {
+        flex-direction: column;
+        gap: 2rem;
+        max-width: 500px;
+    }
+
+    .download-card {
+        max-width: none;
+    }
+
+    .page-title {
+        font-size: 2.5rem;
+    }
+}
+
+@media only screen and (max-width: 768px) {
+    main {
+        padding: 2rem 1.5rem;
+    }
+
+    .main-container {
+        gap: 2rem;
+    }
+
+    .page-title {
+        font-size: 2rem;
+    }
+
+    .subtitle {
+        font-size: 1.1rem;
+    }
+
+    .download-card {
+        padding: 2rem 1.5rem;
+    }
+
+    .download-card h2 {
+        font-size: 1.6rem;
+    }
+
+    .download-card p {
+        font-size: 0.95rem;
+    }
+
+    .platform-icon {
+        width: 100px;
+        height: 100px;
+    }
+
+    .platform-icon img {
+        width: 75px;
+        height: 75px;
+    }
+
+    .icon-pulse {
+        width: 100px;
+        height: 100px;
+    }
+
+    .download-btn {
+        padding: 0.9rem 2rem;
+        font-size: 1rem;
+    }
+
+    .download-btn img {
+        width: 20px;
+        height: 20px;
+    }
+
+    .floating-shapes .shape {
+        opacity: 0.5;
+    }
+}
+
+@media only screen and (max-width: 480px) {
+    main {
+        padding: 1.5rem 1rem;
+    }
+
+    .page-title {
+        font-size: 1.6rem;
+    }
+
+    .subtitle {
+        font-size: 1rem;
+    }
+
+    .download-card {
+        padding: 1.5rem 1rem;
+    }
+
+    .download-card h2 {
+        font-size: 1.4rem;
+    }
+
+    .download-card p {
+        font-size: 0.9rem;
+    }
+
+    .platform-icon {
+        width: 80px;
+        height: 80px;
+    }
+
+    .platform-icon img {
+        width: 60px;
+        height: 60px;
+    }
+
+    .icon-pulse {
+        width: 80px;
+        height: 80px;
+    }
+
+    .download-btn {
+        padding: 0.8rem 1.5rem;
+        font-size: 0.95rem;
+    }
+
+    .floating-shapes .shape {
+        display: none;
+    }
+}
+
+/* Performance Optimizations */
+.download-card,
+.download-btn {
+    will-change: transform;
+}
+
+.platform-icon img {
+    will-change: transform, filter;
+}
+
+/* Accessibility */
+@media (prefers-reduced-motion: reduce) {
+    .floating-shapes .shape,
+    .icon-pulse {
+        animation: none;
+    }
+
+    .download-card:hover,
+    .download-btn:hover {
+        transform: none;
+    }
+}
+
+/* Focus States */
+.download-btn:focus {
+    outline: 2px solid #66ccff;
+    outline-offset: 3px;
+}

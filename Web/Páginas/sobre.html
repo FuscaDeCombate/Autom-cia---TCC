@@ -1,0 +1,553 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="../CSS/headerfoot.css">
+    <link rel="stylesheet" href="../CSS/sobre.css">
+    <link rel="shortcut icon" href="../Imagem/file.png">
+    <title>Sobre - Automácia</title>
+        <style>
+        /* Mobile Menu Overlay Styles */
+        .mobile-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.95);
+            backdrop-filter: blur(10px);
+            z-index: 9999;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            opacity: 0;
+            visibility: hidden;
+            transition: opacity 0.3s ease, visibility 0.3s ease;
+        }
+
+        .mobile-overlay.active {
+            opacity: 1;
+            visibility: visible;
+        }
+
+        .mobile-overlay-close {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            width: 40px;
+            height: 40px;
+            background: transparent;
+            border: none;
+            cursor: pointer;
+            padding: 0;
+            z-index: 10000;
+        }
+
+        .mobile-overlay-close::before,
+        .mobile-overlay-close::after {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 30px;
+            height: 3px;
+            background: #66ccff;
+            transition: all 0.3s ease;
+        }
+
+        .mobile-overlay-close::before {
+            transform: translate(-50%, -50%) rotate(45deg);
+        }
+
+        .mobile-overlay-close::after {
+            transform: translate(-50%, -50%) rotate(-45deg);
+        }
+
+        .mobile-overlay-close:hover::before,
+        .mobile-overlay-close:hover::after {
+            background: #fff;
+        }
+
+        .mobile-nav-menu {
+            display: flex;
+            flex-direction: column;
+            gap: 30px;
+            align-items: center;
+            padding: 40px;
+        }
+
+        .mobile-nav-item {
+            opacity: 0;
+            transform: translateY(20px);
+            transition: all 0.4s ease;
+        }
+
+        .mobile-overlay.active .mobile-nav-item {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        .mobile-overlay.active .mobile-nav-item:nth-child(1) { transition-delay: 0.1s; }
+        .mobile-overlay.active .mobile-nav-item:nth-child(2) { transition-delay: 0.2s; }
+        .mobile-overlay.active .mobile-nav-item:nth-child(3) { transition-delay: 0.3s; }
+        .mobile-overlay.active .mobile-nav-item:nth-child(4) { transition-delay: 0.4s; }
+
+        .mobile-nav-item a {
+            font-size: 2rem;
+            font-weight: bold;
+            color: #fff;
+            text-decoration: none;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            padding: 15px 30px;
+            border-radius: 10px;
+            transition: all 0.3s ease;
+            display: block;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .mobile-nav-item a::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(102, 204, 255, 0.3), transparent);
+            transition: left 0.5s ease;
+        }
+
+        .mobile-nav-item a:hover {
+            color: #66ccff;
+            transform: scale(1.1);
+        }
+
+        .mobile-nav-item a:hover::before {
+            left: 100%;
+        }
+
+        .mobile-menu {
+            cursor: pointer;
+            transition: transform 0.3s ease;
+        }
+
+        .mobile-menu:hover {
+            transform: rotate(90deg);
+        }
+
+        footer {
+            max-width: none;
+        }
+    </style>
+</head>
+<body>
+             <!-- Mobile Menu Overlay -->
+    <div class="mobile-overlay" id="mobileOverlay">
+        <button class="mobile-overlay-close" id="closeOverlay" aria-label="Fechar menu"></button>
+        <nav class="mobile-nav-menu">
+            <div class="mobile-nav-item">
+                <a href="download.html">Baixar</a>
+            </div>
+            <div class="mobile-nav-item">
+                <a href="sobre.html">Sobre</a>
+            </div>
+            <div class="mobile-nav-item">
+                <a href="faq.html">FAQ</a>
+            </div>
+            <div class="mobile-nav-item">
+                <a href="../index.php">Minha Conta</a>
+            </div>
+        </nav>
+    </div>
+
+    <!-- Animated Background -->
+    <div class="animated-bg">
+        <div class="floating-shapes">
+            <div class="shape"></div>
+            <div class="shape"></div>
+            <div class="shape"></div>
+            <div class="shape"></div>
+            <div class="shape"></div>
+        </div>
+    </div>
+    
+    <!-- Particles Effect -->
+    <canvas id="particles-canvas"></canvas>
+    
+    <header>
+        <div id="headerimg">
+            <a href="../Páginas/introdução.html" class="logo-link">
+                <img src="../Imagem/file.png" alt="Logo" class="logo-img">
+                <div class="logo-glow"></div>
+            </a>
+        </div>
+        <div class="headerdiv nav-item" data-nav="download">
+            <a href="../Páginas/download.html">
+                <span>Baixar</span>
+                <div class="nav-ripple"></div>
+            </a>
+        </div>
+        <div class="headerdiv nav-item" data-nav="sobre">
+            <a href="../Páginas/sobre.html">
+                <span>Sobre</span>
+                <div class="nav-ripple"></div>
+            </a>
+        </div>
+        <div class="headerdiv nav-item" data-nav="faq">
+            <a href="../Páginas/faq.html">
+                <span>FAQ</span>
+                <div class="nav-ripple"></div>
+            </a>
+        </div>
+        <div class="headerdiv user-section">
+            <a href="../index.php" class="user-btn">
+                <img src="../Imagem/user.png" alt="Usuário">
+                <div class="user-indicator"></div>
+            </a>
+            <img src="../Imagem/cardapio.png" id="bubulgue" alt="Menu" class="mobile-menu">
+        </div>
+    </header>
+    
+    <main>
+        <div class="content-container">
+            <div class="hero-section">
+                <h1 class="main-title">
+                    <span class="title-gradient">SOBRE NÓS</span>
+                </h1>
+                <div class="subtitle-container">
+                    <p class="hero-subtitle">Conheça a Automácia e nossa missão de revolucionar o sistema de receitas médicas</p>
+                </div>
+            </div>
+            
+            <div class="content-sections">
+                <div class="content-card" data-aos="fade-up">
+                    <div class="card-header">
+                        <div class="card-icon">
+                            <svg viewBox="0 0 24 24" fill="currentColor">
+                                <path d="M12,2A10,10 0 0,0 2,12A10,10 0 0,0 12,22A10,10 0 0,0 22,12A10,10 0 0,0 12,2M12,4C16.41,4 20,7.59 20,12C20,16.41 16.41,20 12,20C7.59,20 4,16.41 4,12C7.59,4 12,4Z"/>
+                            </svg>
+                        </div>
+                        <h2>O que é a Automácia?</h2>
+                    </div>
+                    <div class="card-content">
+                        <p>A Automácia é um sistema de automatização de receitas de hospital para farmácias. Com o nosso sistema se torna muito mais fácil o uso de receitas em farmácias e diminui a necessidade de uma versão física dela, podendo simplesmente utilizar as receitas registradas em seu aparelho.</p>
+                    </div>
+                </div>
+                
+                <div class="content-card" data-aos="fade-up" data-aos-delay="200">
+                    <div class="card-header">
+                        <div class="card-icon">
+                            <svg viewBox="0 0 24 24" fill="currentColor">
+                                <path d="M12,2A2,2 0 0,1 14,4C14,4.74 13.6,5.39 13,5.73V7H14A7,7 0 0,1 21,14H22A1,1 0 0,1 23,15V18A1,1 0 0,1 22,19H21V20A2,2 0 0,1 19,22H5A2,2 0 0,1 3,20V19H2A1,1 0 0,1 1,18V15A1,1 0 0,1 2,14H3A7,7 0 0,1 10,7H11V5.73C10.4,5.39 10,4.74 10,4A2,2 0 0,1 12,2M7.5,13A2.5,2.5 0 0,0 5,15.5A2.5,2.5 0 0,0 7.5,18A2.5,2.5 0 0,0 10,15.5A2.5,2.5 0 0,0 7.5,13M16.5,13A2.5,2.5 0 0,0 14,15.5A2.5,2.5 0 0,0 16.5,18A2.5,2.5 0 0,0 19,15.5A2.5,2.5 0 0,0 16.5,13Z"/>
+                            </svg>
+                        </div>
+                        <h2>Plataforma Web</h2>
+                    </div>
+                    <div class="card-content">
+                        <p>Aqui pelo site, você pode administrar sua conta e suas receitas, adicionando informações pertinentes a você, que poderão ser vistas pelo médico antes de te dar qualquer receitamento, e te permitindo criar cópias físicas de suas receitas, ao imprimí-las.</p>
+                    </div>
+                </div>
+                
+                <div class="content-card" data-aos="fade-up" data-aos-delay="400">
+                    <div class="card-header">
+                        <div class="card-icon">
+                            <svg viewBox="0 0 24 24" fill="currentColor">
+                                <path d="M17,19H7V5H17M17,1H7C5.89,1 5,1.89 5,3V21C5,22.11 5.89,23 7,23H17C18.11,23 19,22.11 19,21V3C19,1.89 18.11,1 17,1Z"/>
+                            </svg>
+                        </div>
+                        <h2>Aplicativo Mobile</h2>
+                    </div>
+                    <div class="card-content">
+                        <p>Em nosso aplicativo mobile, criamos uma forma de você levar suas receitas a qualquer lugar e a qualquer hora, simplesmente com o acesso de sua conta. Nosso aplicativo permite uma visualização rápida de suas receitas e da sua conta, para qualquer tipo de necessidade.</p>
+                    </div>
+                </div>
+                
+                <div class="content-card" data-aos="fade-up" data-aos-delay="600">
+                    <div class="card-header">
+                        <div class="card-icon">
+                            <svg viewBox="0 0 24 24" fill="currentColor">
+                                <path d="M4,6H20V16H4M20,18A2,2 0 0,0 22,16V6C22,4.89 21.1,4 20,4H4C2.89,4 2,4.89 2,6V16A2,2 0 0,0 4,18H0V20H24V18H20Z"/>
+                            </svg>
+                        </div>
+                        <h2>Plataforma Desktop</h2>
+                    </div>
+                    <div class="card-content">
+                        <p>Quanto aos Hospitais e Farmácias, eles terão acesso à nossa plataforma desktop em seus aparelhos. Nossa plataforma permite o acesso rápido às suas funções com o nosso sistema intuitivo. A criação das receitas pode ser facilmente feita pelo acesso do computador de hospitais, e o acesso às receitas dos clientes pode ser visualizado pelos aparelhos da farmácia.</p>
+                    </div>
+                </div>
+                
+                <div class="content-card security-card" data-aos="fade-up" data-aos-delay="800">
+                    <div class="card-header">
+                        <div class="card-icon security-icon">
+                            <svg viewBox="0 0 24 24" fill="currentColor">
+                                <path d="M12,1L3,5V11C3,16.55 6.84,21.74 12,23C17.16,21.74 21,16.55 21,11V5L12,1M12,7C13.4,7 14.8,8.6 14.8,10V11.5C15.4,11.5 16,12.4 16,13V16C16,17.4 15.4,18 14.8,18H9.2C8.6,18 8,17.4 8,16V13C8,12.4 8.6,11.5 9.2,11.5V10C9.2,8.6 10.6,7 12,7M12,8.2C11.2,8.2 10.5,8.7 10.5,10V11.5H13.5V10C13.5,8.7 12.8,8.2 12,8.2Z"/>
+                            </svg>
+                        </div>
+                        <h2>Segurança e Privacidade</h2>
+                    </div>
+                    <div class="card-content">
+                        <p>Sempre garantimos a melhor segurança de privacidade possível, não permitindo que receitas sejam acessadas ou visualizadas sem o seu consentimento. Vale-se destacar que o nosso sistema apenas coloca as receitas em um ambiente virtual, substituindo apenas a necessidade de uma versão física original. A existência de uma receita física que seja entregue ao paciente, caso deseje, é um direito seu e que ele pode exigir.</p>
+                    </div>
+                </div>
+                
+                <div class="team-card" data-aos="fade-up" data-aos-delay="1000">
+                    <div class="team-header">
+                        <h2>Nossa Equipe</h2>
+                        <p>Somos a equipe produtora do Automácia, um projeto criado para o TCC do 3° ano do curso de Desenvolvimento de Sistema</p>
+                    </div>
+                    <div class="team-stats">
+                        <div class="stat-item">
+                            <span class="stat-number" data-count="2023">0</span>
+                            <span class="stat-label">Ano de Criação</span>
+                        </div>
+                        <div class="stat-item">
+                            <span class="stat-number" data-count="69">0</span>
+                            <span class="stat-label">% Dedicação</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+    
+    <footer>
+        <div id="direitos">
+            <img src="../Imagem/file.png" alt="Logo">
+            <p>Todos os direitos reservados ao grupo Automácia co.</p>
+        </div>
+        <div class="spacer"></div>
+        <div id="abas">
+            <div class="footer-section">
+                <p class="footer-title">ABAS PRINCIPAIS</p>
+                <a href="download.html">BAIXAR</a>
+                <a href="sobre.html">SOBRE</a>
+                <a href="faq.html">FAQ</a>
+            </div>
+            <div class="footer-section">
+                <p class="footer-title">REDES SOCIAIS</p>
+                <a href="#" aria-label="Twitter">X</a>
+                <a href="#" aria-label="Instagram">Instagram</a>
+                <a href="#" aria-label="Github">Github</a>
+            </div>
+        </div>
+    </footer>
+
+    <!-- JavaScript -->
+    <script>
+        // Connected Particles System
+        function initConnectedParticles() {
+            const canvas = document.getElementById('particles-canvas');
+            const ctx = canvas.getContext('2d');
+            let particles = [];
+            let animationId;
+
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+
+            class Particle {
+                constructor() {
+                    this.x = Math.random() * canvas.width;
+                    this.y = Math.random() * canvas.height;
+                    this.size = Math.random() * 2 + 1;
+                    this.speedX = (Math.random() - 0.5) * 1.5;
+                    this.speedY = (Math.random() - 0.5) * 1.5;
+                    this.opacity = Math.random() * 0.5 + 0.3;
+                }
+
+                update() {
+                    this.x += this.speedX;
+                    this.y += this.speedY;
+
+                    if (this.x > canvas.width) this.x = 0;
+                    else if (this.x < 0) this.x = canvas.width;
+
+                    if (this.y > canvas.height) this.y = 0;
+                    else if (this.y < 0) this.y = canvas.height;
+                }
+
+                draw() {
+                    ctx.globalAlpha = this.opacity;
+                    ctx.fillStyle = '#66ccff';
+                    ctx.beginPath();
+                    ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
+                    ctx.fill();
+                }
+            }
+
+            function connectParticles() {
+                const maxDistance = 120;
+                
+                for (let i = 0; i < particles.length; i++) {
+                    for (let j = i + 1; j < particles.length; j++) {
+                        const dx = particles[i].x - particles[j].x;
+                        const dy = particles[i].y - particles[j].y;
+                        const distance = Math.sqrt(dx * dx + dy * dy);
+
+                        if (distance < maxDistance) {
+                            ctx.globalAlpha = (1 - distance / maxDistance) * 0.3;
+                            ctx.strokeStyle = '#66ccff';
+                            ctx.lineWidth = 0.5;
+                            ctx.beginPath();
+                            ctx.moveTo(particles[i].x, particles[i].y);
+                            ctx.lineTo(particles[j].x, particles[j].y);
+                            ctx.stroke();
+                        }
+                    }
+                }
+            }
+
+            // Create particles
+            for (let i = 0; i < 40; i++) {
+                particles.push(new Particle());
+            }
+
+            function animate() {
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+                
+                particles.forEach(particle => {
+                    particle.update();
+                    particle.draw();
+                });
+                
+                connectParticles();
+                animationId = requestAnimationFrame(animate);
+            }
+
+            animate();
+
+            window.addEventListener('resize', () => {
+                canvas.width = window.innerWidth;
+                canvas.height = window.innerHeight;
+            });
+
+            // Cleanup function
+            return () => {
+                if (animationId) {
+                    cancelAnimationFrame(animationId);
+                }
+            };
+        }
+
+        // Counter Animation
+        function animateCounter(element, target, duration = 2000) {
+            let current = 0;
+            const increment = target / (duration / 16);
+            const timer = setInterval(() => {
+                current += increment;
+                if (current >= target) {
+                    element.textContent = target;
+                    clearInterval(timer);
+                } else {
+                    element.textContent = Math.floor(current);
+                }
+            }, 16);
+        }
+
+        // Ripple Effect
+        function createRipple(e, element) {
+            const ripple = element.querySelector('.nav-ripple');
+            if (!ripple) return;
+
+            const rect = element.getBoundingClientRect();
+            const size = Math.max(rect.width, rect.height);
+            const x = e.clientX - rect.left - size / 2;
+            const y = e.clientY - rect.top - size / 2;
+
+            ripple.style.width = ripple.style.height = size + 'px';
+            ripple.style.left = x + 'px';
+            ripple.style.top = y + 'px';
+            ripple.classList.add('active');
+
+            setTimeout(() => {
+                ripple.classList.remove('active');
+            }, 600);
+        }
+
+        // Scroll Animation Observer
+        const observerOptions = {
+            threshold: 0.1,
+            rootMargin: '0px 0px -50px 0px'
+        };
+
+        const observer = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    entry.target.classList.add('animate-in');
+                    
+                    // Animate counters when they come into view
+                    const counters = entry.target.querySelectorAll('[data-count]');
+                    counters.forEach(counter => {
+                        animateCounter(counter, parseInt(counter.dataset.count));
+                    });
+                }
+            });
+        }, observerOptions);
+
+        // Initialize everything when DOM is loaded
+        document.addEventListener('DOMContentLoaded', () => {
+            // Initialize particles
+            const cleanupParticles = initConnectedParticles();
+
+            // Observe animated elements
+            const animatedElements = document.querySelectorAll('.content-card, .team-card, .hero-section');
+            animatedElements.forEach(el => observer.observe(el));
+
+            // Add nav ripple effects
+            const navItems = document.querySelectorAll('.nav-item');
+            navItems.forEach(item => {
+                item.addEventListener('click', (e) => {
+                    createRipple(e, item);
+                });
+            });
+
+            // Animate hero section immediately
+            const heroSection = document.querySelector('.hero-section');
+            if (heroSection) {
+                setTimeout(() => {
+                    heroSection.classList.add('animate-in');
+                }, 300);
+            }
+
+            // Cleanup on page unload
+            window.addEventListener('beforeunload', () => {
+                if (cleanupParticles) cleanupParticles();
+            });
+        });
+
+                        // Mobile Menu Toggle
+        const bubulgue = document.getElementById('bubulgue');
+        const mobileOverlay = document.getElementById('mobileOverlay');
+        const closeOverlay = document.getElementById('closeOverlay');
+
+        bubulgue.addEventListener('click', () => {
+            mobileOverlay.classList.add('active');
+            document.body.style.overflow = 'hidden';
+        });
+
+        closeOverlay.addEventListener('click', () => {
+            mobileOverlay.classList.remove('active');
+            document.body.style.overflow = '';
+        });
+
+        // Close overlay when clicking outside menu
+        mobileOverlay.addEventListener('click', (e) => {
+            if (e.target === mobileOverlay) {
+                mobileOverlay.classList.remove('active');
+                document.body.style.overflow = '';
+            }
+        });
+
+        // Close overlay when clicking on a link
+        const mobileNavLinks = document.querySelectorAll('.mobile-nav-item a');
+        mobileNavLinks.forEach(link => {
+            link.addEventListener('click', () => {
+                mobileOverlay.classList.remove('active');
+                document.body.style.overflow = '';
+            });
+        });
+    </script>
+</body>
+</html>

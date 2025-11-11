@@ -1,0 +1,579 @@
+<?php
+session_start();
+if(!isset($_SESSION['guloso'])){
+    header('Location: Páginas/login.html');
+    exit;
+}
+?>
+
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Usuário</title>
+    <link rel="stylesheet" href="CSS/headerfoot.css">
+    <link rel="stylesheet" href="CSS/index.css">
+    <script src="script/particles.js"></script>
+    <link rel="shortcut icon" href="Imagem/file.png">
+    <style>
+        footer {
+            max-width: none;
+        }
+        /* Mobile Menu Overlay Styles */
+        .mobile-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.95);
+            backdrop-filter: blur(10px);
+            z-index: 9999;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            opacity: 0;
+            visibility: hidden;
+            transition: opacity 0.3s ease, visibility 0.3s ease;
+        }
+
+        .mobile-overlay.active {
+            opacity: 1;
+            visibility: visible;
+        }
+
+        .mobile-overlay-close {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            width: 40px;
+            height: 40px;
+            background: transparent;
+            border: none;
+            cursor: pointer;
+            padding: 0;
+            z-index: 10000;
+        }
+
+        .mobile-overlay-close::before,
+        .mobile-overlay-close::after {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 30px;
+            height: 3px;
+            background: #66ccff;
+            transition: all 0.3s ease;
+        }
+
+        .mobile-overlay-close::before {
+            transform: translate(-50%, -50%) rotate(45deg);
+        }
+
+        .mobile-overlay-close::after {
+            transform: translate(-50%, -50%) rotate(-45deg);
+        }
+
+        .mobile-overlay-close:hover::before,
+        .mobile-overlay-close:hover::after {
+            background: #fff;
+        }
+
+        .mobile-nav-menu {
+            display: flex;
+            flex-direction: column;
+            gap: 30px;
+            align-items: center;
+            padding: 40px;
+        }
+
+        .mobile-nav-item {
+            opacity: 0;
+            transform: translateY(20px);
+            transition: all 0.4s ease;
+        }
+
+        .mobile-overlay.active .mobile-nav-item {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        .mobile-overlay.active .mobile-nav-item:nth-child(1) { transition-delay: 0.1s; }
+        .mobile-overlay.active .mobile-nav-item:nth-child(2) { transition-delay: 0.2s; }
+        .mobile-overlay.active .mobile-nav-item:nth-child(3) { transition-delay: 0.3s; }
+        .mobile-overlay.active .mobile-nav-item:nth-child(4) { transition-delay: 0.4s; }
+
+        .mobile-nav-item a {
+            font-size: 2rem;
+            font-weight: bold;
+            color: #fff;
+            text-decoration: none;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            padding: 15px 30px;
+            border-radius: 10px;
+            transition: all 0.3s ease;
+            display: block;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .mobile-nav-item a::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(102, 204, 255, 0.3), transparent);
+            transition: left 0.5s ease;
+        }
+
+        .mobile-nav-item a:hover {
+            color: #66ccff;
+            transform: scale(1.1);
+        }
+
+        .mobile-nav-item a:hover::before {
+            left: 100%;
+        }
+
+        .mobile-menu {
+            cursor: pointer;
+            transition: transform 0.3s ease;
+        }
+
+        .mobile-menu:hover {
+            transform: rotate(90deg);
+        }
+    </style>
+</head>
+<body>
+    <!-- Mobile Menu Overlay -->
+    <div class="mobile-overlay" id="mobileOverlay">
+        <button class="mobile-overlay-close" id="closeOverlay" aria-label="Fechar menu"></button>
+        <nav class="mobile-nav-menu">
+            <div class="mobile-nav-item">
+                <a href="Páginas/download.html">Baixar</a>
+            </div>
+            <div class="mobile-nav-item">
+                <a href="Páginas/sobre.html">Sobre</a>
+            </div>
+            <div class="mobile-nav-item">
+                <a href="Páginas/faq.html">FAQ</a>
+            </div>
+            <div class="mobile-nav-item">
+                <a href="index.html">Minha Conta</a>
+            </div>
+        </nav>
+    </div>
+
+    <!-- Animated Background -->
+    <div class="animated-bg">
+        <div class="floating-shapes">
+            <div class="shape"></div>
+            <div class="shape"></div>
+            <div class="shape"></div>
+            <div class="shape"></div>
+            <div class="shape"></div>
+        </div>
+    </div>
+    
+    <!-- Loading Screen -->
+    <div id="loading-screen">
+        <div class="loader">
+            <div class="loader-circle"></div>
+            <div class="loader-text">Carregando...</div>
+        </div>
+    </div>
+    
+    <header>
+        <div id="headerimg">
+            <a href="Páginas/introdução.html" class="logo-link">
+                <img src="Imagem/file.png" alt="Logo" class="logo-img">
+                <div class="logo-glow"></div>
+            </a>
+        </div>
+        <div class="headerdiv nav-item" data-nav="download">
+            <a href="Páginas/download.html">
+                <span>Baixar</span>
+                <div class="nav-ripple"></div>
+            </a>
+        </div>
+        <div class="headerdiv nav-item" data-nav="sobre">
+            <a href="Páginas/sobre.html">
+                <span>Sobre</span>
+                <div class="nav-ripple"></div>
+            </a>
+        </div>
+        <div class="headerdiv nav-item" data-nav="faq">
+            <a href="Páginas/faq.html">
+                <span>FAQ</span>
+                <div class="nav-ripple"></div>
+            </a>
+        </div>
+        <div class="headerdiv user-section">
+            <a href="index.html" class="user-btn">
+                <img src="Imagem/user.png" alt="Usuário">
+                <div class="user-indicator"></div>
+            </a>
+            <img src="Imagem/cardapio.png" id="bubulgue" alt="Menu" class="mobile-menu">
+        </div>
+    </header>
+    
+    <main>
+        <!-- Particles Effect -->
+        <canvas id="particles-canvas"></canvas>
+        
+        <div class="main-container">
+            <div class="welcome-text">
+                <h1 class="typing-text" data-text="Bem-vindo ao seu painel"></h1>
+                <p class="subtitle">Gerencie suas receitas e conta de forma intuitiva</p>
+            </div>
+            
+            <div class="cards-container">
+                <div class="abag card-recipes" data-tilt data-aos="fade-right">
+                    <div class="card-bg-effect"></div>
+                    <a href="../NeoBombonismo/PHP/greceita.php" class="card-link">
+                        <div class="card-content">
+                            <div class="card-icon">
+                                <div class="icon-container">
+                                    <img src="Imagem/receita.png" alt="Receitas">
+                                    <div class="icon-pulse"></div>
+                                </div>
+                            </div>
+                            <div class="card-text">
+                                <h2>GERENCIAR RECEITAS</h2>
+                                <p>Organize e gerencie suas receitas favoritas com facilidade</p>
+                                <div class="card-stats">
+                                    <span class="stat-item">
+                                        <span class="stat-number" data-count="150">0</span>
+                                        <span class="stat-label">Receitas</span>
+                                    </span>
+                                </div>
+                            </div>
+                            <div class="card-arrow">
+                                <svg viewBox="0 0 24 24" fill="currentColor">
+                                    <path d="M8.59,16.58L13.17,12L8.59,7.41L10,6L16,12L10,18L8.59,16.58Z"/>
+                                </svg>
+                            </div>
+                        </div>
+                        <div class="card-hover-effect"></div>
+                    </a>
+                </div>
+                
+                <div class="abag card-account" data-tilt data-aos="fade-left">
+                    <div class="card-bg-effect"></div>
+                    <a href="../NeoBombonismo/PHP/gconta.php" class="card-link">
+                        <div class="card-content">
+                            <div class="card-icon">
+                                <div class="icon-container">
+                                    <img src="Imagem/forma.png" alt="Conta">
+                                    <div class="icon-pulse"></div>
+                                </div>
+                            </div>
+                            <div class="card-text">
+                                <h2>GERENCIAR CONTA</h2>
+                                <p>Configure suas preferências e dados pessoais com segurança</p>
+                                <div class="card-stats">
+                                    <span class="stat-item">
+                                        <span class="status-indicator active"></span>
+                                        <span class="stat-label">Online</span>
+                                    </span>
+                                </div>
+                            </div>
+                            <div class="card-arrow">
+                                <svg viewBox="0 0 24 24" fill="currentColor">
+                                    <path d="M8.59,16.58L13.17,12L8.59,7.41L10,6L16,12L10,18L8.59,16.58Z"/>
+                                </svg>
+                            </div>
+                        </div>
+                        <div class="card-hover-effect"></div>
+                    </a>
+                </div>
+            </div>
+            
+        </div>
+    </main>
+    
+    <footer>
+        <div id="direitos">
+            <img src="Imagem/file.png" alt="Logo">
+            <p>Todos os direitos reservados ao grupo Automácia co.</p>
+        </div>
+        <div class="spacer"></div>
+        <div id="abas">
+            <div class="footer-section">
+                <p class="footer-title">ABAS PRINCIPAIS</p>
+                <a href="Páginas/download.html">BAIXAR</a>
+                <a href="Páginas/sobre.html">SOBRE</a>
+                <a href="Páginas/faq.html">FAQ</a>
+            </div>
+            <div class="footer-section">
+                <p class="footer-title">REDES SOCIAIS</p>
+                <a href="#" aria-label="Twitter">X</a>
+                <a href="#" aria-label="Instagram">Instagram</a>
+                <a href="#" aria-label="Github">Github</a>
+            </div>
+        </div>
+    </footer>
+
+    <!-- JavaScript -->
+    <script>
+        // Mobile Menu Toggle
+        const bubulgue = document.getElementById('bubulgue');
+        const mobileOverlay = document.getElementById('mobileOverlay');
+        const closeOverlay = document.getElementById('closeOverlay');
+
+        bubulgue.addEventListener('click', () => {
+            mobileOverlay.classList.add('active');
+            document.body.style.overflow = 'hidden';
+        });
+
+        closeOverlay.addEventListener('click', () => {
+            mobileOverlay.classList.remove('active');
+            document.body.style.overflow = '';
+        });
+
+        // Close overlay when clicking outside menu
+        mobileOverlay.addEventListener('click', (e) => {
+            if (e.target === mobileOverlay) {
+                mobileOverlay.classList.remove('active');
+                document.body.style.overflow = '';
+            }
+        });
+
+        // Close overlay when clicking on a link
+        const mobileNavLinks = document.querySelectorAll('.mobile-nav-item a');
+        mobileNavLinks.forEach(link => {
+            link.addEventListener('click', () => {
+                mobileOverlay.classList.remove('active');
+                document.body.style.overflow = '';
+            });
+        });
+
+        // Loading Screen
+        window.addEventListener('load', () => {
+            const loadingScreen = document.getElementById('loading-screen');
+            setTimeout(() => {
+                loadingScreen.style.opacity = '0';
+                setTimeout(() => {
+                    loadingScreen.style.display = 'none';
+                    initAnimations();
+                }, 500);
+            }, 1500);
+        });
+
+        // Typing Animation
+        function typeText(element, text, speed = 100) {
+            element.innerHTML = '';
+            let i = 0;
+            const timer = setInterval(() => {
+                if (i < text.length) {
+                    element.innerHTML += text.charAt(i);
+                    i++;
+                } else {
+                    clearInterval(timer);
+                }
+            }, speed);
+        }
+
+        // Counter Animation
+        function animateCounter(element, target, duration = 2000) {
+            let current = 0;
+            const increment = target / (duration / 16);
+            const timer = setInterval(() => {
+                current += increment;
+                if (current >= target) {
+                    element.textContent = target;
+                    clearInterval(timer);
+                } else {
+                    element.textContent = Math.floor(current);
+                }
+            }, 16);
+        }
+
+        // 3D Tilt Effect
+        function initTilt() {
+            const cards = document.querySelectorAll('[data-tilt]');
+            cards.forEach(card => {
+                card.addEventListener('mousemove', (e) => {
+                    const rect = card.getBoundingClientRect();
+                    const x = e.clientX - rect.left;
+                    const y = e.clientY - rect.top;
+                    const centerX = rect.width / 2;
+                    const centerY = rect.height / 2;
+                    const rotateX = (y - centerY) / 10;
+                    const rotateY = (centerX - x) / 10;
+                    
+                    card.style.transform = `perspective(1000px) rotateX(${rotateX}deg) rotateY(${rotateY}deg) translateZ(10px)`;
+                });
+                
+                card.addEventListener('mouseleave', () => {
+                    card.style.transform = 'perspective(1000px) rotateX(0deg) rotateY(0deg) translateZ(0px)';
+                });
+            });
+        }
+
+        // Particles System
+        function initParticles() {
+            const canvas = document.getElementById('particles-canvas');
+            const ctx = canvas.getContext('2d');
+            let particles = [];
+
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+
+            class Particle {
+                constructor() {
+                    this.x = Math.random() * canvas.width;
+                    this.y = Math.random() * canvas.height;
+                    this.size = Math.random() * 3 + 1;
+                    this.speedX = Math.random() * 2 - 1;
+                    this.speedY = Math.random() * 2 - 1;
+                    this.opacity = Math.random() * 0.5 + 0.2;
+                }
+
+                update() {
+                    this.x += this.speedX;
+                    this.y += this.speedY;
+
+                    if (this.x > canvas.width) this.x = 0;
+                    else if (this.x < 0) this.x = canvas.width;
+
+                    if (this.y > canvas.height) this.y = 0;
+                    else if (this.y < 0) this.y = canvas.height;
+                }
+
+                draw() {
+                    ctx.globalAlpha = this.opacity;
+                    ctx.fillStyle = '#66ccff';
+                    ctx.beginPath();
+                    ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
+                    ctx.fill();
+                }
+            }
+
+            // Create particles
+            for (let i = 0; i < 50; i++) {
+                particles.push(new Particle());
+            }
+
+            function animate() {
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+                particles.forEach(particle => {
+                    particle.update();
+                    particle.draw();
+                });
+                requestAnimationFrame(animate);
+            }
+
+            animate();
+
+            window.addEventListener('resize', () => {
+                canvas.width = window.innerWidth;
+                canvas.height = window.innerHeight;
+            });
+        }
+
+        // Ripple Effect
+        function createRipple(e, element) {
+            const ripple = element.querySelector('.nav-ripple') || element.querySelector('.card-hover-effect');
+            if (!ripple) return;
+
+            const rect = element.getBoundingClientRect();
+            const size = Math.max(rect.width, rect.height);
+            const x = e.clientX - rect.left - size / 2;
+            const y = e.clientY - rect.top - size / 2;
+
+            ripple.style.width = ripple.style.height = size + 'px';
+            ripple.style.left = x + 'px';
+            ripple.style.top = y + 'px';
+            ripple.classList.add('active');
+
+            setTimeout(() => {
+                ripple.classList.remove('active');
+            }, 600);
+        }
+
+        // Initialize everything
+        function initAnimations() {
+            // Typing animation
+            const typingText = document.querySelector('.typing-text');
+            if (typingText) {
+                typeText(typingText, typingText.dataset.text, 80);
+            }
+
+            // Counter animation
+            const counters = document.querySelectorAll('[data-count]');
+            setTimeout(() => {
+                counters.forEach(counter => {
+                    animateCounter(counter, parseInt(counter.dataset.count));
+                });
+            }, 1000);
+
+            // Initialize tilt effect
+            initTilt();
+
+            // Initialize particles
+            initParticles();
+
+            // Add event listeners
+            const navItems = document.querySelectorAll('.nav-item');
+            navItems.forEach(item => {
+                item.addEventListener('click', (e) => {
+                    createRipple(e, item);
+                });
+            });
+
+            const cards = document.querySelectorAll('.abag');
+            cards.forEach(card => {
+                card.addEventListener('click', (e) => {
+                    createRipple(e, card);
+                });
+
+                card.addEventListener('mouseenter', () => {
+                });
+            });
+
+            const quickBtns = document.querySelectorAll('.quick-btn');
+            quickBtns.forEach(btn => {
+                btn.addEventListener('click', () => {
+                    btn.style.transform = 'scale(0.95)';
+                    setTimeout(() => {
+                        btn.style.transform = 'scale(1)';
+                    }, 150);
+                });
+            });
+
+            // Floating shapes animation
+            const shapes = document.querySelectorAll('.shape');
+            shapes.forEach((shape, index) => {
+                shape.style.animationDelay = `${index * 0.5}s`;
+            });
+        }
+
+        // Intersection Observer for scroll animations
+        const observerOptions = {
+            threshold: 0.1,
+            rootMargin: '0px 0px -50px 0px'
+        };
+
+        const observer = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    entry.target.classList.add('animate-in');
+                }
+            });
+        }, observerOptions);
+
+        document.addEventListener('DOMContentLoaded', () => {
+            const animatedElements = document.querySelectorAll('.abag, .quick-actions');
+            animatedElements.forEach(el => observer.observe(el));
+        });
+    </script>
+</body>
+</html>
