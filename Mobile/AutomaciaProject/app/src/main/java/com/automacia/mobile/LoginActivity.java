@@ -16,6 +16,7 @@ import androidx.core.view.ViewCompat;
 import androidx.core.view.WindowInsetsCompat;
 
 import com.automacia.mobile.dialogs.ConnectionErrorDialog;
+import com.automacia.mobile.managers.SessionManager;
 import com.automacia.mobile.models.UsuarioDTO;
 import com.automacia.mobile.services.LoginService;
 import com.automacia.mobile.utils.Utils;
@@ -24,6 +25,7 @@ import com.google.android.material.button.MaterialButton;
 import com.google.android.material.checkbox.MaterialCheckBox;
 import com.google.android.material.textfield.TextInputEditText;
 import com.google.android.material.textfield.TextInputLayout;
+import com.google.firebase.auth.FirebaseUser;
 
 /**
  * Activity responsável pelo login de usuários
@@ -43,6 +45,7 @@ public class LoginActivity extends AppCompatActivity {
     private static final String PREF_NAME = "LoginPrefs";
     private static final String KEY_REMEMBER_CPF = "remember_cpf";
     private static final String KEY_SAVED_CPF = "saved_cpf";
+    private SessionManager sessionManager;
 
     // Flags de validação
     private boolean isCpfValid = false;
@@ -69,15 +72,13 @@ public class LoginActivity extends AppCompatActivity {
     private void testarConexaoBanco() {
         // Desabilitar interação durante teste
         setUIEnabled(false);
-        showToast("Verificando conexão...");
 
-        LoginService.testarConexaoAsync(new LoginService.LoginCallback() {
+        LoginService.testarConexaoAsync(new LoginService.ConnectionTestCallback() {
             @Override
-            public void onSuccess(UsuarioDTO usuario) {
+            public void onSuccess() {
                 runOnUiThread(() -> {
                     // Habilitar UI após sucesso
                     setUIEnabled(true);
-                    showToast("Conexão estabelecida!");
                 });
             }
 
@@ -199,6 +200,9 @@ public class LoginActivity extends AppCompatActivity {
         // SharedPreferences
         preferences = getSharedPreferences(PREF_NAME, MODE_PRIVATE);
 
+        // Inicializar SessionManager
+        sessionManager = new SessionManager(this);
+
         // Estado inicial do botão
         updateLoginButtonState();
     }
@@ -308,12 +312,12 @@ public class LoginActivity extends AppCompatActivity {
         setLoginButtonLoading(true);
 
         // Realizar login via banco de dados
-        LoginService.loginAsync(cpf, senha, new LoginService.LoginCallback() {
+        LoginService.loginAsync(cpf, senha, getBaseContext(), new LoginService.LoginCallback() {
             @Override
-            public void onSuccess(UsuarioDTO usuario) {
+            public void onSuccess(UsuarioDTO usuario, FirebaseUser firebaseUser) {
                 runOnUiThread(() -> {
                     setLoginButtonLoading(false);
-                    handleLoginSuccess(usuario);
+                    handleLoginSuccess(usuario, firebaseUser);
                 });
             }
 
@@ -365,7 +369,7 @@ public class LoginActivity extends AppCompatActivity {
     /**
      * Manipula o sucesso do login
      */
-    private void handleLoginSuccess(UsuarioDTO usuario) {
+    private void handleLoginSuccess(UsuarioDTO usuario, FirebaseUser firebaseUser) {
         showToast("Bem-vindo, " + usuario.getNomeExibicao() + "!");
 
         // Limpar dados sensíveis do usuário
@@ -378,12 +382,16 @@ public class LoginActivity extends AppCompatActivity {
             clearSavedCpf();
         }
 
-        // Navegar para MainActivity passando dados do usuário
-        Intent intent = new Intent(this, MainActivity.class);
-
+        // SessionManager já salvou a sessão no LoginService
+        // Apenas salvar no MyApp
         MyApp app = (MyApp) getApplicationContext();
-        app.setUsuarioLogado(usuario); // Salva usuario na aplicação globalmente
+        app.setUsuarioLogado(usuario);
 
+        // Debug: verificar sessão
+        sessionManager.printSessionInfo();
+
+        // Navegar para MainActivity
+        Intent intent = new Intent(this, MainActivity.class);
         startActivity(intent);
         finish();
     }

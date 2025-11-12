@@ -78,4 +78,5 @@
     <string name="buscar">Buscar</string>
     <string name="todos">Todos</string>
     <string name="m_dicos">Médicos</string>
+    <string name="email_verification_icon">icone de verificação de email</string>
 </resources>

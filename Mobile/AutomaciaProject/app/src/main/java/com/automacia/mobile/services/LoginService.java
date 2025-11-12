@@ -1,9 +1,12 @@
 package com.automacia.mobile.services;
 
+import android.content.Context;
 import android.os.AsyncTask;
 import android.util.Log;
 
+import com.automacia.mobile.managers.SessionManager;
 import com.automacia.mobile.models.UsuarioDTO;
+import com.google.firebase.auth.FirebaseUser;
 
 import java.sql.CallableStatement;
 import java.sql.Connection;
@@ -17,10 +20,15 @@ public class LoginService {
 
     private static final String TAG = "LoginService";
 
+    public interface ConnectionTestCallback {
+        void onSuccess();
+        void onError(String msg);
+    }
+
     /**
      * Testa se a conexão e permissões estão funcionando
      */
-    public static void testarConexaoAsync(LoginCallback callback) {
+    public static void testarConexaoAsync(ConnectionTestCallback callback) {
         new AsyncTask<Void, Void, LoginResult>() {
             @Override
             protected LoginResult doInBackground(Void... voids) {
@@ -95,7 +103,7 @@ public class LoginService {
             @Override
             protected void onPostExecute(LoginResult result) {
                 if (result.isSuccess()) {
-                    callback.onSuccess(null);
+                    callback.onSuccess();
                 } else {
                     callback.onError(result.getMensagem());
                 }
@@ -159,15 +167,15 @@ public class LoginService {
      * Interface para callback do resultado do login
      */
     public interface LoginCallback {
-        void onSuccess(UsuarioDTO usuario);
+        void onSuccess(UsuarioDTO usuario, FirebaseUser firebaseUser);
         void onError(String mensagem);
     }
 
     /**
      * Realiza login assíncrono do usuário
      */
-    public static void loginAsync(String cpf, String senha, LoginCallback callback) {
-        new LoginTask(callback).execute(cpf, senha);
+    public static void loginAsync(String cpf, String senha, Context context, LoginCallback callback) {
+        new LoginTask(callback, context).execute(cpf, senha);
     }
 
     /**
@@ -176,9 +184,11 @@ public class LoginService {
     private static class LoginTask extends AsyncTask<String, Void, LoginResult> {
 
         private final LoginCallback callback;
+        private final Context context;
 
-        public LoginTask(LoginCallback callback) {
+        public LoginTask(LoginCallback callback, Context context) {
             this.callback = callback;
+            this.context = context;
         }
 
         @Override
@@ -197,11 +207,61 @@ public class LoginService {
         @Override
         protected void onPostExecute(LoginResult result) {
             if (result.isSuccess()) {
-                callback.onSuccess(result.getUsuario());
+                loginFirebase(result.getUsuario(), context, callback);
             } else {
                 callback.onError(result.getMensagem());
             }
         }
+    }
+
+    /**
+     * Realiza login no Firebase após sucesso no SQL
+     */
+    private static void loginFirebase(UsuarioDTO usuario, Context context, LoginCallback callback) {
+        Log.d(TAG, "Login SQL bem-sucedido, autenticando no Firebase...");
+
+        FirebaseAuthService.signInWithEmailPassword(
+                usuario.getEmail(),
+                usuario.getSenha(), // IMPORTANTE: usar senha original, não hash
+                new FirebaseAuthService.FirebaseAuthCallback() {
+                    @Override
+                    public void onSuccess(FirebaseUser firebaseUser) {
+                        Log.i(TAG, "Login Firebase bem-sucedido!");
+
+                        // Verifica se email foi verificado
+                        if (!firebaseUser.isEmailVerified()) {
+                            Log.w(TAG, "Email não verificado para: " + usuario.getEmail());
+                            callback.onError("Email não verificado. Verifique sua caixa de entrada.");
+
+                            // Fazer logout do Firebase se email não verificado
+                            FirebaseAuthService.signOut();
+                            return;
+                        }
+
+                        // Salvar sessão usando SessionManager
+                        SessionManager sessionManager = new SessionManager(context);
+                        sessionManager.createSession(usuario, firebaseUser);
+
+                        Log.i(TAG, "Sessão criada com sucesso!");
+
+                        // Limpar senha por segurança (não manter na memória)
+                        usuario.setSenha(null);
+
+                        // Retorna sucesso com ambos os objetos
+                        callback.onSuccess(usuario, firebaseUser);
+                    }
+
+                    @Override
+                    public void onError(String errorMessage) {
+                        Log.e(TAG, "Falha no login Firebase: " + errorMessage);
+
+                        // Firebase falhou, mas SQL estava OK
+                        // Pode ser problema de sincronização
+                        callback.onError("Erro na autenticação: " + errorMessage +
+                                "\nVerifique se você confirmou seu email.");
+                    }
+                }
+        );
     }
 
     /**
@@ -219,14 +279,6 @@ public class LoginService {
             if (connection == null) {
                 return new LoginResult(false, "Erro de conexão com o servidor", null);
             }
-            /*
-            // Hash da senha usando MD5 (como esperado pelo banco)
-            String senhaHash = generateMD5Hash(senha);
-            if (senhaHash == null) {
-                return new LoginResult(false, "Erro ao processar senha", null);
-            }
-
-             */
 
             // Chamar stored procedure
             String sql = "{call Login_Paciente(?, ?)}";
@@ -258,6 +310,10 @@ public class LoginService {
 
                     // Login bem-sucedido - construir UsuarioDTO
                     UsuarioDTO usuario = buildUsuarioFromResultSet(resultSet);
+
+                    // Valor temporario
+                    usuario.setSenha(senha);
+
                     Log.i(TAG, "Login bem-sucedido para: " + usuario.getNomeExibicao());
                     return new LoginResult(true, "Login realizado com sucesso", usuario);
                 } else {

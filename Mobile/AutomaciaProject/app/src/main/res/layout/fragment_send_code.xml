@@ -95,11 +95,12 @@
                 <com.google.android.material.button.MaterialButton
                     android:id="@+id/btnEnviarCodigo"
                     android:layout_width="match_parent"
-                    android:layout_height="56dp"
+                    android:layout_height="65dp"
                     android:text="Enviar Código"
                     android:textColor="@android:color/white"
                     android:textSize="16sp"
                     android:textStyle="bold"
+                    android:layout_marginHorizontal="15dp"
                     app:backgroundTint="@color/primary"
                     app:cornerRadius="15dp"
                     app:elevation="4dp"

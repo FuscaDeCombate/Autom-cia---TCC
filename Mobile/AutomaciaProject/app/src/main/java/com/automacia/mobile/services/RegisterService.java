@@ -28,6 +28,8 @@ public class RegisterService {
     private final ExecutorService executor;
     private final Handler mainHandler;
     private FirebaseAuth firebaseAuth;
+    private volatile boolean isShuttingDown = false;
+    private FirebaseUser currentFirebaseUser = null;
 
     // URL de fallback - pode ser qualquer URL válida ou o domínio do seu Firebase Hosting
     private static final String FALLBACK_URL = "https://automacia-4ec6b.firebaseapp.com";
@@ -97,6 +99,10 @@ public class RegisterService {
 
         firebaseAuth.createUserWithEmailAndPassword(usuario.getEmail(), usuario.getSenha())
                 .addOnCompleteListener(task -> {
+                    if (isShuttingDown) {
+                        Log.d(TAG, "Service foi encerrado, cancelando callback");
+                        return;
+                    }
                     if (task.isSuccessful()) {
                         FirebaseUser firebaseUser = firebaseAuth.getCurrentUser();
                         if (firebaseUser != null) {
@@ -105,6 +111,11 @@ public class RegisterService {
                             // O Firebase enviará automaticamente o email com o link correto
                             firebaseUser.sendEmailVerification(actionCodeSettings)
                                     .addOnCompleteListener(emailTask -> {
+                                        if (isShuttingDown) {
+                                            Log.d(TAG, "Service foi encerrado, cancelando callback");
+                                            return;
+                                        }
+
                                         mainHandler.post(() -> callback.onLoading(false));
 
                                         if (emailTask.isSuccessful()) {
@@ -147,6 +158,11 @@ public class RegisterService {
 
             currentUser.sendEmailVerification(actionCodeSettings)
                     .addOnCompleteListener(task -> {
+                        if (isShuttingDown) {
+                            Log.d(TAG, "Service foi encerrado, cancelando callback");
+                            return;
+                        }
+
                         if (task.isSuccessful()) {
                             Log.d(TAG, "Link de verificação reenviado automaticamente pelo Firebase");
                             mainHandler.post(() -> {
@@ -179,6 +195,11 @@ public class RegisterService {
 
             if (currentUser != null) {
                 currentUser.reload().addOnCompleteListener(task -> {
+                    if (isShuttingDown) {
+                        Log.d(TAG, "Service foi encerrado, cancelando callback");
+                        return;
+                    }
+
                     if (task.isSuccessful()) {
                         if (currentUser.isEmailVerified()) {
                             mainHandler.post(() -> callback.onSuccess("Email verificado com sucesso!"));
@@ -231,7 +252,6 @@ public class RegisterService {
 
     /**
      * Completa o registro no banco de dados após verificação do email
-     * MÉTODO RESTAURADO que estava faltando
      */
     public void completarRegistroNoBanco(UsuarioDTO usuario, DatabaseCallback callback) {
         mainHandler.post(() -> callback.onLoading(true));
@@ -307,6 +327,12 @@ public class RegisterService {
                 } catch (SQLException e) {
                     Log.e(TAG, "Erro ao fechar recursos", e);
                 }
+
+                // Se o service foi encerrado, não chama callbacks
+                if (isShuttingDown) {
+                    Log.d(TAG, "Service encerrado, cancelando callback de loading");
+                    return;
+                }
             }
         });
     }
@@ -333,8 +359,21 @@ public class RegisterService {
     }
 
     public void shutdown() {
-        if (executor != null && !executor.isShutdown()) {
-            executor.shutdown();
+        Log.d(TAG, "Iniciando shutdown do RegisterService");
+        isShuttingDown = true;
+
+        // Remove callbacks pendentes do Handler
+        if (mainHandler != null) {
+            mainHandler.removeCallbacksAndMessages(null);
         }
+
+        // Desliga o executor e cancela tarefas pendentes
+        if (executor != null && !executor.isShutdown()) {
+            executor.shutdownNow(); // shutdownNow() cancela tarefas em andamento
+            Log.d(TAG, "ExecutorService encerrado");
+        }
+
+        // Limpa referência ao usuário do Firebase
+        currentFirebaseUser = null;
     }
 }

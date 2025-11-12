@@ -15,7 +15,10 @@ import android.view.View;
 import android.view.animation.AccelerateInterpolator;
 import android.widget.Toast;
 
+import com.automacia.mobile.managers.SessionManager;
+import com.automacia.mobile.models.UsuarioDTO;
 import com.automacia.mobile.services.RegisterService;
+import com.google.firebase.FirebaseApp;
 
 import androidx.activity.EdgeToEdge;
 import androidx.appcompat.app.AppCompatActivity;
@@ -41,9 +44,19 @@ public class SplashActivity extends AppCompatActivity {
     private RegisterService registerService;
     private boolean isProcessingDeepLink = false;
 
+    private SessionManager sessionManager;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+
+        // Teste Firebase
+        FirebaseApp firebaseApp = FirebaseApp.getInstance();
+        if (firebaseApp != null) {
+            Log.d("Firebase", "Nome do app: " + firebaseApp.getName());
+        } else {
+            Log.e("Firebase", "Erro ao configurar o Firebase");
+        }
 
         // Inicializa o RegisterService
         registerService = new RegisterService(this);
@@ -84,7 +97,70 @@ public class SplashActivity extends AppCompatActivity {
         setContentView(R.layout.activity_splash);
         setupWindowInsets();
         setupGradientBackground();
-        startSplashSequence();
+
+        // Inicializar SessionManager
+        sessionManager = new SessionManager(this);
+
+        // Verificar se já tem sessão ativa
+        checkSessionAndNavigate();
+    }
+
+    /**
+     * Verifica se existe sessão ativa e navega para tela apropriada
+     */
+    private void checkSessionAndNavigate() {
+        // Verifica se tem sessão válida
+        if (sessionManager.isSessionActive()) {
+            Log.d(TAG, "Sessão ativa encontrada, validando token...");
+
+            // Valida o token do Firebase
+            sessionManager.validateToken(new SessionManager.TokenValidationCallback() {
+                @Override
+                public void onValid(String token, long expirationTime) {
+                    Log.d(TAG, "Token válido! Navegando para MainActivity");
+
+                    // Recupera dados do usuário da sessão
+                    UsuarioDTO usuario = sessionManager.getUsuarioFromSession();
+
+                    // Salva no MyApp
+                    MyApp app = (MyApp) getApplicationContext();
+                    app.setUsuarioLogado(usuario);
+
+                    // Navega direto para MainActivity com animação
+                    runOnUiThread(() -> {
+                        new Handler(Looper.getMainLooper()).postDelayed(() -> {
+                            if (!isFinishing()) {
+                                Intent intent = new Intent(getBaseContext(), MainActivity.class);
+                                startActivity(intent);
+                                overridePendingTransition(android.R.anim.fade_in, android.R.anim.fade_out);
+                                finish();
+                            }
+                        }, 1000); // Aguarda 1 segundo para mostrar o splash
+                    });
+                }
+
+                @Override
+                public void onInvalid() {
+                    Log.d(TAG, "Token inválido ou expirado. Fazendo logout...");
+
+                    // Token expirado, faz logout e vai pro login
+                    sessionManager.logout(SplashActivity.this);
+
+                    runOnUiThread(() -> {
+                        Toast.makeText(SplashActivity.this,
+                                "Sessão expirada. Faça login novamente.",
+                                Toast.LENGTH_SHORT).show();
+
+                        // Inicia sequência normal do splash -> login
+                        startSplashSequence();
+                    });
+                }
+            });
+        } else {
+            Log.d(TAG, "Nenhuma sessão encontrada, indo para login");
+            // Não tem sessão, vai para login normalmente
+            startSplashSequence();
+        }
     }
 
     /**
@@ -253,6 +329,9 @@ public class SplashActivity extends AppCompatActivity {
         if (registerService != null) {
             registerService.shutdown();
         }
+
+        // Limpar referência do SessionManager
+        sessionManager = null;
     }
 
     @Override

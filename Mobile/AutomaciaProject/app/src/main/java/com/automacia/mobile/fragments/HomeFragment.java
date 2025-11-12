@@ -1,5 +1,7 @@
 package com.automacia.mobile.fragments;
 
+import android.app.AlertDialog;
+import android.content.Context;
 import android.content.Intent;
 import android.net.Uri;
 import android.os.Bundle;
@@ -12,12 +14,15 @@ import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.view.ViewStub;
 import android.widget.ImageButton;
 import android.widget.LinearLayout;
 import android.widget.ProgressBar;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import com.automacia.mobile.LoginActivity;
+import com.automacia.mobile.managers.SessionManager;
 import com.automacia.mobile.quickactions.FullPrescriptionsActivity;
 import com.automacia.mobile.MyApp;
 import com.automacia.mobile.R;
@@ -42,6 +47,10 @@ public class HomeFragment extends Fragment {
     private CircleImageView ivProfile;
     private ImageButton btnHelp, btnLogout;
     private RecyclerView rvPrescriptions;
+
+    private ViewStub emptyStatePrescriptions;
+    private View inflatedEmptyState;
+    private TextView tvViewAllPrescriptions;
     private ProgressBar progressBar;
     private CardView cardMedicalHistory;
     private LinearLayout quickMedicos, quickFarmacias, quickEmergencias, quickRelatorio;
@@ -50,6 +59,8 @@ public class HomeFragment extends Fragment {
     private UsuarioDTO currentUser;
     private List<PrescriptionDTO> prescriptionList;
     private TimelinePrescriptionAdapter prescriptionAdapter;
+
+    private SessionManager sessionManager;
 
     // Service
     private PrescriptionService prescriptionService;
@@ -78,6 +89,9 @@ public class HomeFragment extends Fragment {
 
         // Inicializar service
         prescriptionService = new PrescriptionService();
+
+        // Inicializar SessionManager
+        sessionManager = new SessionManager(requireContext());
 
         // Recuperar usuário dos argumentos
         if (getArguments() != null) {
@@ -131,6 +145,9 @@ public class HomeFragment extends Fragment {
 
         // RecyclerView para receitas
         rvPrescriptions = view.findViewById(R.id.rv_prescriptions);
+        emptyStatePrescriptions = view.findViewById(R.id.empty_state_prescriptions);
+        tvViewAllPrescriptions = view.findViewById(R.id.tv_view_all_prescriptions);
+
         // Ações rápidas
         quickMedicos = view.findViewById(R.id.quick_action_medicos);
         quickFarmacias = view.findViewById(R.id.quick_action_farmacias);
@@ -218,9 +235,11 @@ public class HomeFragment extends Fragment {
                     prescriptionList.clear();
                     prescriptionAdapter.updatePrescriptions(prescriptionList);
                     updatePrescriptionStatusEmpty();
-                    Toast.makeText(getContext(), "Nenhuma receita encontrada", Toast.LENGTH_SHORT).show();
+                    showEmptyState(true);
                     return;
                 }
+
+                showEmptyState(false);
 
                 // Atualizar lista e adapter
                 prescriptionList.clear();
@@ -229,10 +248,6 @@ public class HomeFragment extends Fragment {
 
                 // Atualizar status com dados reais
                 updatePrescriptionStatus(prescriptions);
-
-                Toast.makeText(getContext(),
-                        prescriptions.size() + " receita(s) carregada(s)",
-                        Toast.LENGTH_SHORT).show();
             }
 
             @Override
@@ -243,11 +258,10 @@ public class HomeFragment extends Fragment {
                 }
 
                 showLoading(false);
+                showEmptyState(true);
 
                 // Mostrar erro básico para o usuário
-                Toast.makeText(getContext(),
-                        "Erro ao carregar receitas",
-                        Toast.LENGTH_LONG).show();
+                Log.e("HomeFragment", "Erro ao carregar receitas" + errorMessage);
 
                 // Log detalhado já está no PrescriptionService
                 tvPrescriptionStatus.setText("Erro ao carregar receitas.\nTente novamente mais tarde.");
@@ -256,11 +270,51 @@ public class HomeFragment extends Fragment {
     }
 
     /**
+     * Mostra ou esconde o empty state de receitas
+     */
+    private void showEmptyState(boolean show) {
+        if (show) {
+            // Inflar o ViewStub se ainda não foi inflado
+            if (inflatedEmptyState == null && emptyStatePrescriptions != null) {
+                inflatedEmptyState = emptyStatePrescriptions.inflate();
+            }
+
+            // Mostrar empty state e esconder RecyclerView
+            if (inflatedEmptyState != null) {
+                inflatedEmptyState.setVisibility(View.VISIBLE);
+            }
+            if (rvPrescriptions != null) {
+                rvPrescriptions.setVisibility(View.GONE);
+            }
+            if (tvViewAllPrescriptions != null) {
+                tvViewAllPrescriptions.setVisibility(View.GONE);
+            }
+        } else {
+            // Esconder empty state e mostrar RecyclerView
+            if (inflatedEmptyState != null) {
+                inflatedEmptyState.setVisibility(View.GONE);
+            }
+            if (rvPrescriptions != null) {
+                rvPrescriptions.setVisibility(View.VISIBLE);
+            }
+            if (tvViewAllPrescriptions != null) {
+                tvViewAllPrescriptions.setVisibility(View.VISIBLE);
+            }
+        }
+    }
+
+    /**
      * Mostra/esconde o loading
      */
     private void showLoading(boolean show) {
         if (progressBar != null) {
             progressBar.setVisibility(show ? View.VISIBLE : View.GONE);
+        }
+        if (inflatedEmptyState != null) {
+            inflatedEmptyState.setVisibility(View.GONE);
+        }
+        if (tvViewAllPrescriptions != null) {
+            tvViewAllPrescriptions.setVisibility(View.GONE);
         }
         if (rvPrescriptions != null) {
             rvPrescriptions.setVisibility(show ? View.GONE : View.VISIBLE);
@@ -338,9 +392,50 @@ public class HomeFragment extends Fragment {
     }
 
     private void logout() {
-        Toast.makeText(getContext(), "Fazendo logout...", Toast.LENGTH_SHORT).show();
-        if (currentUser != null) {
-            currentUser.clearSensitiveData();
+        // Verificar se o fragment ainda está anexado
+        if (!isAdded() || getContext() == null) {
+            Log.e("HomeFragment", "Fragment não está anexado, não é possível fazer logout");
+            return;
+        }
+
+        // Mostrar confirmação
+        new AlertDialog.Builder(requireContext())
+                .setTitle("Sair")
+                .setMessage("Deseja realmente sair da sua conta?")
+                .setPositiveButton("Sim", (dialog, which) -> performLogout())
+                .setNegativeButton("Não", null)
+                .show();
+    }
+
+    /**
+     * Executa o logout completo
+     */
+    private void performLogout() {
+        try {
+            Log.d("HomeFragment", "Iniciando processo de logout...");
+
+            // Executar logout (Firebase + SharedPreferences + MyApp)
+            sessionManager.logout(requireContext());
+
+            Log.d("HomeFragment", "Logout executado com sucesso");
+
+            Toast.makeText(requireContext(),
+                    "Até logo, " + (currentUser != null ? currentUser.getNomeExibicao() : "") + "!",
+                    Toast.LENGTH_SHORT).show();
+
+            // Navegar para LoginActivity e limpar pilha de activities
+            Intent intent = new Intent(requireActivity(), LoginActivity.class);
+            intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
+            startActivity(intent);
+
+            // Finalizar a MainActivity atual
+            requireActivity().finish();
+
+        } catch (Exception e) {
+            Log.e("HomeFragment", "Erro ao fazer logout", e);
+            Toast.makeText(requireContext(),
+                    "Erro ao fazer logout. Tente novamente.",
+                    Toast.LENGTH_SHORT).show();
         }
     }
 
@@ -509,5 +604,11 @@ public class HomeFragment extends Fragment {
     public void forceReload() {
         Log.d("HomeFragment", "forceReload() - Recarga forçada solicitada");
         reloadUserData();
+    }
+
+    @Override
+    public void onDestroy(){
+        super.onDestroy();
+        sessionManager = null;
     }
 }

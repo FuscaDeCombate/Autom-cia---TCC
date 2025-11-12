@@ -14,7 +14,7 @@
         <!-- Card Principal -->
         <androidx.cardview.widget.CardView
             android:id="@+id/cardLayout"
-            android:layout_width="0dp"
+            android:layout_width="match_parent"
             android:layout_height="wrap_content"
             app:cardCornerRadius="24dp"
             app:cardElevation="8dp"
@@ -96,14 +96,14 @@
                             android:id="@+id/editCodigo1"
                             android:layout_width="match_parent"
                             android:layout_height="56dp"
-                            android:inputType="number"
-                            android:textColor="@color/text_primary"
-                            android:maxLength="1"
-                            android:textAlignment="center"
-                            android:textSize="24sp"
-                            android:textStyle="bold"
                             android:fontFamily="sans-serif-medium"
-                            android:selectAllOnFocus="true" />
+                            android:inputType="number"
+                            android:maxLength="1"
+                            android:selectAllOnFocus="true"
+                            android:textAlignment="center"
+                            android:textColor="@color/text_primary"
+                            android:textSize="18sp"
+                            android:textStyle="bold" />
                     </com.google.android.material.textfield.TextInputLayout>
 
                     <!-- Campo 2 -->
@@ -125,14 +125,14 @@
                             android:id="@+id/editCodigo2"
                             android:layout_width="match_parent"
                             android:layout_height="56dp"
-                            android:inputType="number"
-                            android:textColor="@color/text_primary"
-                            android:maxLength="1"
-                            android:textAlignment="center"
-                            android:textSize="24sp"
-                            android:textStyle="bold"
                             android:fontFamily="sans-serif-medium"
-                            android:selectAllOnFocus="true" />
+                            android:inputType="number"
+                            android:maxLength="1"
+                            android:selectAllOnFocus="true"
+                            android:textAlignment="center"
+                            android:textColor="@color/text_primary"
+                            android:textSize="18sp"
+                            android:textStyle="bold" />
                     </com.google.android.material.textfield.TextInputLayout>
 
                     <!-- Campo 3 -->
@@ -154,14 +154,14 @@
                             android:id="@+id/editCodigo3"
                             android:layout_width="match_parent"
                             android:layout_height="56dp"
-                            android:inputType="number"
-                            android:textColor="@color/text_primary"
-                            android:maxLength="1"
-                            android:textAlignment="center"
-                            android:textSize="24sp"
-                            android:textStyle="bold"
                             android:fontFamily="sans-serif-medium"
-                            android:selectAllOnFocus="true" />
+                            android:inputType="number"
+                            android:maxLength="1"
+                            android:selectAllOnFocus="true"
+                            android:textAlignment="center"
+                            android:textColor="@color/text_primary"
+                            android:textSize="18sp"
+                            android:textStyle="bold" />
                     </com.google.android.material.textfield.TextInputLayout>
 
                     <!-- Campo 4 -->
@@ -183,14 +183,14 @@
                             android:id="@+id/editCodigo4"
                             android:layout_width="match_parent"
                             android:layout_height="56dp"
-                            android:inputType="number"
-                            android:textColor="@color/text_primary"
-                            android:maxLength="1"
-                            android:textAlignment="center"
-                            android:textSize="24sp"
-                            android:textStyle="bold"
                             android:fontFamily="sans-serif-medium"
-                            android:selectAllOnFocus="true" />
+                            android:inputType="number"
+                            android:maxLength="1"
+                            android:selectAllOnFocus="true"
+                            android:textAlignment="center"
+                            android:textColor="@color/text_primary"
+                            android:textSize="18sp"
+                            android:textStyle="bold" />
                     </com.google.android.material.textfield.TextInputLayout>
 
                     <!-- Campo 5 -->
@@ -212,14 +212,14 @@
                             android:id="@+id/editCodigo5"
                             android:layout_width="match_parent"
                             android:layout_height="56dp"
-                            android:inputType="number"
-                            android:textColor="@color/text_primary"
-                            android:maxLength="1"
-                            android:textAlignment="center"
-                            android:textSize="24sp"
-                            android:textStyle="bold"
                             android:fontFamily="sans-serif-medium"
-                            android:selectAllOnFocus="true" />
+                            android:inputType="number"
+                            android:maxLength="1"
+                            android:selectAllOnFocus="true"
+                            android:textAlignment="center"
+                            android:textColor="@color/text_primary"
+                            android:textSize="18sp"
+                            android:textStyle="bold" />
                     </com.google.android.material.textfield.TextInputLayout>
 
                     <!-- Campo 6 -->
@@ -240,14 +240,14 @@
                             android:id="@+id/editCodigo6"
                             android:layout_width="match_parent"
                             android:layout_height="56dp"
-                            android:inputType="number"
-                            android:textColor="@color/text_primary"
-                            android:maxLength="1"
-                            android:textAlignment="center"
-                            android:textSize="24sp"
-                            android:textStyle="bold"
                             android:fontFamily="sans-serif-medium"
-                            android:selectAllOnFocus="true" />
+                            android:inputType="number"
+                            android:maxLength="1"
+                            android:selectAllOnFocus="true"
+                            android:textAlignment="center"
+                            android:textColor="@color/text_primary"
+                            android:textSize="18sp"
+                            android:textStyle="bold" />
                     </com.google.android.material.textfield.TextInputLayout>
 
                 </LinearLayout>
