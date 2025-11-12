@@ -1,0 +1,411 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Minhas Receitas - Automácia</title>
+    <link rel="stylesheet" href="../CSS/receita.css ">
+</head>
+<body>
+    <!-- Animated Background -->
+    <div class="animated-bg">
+        <div class="floating-shapes">
+            <div class="shape"></div>
+            <div class="shape"></div>
+            <div class="shape"></div>
+            <div class="shape"></div>
+            <div class="shape"></div>
+        </div>
+    </div>
+
+    <!-- Loading Screen -->
+    <div id="loading-screen">
+        <div class="loader">
+            <div class="loader-circle"></div>
+            <div class="loader-text">Carregando receitas...</div>
+        </div>
+    </div>
+
+    <!-- Main Content -->
+    <main>
+        <div class="main-container">
+            <!-- Page Header -->
+            <div class="page-header">
+                <h1 class="page-title">Minhas Receitas</h1>
+                <p class="page-subtitle">Gerencie e visualize suas prescrições médicas</p>
+                
+                <div class="search-container">
+                    <input 
+                        type="text" 
+                        class="search-input" 
+                        id="searchInput"
+                        placeholder="Buscar receita ou medicamento..."
+                    >
+                    <button class="search-btn" onclick="filtrarReceitas()">
+                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                        </svg>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Recipes Container -->
+            <div class="recipes-container">
+                <!-- Recipes Sidebar (Left Column) -->
+                <div class="recipes-sidebar">
+                    <div class="sidebar-header">
+                        <h3>Lista de Receitas</h3>
+                        <span class="recipes-count" id="recipesCount">0 receitas</span>
+                    </div>
+                    <div class="recipes-list" id="recipesList">
+                        <!-- Recipe cards will be inserted here by JavaScript -->
+                    </div>
+                </div>
+
+                <!-- Recipe Viewer (Right Column) -->
+                <div class="recipe-viewer">
+                    <div id="receitaaumentada">
+                        <div class="recipe-placeholder">
+                            <div class="placeholder-icon">
+                                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                                </svg>
+                            </div>
+                            <h3>Selecione uma receita</h3>
+                            <p>Escolha uma receita da lista ao lado para visualizar todos os detalhes</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Quick Actions -->
+            <div class="quick-actions-recipes">
+                <button class="quick-btn" onclick="window.print()">
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" />
+                    </svg>
+                    Imprimir
+                </button>
+                <button class="quick-btn" onclick="location.reload()">
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                    </svg>
+                    Atualizar
+                </button>
+            </div>
+        </div>
+    </main>
+
+    <script>
+        // Dados das receitas (serão carregados do PHP)
+        let receitasData = [];
+        let receitaSelecionada = null;
+
+        // Simular dados do PHP (remover isso quando integrar com o PHP real)
+        // Em produção, estes dados virão do greceita.php
+        const dadosSimulados = [
+            {
+                ID_Receita: 1,
+                Data_Receita: new Date('2024-09-15T10:30:00'),
+                Data_Validade: new Date('2025-03-15'),
+                Funcionar_Rec: 123,
+                Medicamento: 'Amoxicilina 500mg',
+                Detalhes: 'Tomar 1 comprimido a cada 8 horas por 7 dias',
+                Limite_Baixas: 3,
+                Valido: 1,
+                Baixas: 1
+            },
+            {
+                ID_Receita: 2,
+                Data_Receita: new Date('2024-08-20T14:15:00'),
+                Data_Validade: new Date('2025-02-20'),
+                Funcionar_Rec: 456,
+                Medicamento: 'Dipirona 500mg',
+                Detalhes: 'Tomar 1 comprimido em caso de dor ou febre. Máximo 4 por dia',
+                Limite_Baixas: 5,
+                Valido: 1,
+                Baixas: 2
+            },
+            {
+                ID_Receita: 3,
+                Data_Receita: new Date('2024-07-10T09:00:00'),
+                Data_Validade: new Date('2024-12-10'),
+                Funcionar_Rec: 789,
+                Medicamento: 'Omeprazol 20mg',
+                Detalhes: 'Tomar 1 comprimido em jejum pela manhã',
+                Limite_Baixas: 2,
+                Valido: 0,
+                Baixas: 2
+            }
+        ];
+
+        // Função para carregar receitas do PHP
+        async function carregarReceitas() {
+            try {
+                // Em produção, descomente e ajuste:
+                const response = await fetch('../PHP/greceita.php');
+                const data = await response.json();
+                receitasData = data;
+                
+                // Temporário: usar dados simulados
+                //receitasData = dadosSimulados;
+                
+                renderizarListaReceitas();
+                hideLoadingScreen();
+            } catch (error) {
+                console.error('Erro ao carregar receitas:', error);
+                showNotification('Erro ao carregar receitas', 'error');
+                hideLoadingScreen();
+            }
+        }
+
+        // Renderizar lista de receitas na sidebar
+        function renderizarListaReceitas(receitas = receitasData) {
+            const lista = document.getElementById('recipesList');
+            const count = document.getElementById('recipesCount');
+            
+            count.textContent = ${receitas.length}${receitas.length === 1 ? 'receita' : 'receitas'};
+            
+            if (receitas.length === 0) {
+                lista.innerHTML = `
+                    <div style="text-align: center; padding: 2rem; color: rgba(255,255,255,0.6);">
+                        <p>Nenhuma receita encontrada</p>
+                    </div>
+                `;
+                return;
+            }
+            
+            lista.innerHTML = receitas.map(receita => {
+                const dataFormatada = formatarData(receita.Data_Receita);
+                const validadeFormatada = formatarData(receita.Data_Validade);
+                const isValido = receita.Valido && new Date(receita.Data_Validade) > new Date();
+                const porcentagemUso = (receita.Baixas / receita.Limite_Baixas) * 100;
+                
+                return `
+                    <div class="recipe-card" onclick="selecionarReceita(${receita.ID_Receita})" id="card-${receita.ID_Receita}">
+                        <div class="recipe-icon">
+                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                            </svg>
+                        </div>
+                        <div class="recipe-info">
+                            <h4>Receita #${receita.ID_Receita}</h4>
+                            <div class="recipe-description">${receita.Medicamento}</div>
+                            <div class="recipe-doctor">Dr(a). CRM: ${receita.Funcionar_Rec}</div>
+                        </div>
+                        <div class="recipe-meta">
+                            <div class="recipe-date">${dataFormatada}</div>
+                            <div class="recipe-validity">Val: ${validadeFormatada}</div>
+                            <div class="recipe-status ${isValido ? 'valid' : 'invalid'}">
+                                <span class="status-dot"></span>
+                                ${isValido ? 'Válida' : 'Expirada'}
+                            </div>
+                            <div class="recipe-usage">
+                                <span class="usage-count">${receita.Baixas}/${receita.Limite_Baixas} usos</span>
+                            </div>
+                        </div>
+                        <div class="recipe-arrow">
+                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+                            </svg>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        // Selecionar e exibir detalhes da receita
+        function selecionarReceita(id) {
+            const receita = receitasData.find(r => r.ID_Receita === id);
+            if (!receita) return;
+            
+            receitaSelecionada = receita;
+            
+            // Atualizar classes active
+            document.querySelectorAll('.recipe-card').forEach(card => {
+                card.classList.remove('active');
+            });
+            document.getElementById(card-${id}).classList.add('active');
+            
+            // Renderizar detalhes
+            renderizarDetalhesReceita(receita);
+        }
+
+        // Renderizar detalhes da receita no viewer
+        function renderizarDetalhesReceita(receita) {
+            const viewer = document.getElementById('receitaaumentada');
+            const isValido = receita.Valido && new Date(receita.Data_Validade) > new Date();
+            const porcentagemUso = (receita.Baixas / receita.Limite_Baixas) * 100;
+            const usosRestantes = receita.Limite_Baixas - receita.Baixas;
+            
+            viewer.innerHTML = `
+                <div class="recipe-content">
+                    <div class="recipe-header">
+                        <div class="recipe-title-section">
+                            <h2>Receita #${receita.ID_Receita}</h2>
+                            <div class="recipe-badges">
+                                <span class="badge ${isValido ? 'valid' : 'invalid'}">
+                                    ${isValido ? '✓ Válida' : '✗ Expirada'}
+                                </span>
+                                ${usosRestantes > 0 ? <span class="badge priority">Usos disponíveis</span> : <span class="badge priority high">Sem usos</span>}
+                            </div>
+                        </div>
+                        <div class="recipe-actions">
+                            <button class="action-btn" title="Imprimir" onclick="window.print()">
+                                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" />
+                                </svg>
+                            </button>
+                            <button class="action-btn" title="Compartilhar" onclick="compartilharReceita()">
+                                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z" />
+                                </svg>
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <div class="recipe-details">
+                        <div class="detail-section">
+                            <h4>Informações Gerais</h4>
+                            <div class="detail-grid">
+                                <div class="detail-item">
+                                    <span class="detail-label">Data de Emissão</span>
+                                    <span class="detail-value">${formatarDataCompleta(receita.Data_Receita)}</span>
+                                </div>
+                                <div class="detail-item">
+                                    <span class="detail-label">Validade</span>
+                                    <span class="detail-value">${formatarDataCompleta(receita.Data_Validade)}</span>
+                                </div>
+                                <div class="detail-item">
+                                    <span class="detail-label">Médico Responsável</span>
+                                    <span class="detail-value">CRM: ${receita.Funcionar_Rec}</span>
+                                </div>
+                                <div class="detail-item">
+                                    <span class="detail-label">Status</span>
+                                    <span class="detail-value" style="color: ${isValido ? '#00ff88' : '#ff6b6b'}">
+                                        ${isValido ? 'Ativa' : 'Expirada'}
+                                    </span>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="detail-section">
+                            <h4>Medicamento Prescrito</h4>
+                            <div class="medication-display">
+                                <div class="medication-item">
+                                    <div class="med-icon">
+                                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z" />
+                                        </svg>
+                                    </div>
+                                    <div class="med-details">
+                                        <h5>${receita.Medicamento}</h5>
+                                        <div class="usage-progress">
+                                            <div class="usage-bar">
+                                                <div class="usage-fill" style="width: ${porcentagemUso}%"></div>
+                                            </div>
+                                            <span class="usage-text">
+                                                ${receita.Baixas} de ${receita.Limite_Baixas} usos realizados 
+                                                (${usosRestantes} ${usosRestantes === 1 ? 'uso restante' : 'usos restantes'})
+                                            </span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        ${receita.Detalhes ? `
+                        <div class="detail-section">
+                            <h4>Instruções de Uso</h4>
+                            <div class="instructions">
+                                <p>${receita.Detalhes}</p>
+                            </div>
+                        </div>
+                        ` : ''}
+                    </div>
+                </div>
+            `;
+        }
+
+        // Função de filtro
+        function filtrarReceitas() {
+            const termo = document.getElementById('searchInput').value.toLowerCase();
+            const receitasFiltradas = receitasData.filter(receita => {
+                return receita.Medicamento.toLowerCase().includes(termo) ||
+                       receita.ID_Receita.toString().includes(termo) ||
+                       receita.Detalhes?.toLowerCase().includes(termo);
+            });
+            renderizarListaReceitas(receitasFiltradas);
+        }
+
+        // Event listener para busca em tempo real
+        document.addEventListener('DOMContentLoaded', () => {
+            const searchInput = document.getElementById('searchInput');
+            searchInput?.addEventListener('input', filtrarReceitas);
+        });
+
+        // Função para compartilhar receita
+        function compartilharReceita() {
+            if (!receitaSelecionada) return;
+            
+            const texto = Receita #${receitaSelecionada.ID_Receita}\n +
+                         Medicamento: ${receitaSelecionada.Medicamento}\n +
+                         Validade: ${formatarDataCompleta(receitaSelecionada.Data_Validade)};
+            
+            if (navigator.share) {
+                navigator.share({
+                    title: 'Receita Médica',
+                    text: texto
+                }).catch(err => console.log('Erro ao compartilhar:', err));
+            } else {
+                navigator.clipboard.writeText(texto);
+                showNotification('Receita copiada para área de transferência!', 'success');
+            }
+        }
+
+        // Funções auxiliares
+        function formatarData(data) {
+            const d = new Date(data);
+            return d.toLocaleDateString('pt-BR');
+        }
+
+        function formatarDataCompleta(data) {
+            const d = new Date(data);
+            return d.toLocaleDateString('pt-BR', { 
+                day: '2-digit', 
+                month: 'long', 
+                year: 'numeric' 
+            });
+        }
+
+        function hideLoadingScreen() {
+            const loading = document.getElementById('loading-screen');
+            loading.style.opacity = '0';
+            setTimeout(() => {
+                loading.style.display = 'none';
+            }, 500);
+        }
+
+        function showNotification(message, type = 'info') {
+            const notification = document.createElement('div');
+            notification.className = notification ${type} show;
+            notification.innerHTML = `
+                <div class="notification-content">
+                    <span>${message}</span>
+                    <button class="notification-close" onclick="this.parentElement.parentElement.remove()">×</button>
+                </div>
+            `;
+            document.body.appendChild(notification);
+            
+            setTimeout(() => {
+                notification.remove();
+            }, 3000);
+        }
+
+        // Inicializar quando a página carregar
+        window.addEventListener('load', () => {
+            carregarReceitas();
+        });
+    </script>
+</body>
+</html>

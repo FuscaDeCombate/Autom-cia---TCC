@@ -46,7 +46,7 @@
                 - Ou mantenha AJAX para uma experiência mais fluida
                 - Skibit Toilet por favor
                 -->
-                <form id="emailForm" method="POST" action="">
+                <form id="emailForm" method="POST" action="../PHP/recsenha.php">
                     <div class="header">
                         <div class="logo-container">
                             <img src="../Imagem/file.png" alt="Logo">
@@ -103,7 +103,7 @@
                 - Adicione action para script de verificação (ex: "verificar_codigo.php")
                 - O código será enviado como string concatenada dos 6 inputs
                 -->
-                <form id="codeForm" method="POST" action="">
+                <form id="codeForm" method="POST" action="../PHP/verificar_codigo.php">
                     <!-- Campo oculto para enviar o email junto com o código -->
                     <input type="hidden" id="hiddenEmail" name="email" value="">
                     <input type="hidden" id="verificationCode" name="code" value="">
@@ -158,7 +158,7 @@
                 - Adicione action para script de alteração de senha (ex: "alterar_senha.php")
                 - Inclua campos ocultos para email e código verificado
                 -->
-                <form id="passwordForm" method="POST" action="">
+                <form id="passwordForm" method="POST" action="../PHP/alterar_senha.php">
                     <input type="hidden" id="hiddenEmailStep3" name="email" value="">
                     <input type="hidden" id="hiddenCodeStep3" name="verified_code" value="">
                     

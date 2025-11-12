@@ -13,7 +13,7 @@ $erro = null;
 $semReceitas = false;
 
 try {
-    // 🔧 CONFIGURAÇÃO DO BANCO
+    // CONFIGURAÇÃO DO BANCO
     $serverName = "XUXAOOG\\SQLEXPRESS"; // duplo \\ é obrigatório
     $connectionInfo = [
         "Database" => "Automacia",
@@ -304,7 +304,7 @@ try {
                 <img src="../Imagem/user.png" alt="Usuário">
                 <div class="user-indicator"></div>
             </a>
-            <img src="Imagem/cardapio.png" id="bubulgue" alt="Menu" class="mobile-menu">
+            <img src="../Imagem/cardapio.png" id="bubulgue" alt="Menu" class="mobile-menu">
         </div>
     </header>
 

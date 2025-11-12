@@ -1,0 +1,286 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gerenciar Contas - Sistema</title>
+    <link rel="stylesheet" href="../CSS/login.css">
+    <link rel="shortcut icon" href="../Imagem/file.png">
+    <link rel="stylesheet" href="../CSS/gconta.css">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+</head>
+<body>
+    <div class="background-overlay"></div>
+    
+    <main>
+        <div class="login-container">
+            <form action="../PHP/conta.php" method="post" id="contaForm">
+                <div class="header">
+                    <div class="logo-container">
+                        <img src="../Imagem/file.png" alt="Logo">
+                    </div>
+                    <h1>GERENCIAR CONTA</h1>
+                    <p class="subtitle">Visualize e edite suas informações</p>
+                </div>
+
+                <div class="form-content">
+                    <div class="form-row">
+                        <div class="input-group">
+                            <label for="nome">Nome Completo</label>
+                            <div class="input-container">
+                                <i class="fas fa-user input-icon"></i>
+                                <input 
+                                    type="text" 
+                                    id="nome"
+                                    name="nome" 
+                                    class="form-input"
+                                    placeholder="Seu nome completo"
+                                    value="João Silva Santos"
+                                    required
+                                >
+                            </div>
+                        </div>
+
+                        <div class="input-group">
+                            <label for="fone">Telefone</label>
+                            <div class="input-container">
+                                <i class="fas fa-phone input-icon"></i>
+                                <input 
+                                    type="tel" 
+                                    id="fone"
+                                    name="fone" 
+                                    class="form-input"
+                                    placeholder="(00) 00000-0000"
+                                    maxlength="15"
+                                    required
+                                >
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="input-group">
+                            <label for="email">E-mail</label>
+                            <div class="input-container">
+                                <i class="fas fa-envelope input-icon disabled-icon"></i>
+                                <input 
+                                    type="email" 
+                                    id="email"
+                                    name="email" 
+                                    class="form-input"
+                                    placeholder="seu@email.com">
+                            </div>
+                        </div>
+
+                        <div class="input-group">
+                            <label for="cpf">CPF</label>
+                            <div class="input-container">
+                                <i class="fas fa-id-card input-icon disabled-icon"></i>
+                                <input 
+                                    type="text" 
+                                    id="cpf"
+                                    name="cpf" 
+                                    class="form-input"
+                                    placeholder="000.000.000-00"
+                                    value="123.456.789-00"
+                                    disabled
+                                >
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="button-group">
+                        <button type="submit" name="action" value="editar" class="action-btn btn-edit" id="editBtn">
+                            <i class="fas fa-save"></i>
+                            <span>SALVAR</span>
+                        </button>
+                        
+                        <button type="button" class="action-btn btn-cancel" onclick="cancelarAlteracoes()">
+                            <i class="fas fa-times"></i>
+                            <span>CANCELAR</span>
+                        </button>
+                        
+                        <button type="button" class="action-btn btn-exit" onclick="sairSistema()">
+                            <i class="fas fa-sign-out-alt"></i>
+                            <span>SAIR</span>
+                        </button>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </main>
+
+    <script>
+        // Máscara para telefone
+        function formatTelefone(telefone) {
+            telefone = telefone.replace(/\D/g, '');
+            telefone = telefone.replace(/(\d{2})(\d)/, '($1) $2');
+            telefone = telefone.replace(/(\d{5})(\d)/, '$1-$2');
+            return telefone;
+        }
+
+        document.getElementById('fone').addEventListener('input', function(e) {
+            e.target.value = formatTelefone(e.target.value);
+        });
+
+        // Toggle password visibility
+        function togglePassword(inputId, iconId) {
+            const passwordInput = document.getElementById(inputId);
+            const toggleIcon = document.getElementById(iconId);
+            
+            if (passwordInput.type === 'password') {
+                passwordInput.type = 'text';
+                toggleIcon.classList.remove('fa-eye');
+                toggleIcon.classList.add('fa-eye-slash');
+            } else {
+                passwordInput.type = 'password';
+                toggleIcon.classList.remove('fa-eye-slash');
+                toggleIcon.classList.add('fa-eye');
+            }
+        }
+
+        // Validação de senha em tempo real
+        document.getElementById('consenha').addEventListener('input', function() {
+            const senha = document.getElementById('senha').value;
+            const consenha = this.value;
+            
+            if (consenha && senha && senha !== consenha) {
+                this.classList.add('error');
+                this.classList.remove('success');
+            } else if (consenha && senha && senha === consenha) {
+                this.classList.remove('error');
+                this.classList.add('success');
+            } else {
+                this.classList.remove('error', 'success');
+            }
+        });
+
+        // Validação do formulário
+        document.getElementById('contaForm').addEventListener('submit', function(e) {
+            const nome = document.getElementById('nome').value;
+            const telefone = document.getElementById('fone').value;
+            const senha = document.getElementById('senha').value;
+            const consenha = document.getElementById('consenha').value;
+            
+            // Validação do nome
+            if (nome.trim().length < 2) {
+                e.preventDefault();
+                alert('Por favor, digite um nome válido.');
+                return;
+            }
+            
+            // Validação do telefone
+            if (telefone && telefone.replace(/\D/g, '').length < 10) {
+                e.preventDefault();
+                alert('Por favor, digite um telefone válido.');
+                return;
+            }
+            
+            // Se senha foi preenchida, validar
+            if (senha || consenha) {
+                if (senha.length !== 6) {
+                    e.preventDefault();
+                    alert('A nova senha deve ter exatamente 6 caracteres.');
+                    return;
+                }
+                
+                if (senha !== consenha) {
+                    e.preventDefault();
+                    alert('As senhas não coincidem. Por favor, verifique.');
+                    return;
+                }
+            }
+        });
+
+        // Loading state para botão salvar
+        document.getElementById('contaForm').addEventListener('submit', function() {
+            const btn = document.getElementById('editBtn');
+            const btnIcon = btn.querySelector('i');
+            const btnText = btn.querySelector('span');
+            
+            btnText.textContent = 'SALVANDO...';
+            btnIcon.className = 'fas fa-spinner fa-spin';
+            btn.disabled = true;
+        });
+
+        // Função para cancelar alterações
+        function cancelarAlteracoes() {
+            if (confirm('Tem certeza que deseja cancelar as alterações?')) {
+                // Resetar formulário para valores originais
+                document.getElementById('nome').value = 'João Silva Santos';
+                document.getElementById('fone').value = '';
+                document.getElementById('senha').value = '';
+                document.getElementById('consenha').value = '';
+                
+                // Remover classes de validação
+                document.querySelectorAll('.form-input').forEach(input => {
+                    input.classList.remove('error', 'success');
+                });
+                
+                // Feedback visual
+                alert('Alterações canceladas.');
+            }
+        }
+
+        // Função para sair do sistema
+        function sairSistema() {
+            if (confirm('Tem certeza que deseja sair do sistema?')) {
+                window.location.href = 'login.html';
+            }
+        }
+
+        // Validação visual do telefone
+        document.getElementById('fone').addEventListener('blur', function() {
+            const telefone = this.value;
+            if (telefone && telefone.replace(/\D/g, '').length < 10) {
+                this.classList.add('error');
+                this.classList.remove('success');
+            } else if (telefone) {
+                this.classList.remove('error');
+                this.classList.add('success');
+            }
+        });
+
+        // Efeito visual nos campos desabilitados
+        document.addEventListener('DOMContentLoaded', function() {
+            const disabledInputs = document.querySelectorAll('input:disabled');
+            disabledInputs.forEach(input => {
+                const tooltip = document.createElement('div');
+                tooltip.style.cssText = `
+                    position: absolute;
+                    background: rgba(0, 0, 0, 0.8);
+                    color: white;
+                    padding: 5px 10px;
+                    border-radius: 4px;
+                    font-size: 12px;
+                    display: none;
+                    z-index: 1000;
+                    pointer-events: none;
+                `;
+                tooltip.textContent = 'Este campo não pode ser editado';
+                document.body.appendChild(tooltip);
+
+                input.addEventListener('mouseenter', function(e) {
+                    tooltip.style.display = 'block';
+                    tooltip.style.left = e.pageX + 'px';
+                    tooltip.style.top = (e.pageY - 35) + 'px';
+                });
+
+                input.addEventListener('mouseleave', function() {
+                    tooltip.style.display = 'none';
+                });
+            });
+        });
+
+        // Aviso para campos obrigatórios
+        document.getElementById('nome').addEventListener('blur', function() {
+            if (!this.value.trim()) {
+                this.classList.add('error');
+            } else {
+                this.classList.remove('error');
+                this.classList.add('success');
+            }
+        });
+    </script>
+</body>
+</html>
