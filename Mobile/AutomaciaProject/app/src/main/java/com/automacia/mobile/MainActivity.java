@@ -3,8 +3,11 @@ package com.automacia.mobile;
 import android.content.Intent;
 import android.graphics.Rect;
 import android.os.Bundle;
+import android.util.TypedValue;
 import android.view.View;
+import android.view.ViewGroup;
 import android.view.WindowManager;
+import android.widget.FrameLayout;
 
 import androidx.activity.EdgeToEdge;
 import androidx.appcompat.app.AppCompatActivity;
@@ -263,13 +266,23 @@ public class MainActivity extends AppCompatActivity {
             int screenHeight = binding.getRoot().getRootView().getHeight();
             int keypadHeight = screenHeight - r.bottom;
 
-            // Se a altura do teclado for maior que 15% da tela, considera que está aberto
-            if (keypadHeight > screenHeight * 0.15) {
-                // Teclado aberto - escond  e o bottom navigation
+            boolean tecladoAberto = keypadHeight > screenHeight * 0.15;
+
+            if (tecladoAberto) {
+                // Esconde a barra e remove a margem inferior
                 binding.bottomNavigation.setVisibility(View.GONE);
+                FrameLayout fl = binding.flFragment;
+                ViewGroup.MarginLayoutParams params = (ViewGroup.MarginLayoutParams) fl.getLayoutParams();
+                params.bottomMargin = 0;
+                fl.setLayoutParams(params);
             } else {
-                // Teclado fechado - mostra o bottom navigation
+                // Mostra a barra e restaura a margem
                 binding.bottomNavigation.setVisibility(View.VISIBLE);
+                FrameLayout fl = binding.flFragment;
+                ViewGroup.MarginLayoutParams params = (ViewGroup.MarginLayoutParams) fl.getLayoutParams();
+                params.bottomMargin = (int) TypedValue.applyDimension(
+                        TypedValue.COMPLEX_UNIT_DIP, 80, getResources().getDisplayMetrics());
+                fl.setLayoutParams(params);
             }
         });
     }

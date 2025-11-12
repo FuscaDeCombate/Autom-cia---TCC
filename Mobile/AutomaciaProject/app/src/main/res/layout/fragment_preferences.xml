@@ -25,7 +25,7 @@
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="⚙️ Preferências"
+                android:text="⚙️ Configurações"
                 android:textSize="28sp"
                 android:textColor="@color/white"
                 android:textStyle="bold"
@@ -34,7 +34,7 @@
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="Personalize sua experiência"
+                android:text="Gerencie suas preferências"
                 android:textSize="14sp"
                 android:textColor="@color/primary_light"
                 android:layout_marginTop="4dp"/>
@@ -92,7 +92,7 @@
                     <TextView
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:text="Modo Negro"
+                        android:text="Modo Escuro"
                         android:textSize="16sp"
                         android:textColor="@color/text_primary"
                         android:fontFamily="sans-serif-medium"/>
@@ -100,7 +100,7 @@
                     <TextView
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:text="Proteja seus olhos à noite"
+                        android:text="Reduz o cansaço visual"
                         android:textSize="14sp"
                         android:textColor="@color/text_secondary"
                         android:layout_marginTop="2dp"/>
@@ -110,62 +110,6 @@
                     android:id="@+id/switchDarkMode"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"/>
-            </LinearLayout>
-
-            <View
-                android:layout_width="match_parent"
-                android:layout_height="1dp"
-                android:layout_marginStart="56dp"
-                android:background="@color/divider"/>
-
-            <!-- Animações -->
-            <LinearLayout
-                android:id="@+id/btnAnimations"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:orientation="horizontal"
-                android:padding="16dp"
-                android:background="?attr/selectableItemBackground"
-                android:clickable="true"
-                android:focusable="true"
-                android:gravity="center_vertical">
-
-                <TextView
-                    android:layout_width="24dp"
-                    android:layout_height="24dp"
-                    android:text="✨"
-                    android:textSize="20sp"
-                    android:gravity="center"/>
-
-                <LinearLayout
-                    android:layout_width="0dp"
-                    android:layout_height="wrap_content"
-                    android:layout_weight="1"
-                    android:orientation="vertical"
-                    android:layout_marginStart="16dp">
-
-                    <TextView
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:text="Aura + Ego"
-                        android:textSize="16sp"
-                        android:textColor="@color/text_primary"
-                        android:fontFamily="sans-serif-medium"/>
-
-                    <TextView
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:text="Tudo se resuma a farmar aura"
-                        android:textSize="14sp"
-                        android:textColor="@color/text_secondary"
-                        android:layout_marginTop="2dp"/>
-                </LinearLayout>
-
-                <Switch
-                    android:id="@+id/switchAnimations"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:checked="true"/>
             </LinearLayout>
 
         </LinearLayout>
@@ -222,7 +166,7 @@
                     <TextView
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:text="Notificações push"
+                        android:text="Notificações"
                         android:textSize="16sp"
                         android:textColor="@color/text_primary"
                         android:fontFamily="sans-serif-medium"/>
@@ -230,7 +174,7 @@
                     <TextView
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:text="Seja incomodado constantemente"
+                        android:text="Receba alertas sobre consultas e receitas"
                         android:textSize="14sp"
                         android:textColor="@color/text_secondary"
                         android:layout_marginTop="2dp"/>
@@ -243,68 +187,13 @@
                     android:checked="true"/>
             </LinearLayout>
 
-            <View
-                android:layout_width="match_parent"
-                android:layout_height="1dp"
-                android:layout_marginStart="56dp"
-                android:background="@color/divider"/>
-
-            <!-- Sons -->
-            <LinearLayout
-                android:id="@+id/btnSounds"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:orientation="horizontal"
-                android:padding="16dp"
-                android:background="?attr/selectableItemBackground"
-                android:clickable="true"
-                android:focusable="true"
-                android:gravity="center_vertical">
-
-                <TextView
-                    android:layout_width="24dp"
-                    android:layout_height="24dp"
-                    android:text="🔊"
-                    android:textSize="20sp"
-                    android:gravity="center"/>
-
-                <LinearLayout
-                    android:layout_width="0dp"
-                    android:layout_height="wrap_content"
-                    android:layout_weight="1"
-                    android:orientation="vertical"
-                    android:layout_marginStart="16dp">
-
-                    <TextView
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:text="Sons irritantes"
-                        android:textSize="16sp"
-                        android:textColor="@color/text_primary"
-                        android:fontFamily="sans-serif-medium"/>
-
-                    <TextView
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:text="Bip boop para tudo"
-                        android:textSize="14sp"
-                        android:textColor="@color/text_secondary"
-                        android:layout_marginTop="2dp"/>
-                </LinearLayout>
-
-                <Switch
-                    android:id="@+id/switchSounds"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"/>
-            </LinearLayout>
-
         </LinearLayout>
 
-        <!-- Seção Privacidade -->
+        <!-- Seção Privacidade e Segurança -->
         <TextView
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="PRIVACIDADE"
+            android:text="PRIVACIDADE E SEGURANÇA"
             android:textSize="12sp"
             android:textColor="@color/text_secondary"
             android:fontFamily="sans-serif-medium"
@@ -323,9 +212,9 @@
             android:orientation="vertical"
             android:elevation="2dp">
 
-            <!-- Vender dados -->
+            <!-- Biometria -->
             <LinearLayout
-                android:id="@+id/btnSellData"
+                android:id="@+id/btnBiometric"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:orientation="horizontal"
@@ -338,7 +227,7 @@
                 <TextView
                     android:layout_width="24dp"
                     android:layout_height="24dp"
-                    android:text="💰"
+                    android:text="🔐"
                     android:textSize="20sp"
                     android:gravity="center"/>
 
@@ -352,7 +241,7 @@
                     <TextView
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:text="Vender meus dados"
+                        android:text="Autenticação Biométrica"
                         android:textSize="16sp"
                         android:textColor="@color/text_primary"
                         android:fontFamily="sans-serif-medium"/>
@@ -360,17 +249,16 @@
                     <TextView
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:text="Stonks 📈"
+                        android:text="Use digital ou reconhecimento facial"
                         android:textSize="14sp"
                         android:textColor="@color/text_secondary"
                         android:layout_marginTop="2dp"/>
                 </LinearLayout>
 
                 <Switch
-                    android:id="@+id/switchSellData"
+                    android:id="@+id/switchBiometric"
                     android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:checked="true"/>
+                    android:layout_height="wrap_content"/>
             </LinearLayout>
 
             <View
@@ -379,9 +267,9 @@
                 android:layout_marginStart="56dp"
                 android:background="@color/divider"/>
 
-            <!-- Modo invisível -->
+            <!-- Limpar Cache -->
             <LinearLayout
-                android:id="@+id/btnInvisible"
+                android:id="@+id/btnClearCache"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:orientation="horizontal"
@@ -394,7 +282,7 @@
                 <TextView
                     android:layout_width="24dp"
                     android:layout_height="24dp"
-                    android:text="👻"
+                    android:text="🗑️"
                     android:textSize="20sp"
                     android:gravity="center"/>
 
@@ -408,7 +296,83 @@
                     <TextView
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:text="Modo invisível"
+                        android:text="Limpar Cache"
+                        android:textSize="16sp"
+                        android:textColor="@color/text_primary"
+                        android:fontFamily="sans-serif-medium"/>
+
+                    <TextView
+                        android:id="@+id/tvCacheSize"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="Libere espaço removendo dados temporários"
+                        android:textSize="14sp"
+                        android:textColor="@color/text_secondary"
+                        android:layout_marginTop="2dp"/>
+                </LinearLayout>
+
+                <ImageView
+                    android:layout_width="20dp"
+                    android:layout_height="20dp"
+                    android:src="@android:drawable/ic_menu_more"
+                    app:tint="@color/gray"
+                    android:rotation="270"/>
+            </LinearLayout>
+
+        </LinearLayout>
+
+        <!-- Seção Conta -->
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="CONTA"
+            android:textSize="12sp"
+            android:textColor="@color/text_secondary"
+            android:fontFamily="sans-serif-medium"
+            android:paddingStart="16dp"
+            android:paddingEnd="16dp"
+            android:paddingTop="8dp"
+            android:paddingBottom="8dp"/>
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="16dp"
+            android:layout_marginEnd="16dp"
+            android:layout_marginBottom="24dp"
+            android:background="@color/surface"
+            android:orientation="vertical"
+            android:elevation="2dp">
+
+            <!-- Alterar Senha -->
+            <LinearLayout
+                android:id="@+id/btnChangePassword"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:padding="16dp"
+                android:background="?attr/selectableItemBackground"
+                android:clickable="true"
+                android:focusable="true"
+                android:gravity="center_vertical">
+
+                <ImageView
+                    android:layout_width="24dp"
+                    android:layout_height="24dp"
+                    android:src="@drawable/ic_lock"
+                    app:tint="@color/primary"/>
+
+                <LinearLayout
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:orientation="vertical"
+                    android:layout_marginStart="16dp">
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="Alterar Senha"
                         android:textSize="16sp"
                         android:textColor="@color/text_primary"
                         android:fontFamily="sans-serif-medium"/>
@@ -416,16 +380,74 @@
                     <TextView
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:text="Ninguém te vê, nem você mesmo"
+                        android:text="Mantenha sua conta segura"
                         android:textSize="14sp"
                         android:textColor="@color/text_secondary"
                         android:layout_marginTop="2dp"/>
                 </LinearLayout>
 
-                <Switch
-                    android:id="@+id/switchInvisible"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"/>
+                <ImageView
+                    android:layout_width="20dp"
+                    android:layout_height="20dp"
+                    android:src="@android:drawable/ic_menu_more"
+                    app:tint="@color/gray"
+                    android:rotation="270"/>
+            </LinearLayout>
+
+            <View
+                android:layout_width="match_parent"
+                android:layout_height="1dp"
+                android:layout_marginStart="56dp"
+                android:background="@color/divider"/>
+
+            <!-- Logout -->
+            <LinearLayout
+                android:id="@+id/btnLogout"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:padding="16dp"
+                android:background="?attr/selectableItemBackground"
+                android:clickable="true"
+                android:focusable="true"
+                android:gravity="center_vertical">
+
+                <ImageView
+                    android:layout_width="24dp"
+                    android:layout_height="24dp"
+                    android:src="@drawable/ic_logout"
+                    app:tint="@color/red"/>
+
+                <LinearLayout
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:orientation="vertical"
+                    android:layout_marginStart="16dp">
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="Sair da Conta"
+                        android:textSize="16sp"
+                        android:textColor="@color/red_light"
+                        android:fontFamily="sans-serif-medium"/>
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="Encerre sua sessão"
+                        android:textSize="14sp"
+                        android:textColor="@color/text_secondary"
+                        android:layout_marginTop="2dp"/>
+                </LinearLayout>
+
+                <ImageView
+                    android:layout_width="20dp"
+                    android:layout_height="20dp"
+                    android:src="@android:drawable/ic_menu_more"
+                    app:tint="@color/gray"
+                    android:rotation="270"/>
             </LinearLayout>
 
         </LinearLayout>
@@ -504,6 +526,18 @@
             </LinearLayout>
 
         </LinearLayout>
+
+
+        <!-- Versão do App (Footer) -->
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Automacia v1.0.0"
+            android:textSize="12sp"
+            android:textColor="@color/text_secondary"
+            android:gravity="center"
+            android:paddingTop="8dp"
+            android:paddingBottom="24dp"/>
 
     </LinearLayout>
 

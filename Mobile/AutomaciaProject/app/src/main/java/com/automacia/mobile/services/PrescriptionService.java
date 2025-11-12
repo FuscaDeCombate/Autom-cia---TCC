@@ -75,21 +75,33 @@ public class PrescriptionService {
 
                 // 3. Processar apenas campos necessários para versão SIMPLES
                 while (resultSet.next()) {
-                    PrescriptionDTO dto = new PrescriptionDTO();
+                    // VALIDAÇÃO: Verifica se é mensagem de erro ou dados reais
+                    try {
+                        // Tenta pegar uma coluna que só existe em receitas reais
+                        int idReceita = resultSet.getInt("ID_Receita");
 
-                    // Campos essenciais para o adapter simples
-                    dto.setIdReceita(resultSet.getInt("ID_Receita"));
-                    dto.setMedicamento(resultSet.getString("Medicamento"));
-                    dto.setFuncionarioNome(resultSet.getString("Funcionar_Nome"));
-                    dto.setDataValidade(resultSet.getDate("Data_Validade"));
-                    dto.setValido(resultSet.getBoolean("Valido"));
-                    dto.setBaixas(resultSet.getInt("Baixas"));
-                    dto.setLimiteBaixas(resultSet.getInt("Limite_Baixas"));
+                        PrescriptionDTO dto = new PrescriptionDTO();
+                        dto.setIdReceita(idReceita);
+                        dto.setMedicamento(resultSet.getString("Medicamento"));
+                        dto.setFuncionarioNome(resultSet.getString("Funcionar_Nome"));
+                        dto.setDataValidade(resultSet.getDate("Data_Validade"));
+                        dto.setValido(resultSet.getBoolean("Valido"));
+                        dto.setBaixas(resultSet.getInt("Baixas"));
+                        dto.setLimiteBaixas(resultSet.getInt("Limite_Baixas"));
 
-                    prescriptions.add(dto);
+                        prescriptions.add(dto);
+                        Log.d(TAG, "Receita carregada (simples): " + dto.getMedicamento());
 
-                    Log.d(TAG, "Receita carregada (simples): " + dto.getMedicamento() +
-                            " - Válida: " + dto.isValido());
+                    } catch (SQLException e) {
+                        // Se falhou, é porque recebeu mensagem de texto, não dados
+                        try {
+                            String mensagem = resultSet.getString("Ver_Receita_Retorno");
+                            Log.d(TAG, "Mensagem da procedure: " + mensagem);
+                        } catch (SQLException ex) {
+                            Log.e(TAG, "Erro ao processar resultado", ex);
+                        }
+                        break; // Sai do loop, não há dados para processar
+                    }
                 }
 
                 Log.d(TAG, "Total de receitas carregadas (simples): " + prescriptions.size());

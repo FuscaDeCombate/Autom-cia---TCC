@@ -5,6 +5,7 @@ import android.content.SharedPreferences;
 import android.util.Log;
 
 import com.automacia.mobile.models.UsuarioDTO;
+import com.automacia.mobile.utils.ChatPreferences;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseUser;
 
@@ -15,7 +16,7 @@ import com.google.firebase.auth.FirebaseUser;
  * - Salvar/recuperar token JWT do Firebase
  * - Gerenciar dados básicos do usuário em sessão
  * - Validar se sessão está ativa
- * - Logout completo (Firebase + dados locais)
+ * - Logout completo (Firebase + dados locais + cache + preferências)
  */
 public class SessionManager {
 
@@ -32,14 +33,21 @@ public class SessionManager {
     private static final String KEY_USER_TELEFONE = "user_telefone";
     private static final String KEY_LAST_LOGIN = "last_login_timestamp";
 
+    // Nomes de outros SharedPreferences que devem ser limpos no logout
+    private static final String CHAT_PREFS_NAME = "chat_preferences";
+    private static final String PHARMACY_CACHE_NAME = "PharmacyCache";
+    private static final String OSM_CONFIG_NAME = "osmdroid";
+
     private final SharedPreferences preferences;
     private final SharedPreferences.Editor editor;
     private final FirebaseAuth firebaseAuth;
+    private final Context context;
 
     /**
      * Construtor - Inicializa SharedPreferences e FirebaseAuth
      */
     public SessionManager(Context context) {
+        this.context = context.getApplicationContext();
         this.preferences = context.getSharedPreferences(PREF_NAME, Context.MODE_PRIVATE);
         this.editor = preferences.edit();
         this.firebaseAuth = FirebaseAuth.getInstance();
@@ -210,48 +218,106 @@ public class SessionManager {
     // ==================== LOGOUT ====================
 
     /**
-     * Realiza logout completo:
+     * Realiza logout COMPLETO e SEGURO:
      * - Desloga do Firebase
-     * - Limpa SharedPreferences
+     * - Limpa SharedPreferences de sessão
+     * - Limpa ChatPreferences
+     * - Limpa cache de farmácias
+     * - Limpa configurações do OSMDroid
      * - Remove dados da memória (MyApp)
+     * - Log de auditoria
      *
-     * @param context Context para acessar MyApp
+     * @param context Context para acessar MyApp e outros recursos
      */
     public void logout(Context context) {
-        Log.i(TAG, "Iniciando logout completo...");
+        Log.i(TAG, "========================================");
+        Log.i(TAG, "Iniciando logout COMPLETO...");
+        Log.i(TAG, "========================================");
 
-        // 1. Logout do Firebase
+        int successCount = 0;
+        int totalSteps = 6;
+
+        // STEP 1: Logout do Firebase
         try {
             firebaseAuth.signOut();
-            Log.d(TAG, "Firebase signOut executado");
+            Log.d(TAG, "✓ [1/6] Firebase signOut executado");
+            successCount++;
         } catch (Exception e) {
-            Log.e(TAG, "Erro ao deslogar do Firebase: " + e.getMessage());
+            Log.e(TAG, "✗ [1/6] Erro ao deslogar do Firebase: " + e.getMessage(), e);
         }
 
-        // 2. Limpar SharedPreferences
-        clearSessionData();
+        // STEP 2: Limpar SharedPreferences da sessão
+        try {
+            clearSessionData();
+            Log.d(TAG, "✓ [2/6] SharedPreferences de sessão limpo");
+            successCount++;
+        } catch (Exception e) {
+            Log.e(TAG, "✗ [2/6] Erro ao limpar sessão: " + e.getMessage(), e);
+        }
 
-        // 3. Limpar dados globais do MyApp
+        // STEP 3: Limpar ChatPreferences
+        try {
+            ChatPreferences chatPrefs = new ChatPreferences(context);
+            chatPrefs.limparUltimoFuncionario();
+            Log.d(TAG, "✓ [3/6] ChatPreferences limpo");
+            successCount++;
+        } catch (Exception e) {
+            Log.e(TAG, "✗ [3/6] Erro ao limpar ChatPreferences: " + e.getMessage(), e);
+        }
+
+        // STEP 4: Limpar cache de farmácias
+        try {
+            clearPharmacyCache(context);
+            Log.d(TAG, "✓ [4/6] Cache de farmácias limpo");
+            successCount++;
+        } catch (Exception e) {
+            Log.e(TAG, "✗ [4/6] Erro ao limpar cache de farmácias: " + e.getMessage(), e);
+        }
+
+        // STEP 5: Limpar configurações do OSMDroid (mantém apenas configs não-pessoais)
+        try {
+            clearOSMConfig(context);
+            Log.d(TAG, "✓ [5/6] Configurações OSM limpas");
+            successCount++;
+        } catch (Exception e) {
+            Log.e(TAG, "✗ [5/6] Erro ao limpar OSM: " + e.getMessage(), e);
+        }
+
+        // STEP 6: Limpar dados globais do MyApp
         try {
             com.automacia.mobile.MyApp app =
                     (com.automacia.mobile.MyApp) context.getApplicationContext();
             app.setUsuarioLogado(null);
-            Log.d(TAG, "Dados globais limpos (MyApp)");
+            Log.d(TAG, "✓ [6/6] Dados globais limpos (MyApp)");
+            successCount++;
         } catch (Exception e) {
-            Log.e(TAG, "Erro ao limpar MyApp: " + e.getMessage());
+            Log.e(TAG, "✗ [6/6] Erro ao limpar MyApp: " + e.getMessage(), e);
         }
 
-        Log.i(TAG, "Logout completo executado com sucesso");
+        // AUDITORIA FINAL
+        Log.i(TAG, "========================================");
+        Log.i(TAG, "Logout finalizado: " + successCount + "/" + totalSteps + " passos executados");
+
+        if (successCount == totalSteps) {
+            Log.i(TAG, "✓ LOGOUT COMPLETO - Nenhum resquício do usuário");
+        } else {
+            Log.w(TAG, "⚠ LOGOUT PARCIAL - Alguns dados podem não ter sido limpos");
+        }
+
+        Log.i(TAG, "========================================");
+
+        // Verificação final (debug)
+        verifyCleanup();
     }
 
     /**
-     * Limpa apenas os dados do SharedPreferences
+     * Limpa apenas os dados do SharedPreferences de sessão
      * Usado internamente e em casos específicos
      */
     public void clearSessionData() {
         editor.clear();
         editor.apply();
-        Log.d(TAG, "SharedPreferences limpo");
+        Log.d(TAG, "SharedPreferences de sessão limpo");
     }
 
     /**
@@ -270,6 +336,92 @@ public class SessionManager {
         editor.apply();
 
         Log.d(TAG, "Dados sensíveis removidos");
+    }
+
+    /**
+     * Limpa o cache de farmácias (pode conter localização do usuário)
+     */
+    private void clearPharmacyCache(Context context) {
+        SharedPreferences pharmacyPrefs = context.getSharedPreferences(
+                PHARMACY_CACHE_NAME,
+                Context.MODE_PRIVATE
+        );
+
+        SharedPreferences.Editor pharmacyEditor = pharmacyPrefs.edit();
+        pharmacyEditor.clear();
+        pharmacyEditor.apply();
+
+        Log.d(TAG, "Cache de farmácias completamente limpo");
+    }
+
+    /**
+     * Limpa configurações do OSMDroid que possam conter dados pessoais
+     * Mantém apenas configurações técnicas necessárias
+     */
+    private void clearOSMConfig(Context context) {
+        SharedPreferences osmPrefs = context.getSharedPreferences(
+                OSM_CONFIG_NAME,
+                Context.MODE_PRIVATE
+        );
+
+        // Lista de chaves que devem ser MANTIDAS (configurações técnicas)
+        String userAgent = osmPrefs.getString("osmdroid.userAgent", null);
+
+        // Limpa tudo
+        SharedPreferences.Editor osmEditor = osmPrefs.edit();
+        osmEditor.clear();
+
+        // Recoloca apenas o user agent se existir
+        if (userAgent != null) {
+            osmEditor.putString("osmdroid.userAgent", userAgent);
+        }
+
+        osmEditor.apply();
+
+        Log.d(TAG, "Configurações OSM limpas (mantido apenas user agent)");
+    }
+
+    /**
+     * Verifica se realmente não sobrou nenhum dado do usuário (DEBUG)
+     */
+    private void verifyCleanup() {
+        try {
+            // Verifica sessão
+            boolean hasSession = preferences.getBoolean(KEY_IS_LOGGED_IN, false);
+            String cpf = preferences.getString(KEY_USER_CPF, null);
+
+            // Verifica Firebase
+            FirebaseUser fbUser = firebaseAuth.getCurrentUser();
+
+            // Verifica chat
+            ChatPreferences chatPrefs = new ChatPreferences(context);
+            boolean hasChat = chatPrefs.temUltimoFuncionario();
+
+            // Verifica cache de farmácia
+            SharedPreferences pharmacyPrefs = context.getSharedPreferences(
+                    PHARMACY_CACHE_NAME,
+                    Context.MODE_PRIVATE
+            );
+            boolean hasPharmacyCache = pharmacyPrefs.getAll().size() > 0;
+
+            Log.d(TAG, "--- VERIFICAÇÃO PÓS-LOGOUT ---");
+            Log.d(TAG, "Session ativa: " + hasSession);
+            Log.d(TAG, "CPF salvo: " + (cpf != null ? "SIM [ERRO!]" : "não"));
+            Log.d(TAG, "Firebase User: " + (fbUser != null ? "SIM [ERRO!]" : "não"));
+            Log.d(TAG, "Chat salvo: " + (hasChat ? "SIM [ERRO!]" : "não"));
+            Log.d(TAG, "Cache farmácia: " + (hasPharmacyCache ? "SIM [ERRO!]" : "não"));
+            Log.d(TAG, "------------------------------");
+
+            // Se encontrou algum resquício, loga ERRO
+            if (hasSession || cpf != null || fbUser != null || hasChat || hasPharmacyCache) {
+                Log.e(TAG, "⚠⚠⚠ ATENÇÃO: Resquícios de dados encontrados após logout! ⚠⚠⚠");
+            } else {
+                Log.i(TAG, "✓ Verificação OK - Nenhum resquício encontrado");
+            }
+
+        } catch (Exception e) {
+            Log.e(TAG, "Erro na verificação pós-logout", e);
+        }
     }
 
     // ==================== HELPERS ====================
