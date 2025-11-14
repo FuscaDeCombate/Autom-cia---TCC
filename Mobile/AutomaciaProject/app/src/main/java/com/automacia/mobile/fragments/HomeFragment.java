@@ -3,6 +3,8 @@ package com.automacia.mobile.fragments;
 import android.app.AlertDialog;
 import android.content.Context;
 import android.content.Intent;
+import android.graphics.Color;
+import android.graphics.drawable.ColorDrawable;
 import android.net.Uri;
 import android.os.Bundle;
 import androidx.fragment.app.Fragment;
@@ -398,13 +400,33 @@ public class HomeFragment extends Fragment {
             return;
         }
 
-        // Mostrar confirmação
-        new AlertDialog.Builder(requireContext())
-                .setTitle("Sair")
-                .setMessage("Deseja realmente sair da sua conta?")
-                .setPositiveButton("Sim", (dialog, which) -> performLogout())
-                .setNegativeButton("Não", null)
-                .show();
+        // Inflar o layout customizado
+        LayoutInflater inflater = LayoutInflater.from(requireContext());
+        View dialogView = inflater.inflate(R.layout.dialog_logout, null);
+
+        // Criar o dialog com o tema customizado
+        AlertDialog dialog = new AlertDialog.Builder(requireContext(), R.style.DialogTheme)
+                .setView(dialogView)
+                .setCancelable(true)
+                .create();
+
+        // Aplicar animações
+        if (dialog.getWindow() != null) {
+            dialog.getWindow().getAttributes().windowAnimations = R.style.DialogAnimation;
+        }
+
+        // Configurar botões
+        TextView btnPositive = dialogView.findViewById(R.id.btn_positive);
+        TextView btnNegative = dialogView.findViewById(R.id.btn_negative);
+
+        btnPositive.setOnClickListener(v -> {
+            dialog.dismiss();
+            performLogout();
+        });
+
+        btnNegative.setOnClickListener(v -> dialog.dismiss());
+
+        dialog.show();
     }
 
     /**

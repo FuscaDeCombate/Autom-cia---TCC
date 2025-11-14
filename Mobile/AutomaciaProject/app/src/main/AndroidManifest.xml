@@ -12,7 +12,6 @@
     <uses-permission android:name="android.permission.USE_EXACT_ALARM" />
     <uses-permission android:name="android.permission.WAKE_LOCK" />
     <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
-
     <uses-permission
         android:name="android.permission.READ_EXTERNAL_STORAGE"
         android:maxSdkVersion="32" />
@@ -37,6 +36,9 @@
         android:usesCleartextTraffic="true"
         tools:targetApi="31">
         <activity
+            android:name=".quickactions.EmergencyActivity"
+            android:exported="false" />
+        <activity
             android:name=".quickactions.FuncionarioChat"
             android:exported="false" />
 
@@ -48,9 +50,7 @@
             <meta-data
                 android:name="android.support.FILE_PROVIDER_PATHS"
                 android:resource="@xml/file_paths" />
-        </provider>
-
-        <!-- BroadcastReceiver para notificações agendadas -->
+        </provider> <!-- BroadcastReceiver para notificações agendadas -->
         <receiver
             android:name=".receivers.NotificationReceiver"
             android:enabled="true"
@@ -58,9 +58,7 @@
             <intent-filter>
                 <action android:name="com.automacia.mobile.SHOW_NOTIFICATION" />
             </intent-filter>
-        </receiver>
-
-        <!-- BroadcastReceiver para reiniciar notificações após boot -->
+        </receiver> <!-- BroadcastReceiver para reiniciar notificações após boot -->
         <receiver
             android:name=".receivers.BootReceiver"
             android:enabled="true"
@@ -69,6 +67,7 @@
             <intent-filter>
                 <action android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
                 <action android:name="android.intent.action.BOOT_COMPLETED" />
+
                 <category android:name="android.intent.category.DEFAULT" />
             </intent-filter>
         </receiver>

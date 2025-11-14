@@ -1,8 +1,9 @@
 package com.automacia.mobile.models;
 
+import java.io.Serializable;
 import java.util.Date;
 
-public class PrescriptionDTO {
+public class PrescriptionDTO implements Serializable {
     private int idReceita;
     private Date dataReceita;
     private Date dataValidade;
