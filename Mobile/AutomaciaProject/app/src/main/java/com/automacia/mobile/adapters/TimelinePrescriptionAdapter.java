@@ -12,6 +12,8 @@ import com.automacia.mobile.R;
 import com.automacia.mobile.models.PrescriptionDTO;
 
 import java.text.SimpleDateFormat;
+import java.util.Collections;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Locale;
 
@@ -29,6 +31,7 @@ public class TimelinePrescriptionAdapter extends RecyclerView.Adapter<TimelinePr
         this.prescriptionList = prescriptionList;
         this.listener = listener;
         this.dateFormat = new SimpleDateFormat("dd/MM/yy", Locale.getDefault());
+        sortPrescriptions();
     }
 
     @NonNull
@@ -57,7 +60,37 @@ public class TimelinePrescriptionAdapter extends RecyclerView.Adapter<TimelinePr
 
     public void updatePrescriptions(List<PrescriptionDTO> newPrescriptions) {
         this.prescriptionList = newPrescriptions;
+        sortPrescriptions();
         notifyDataSetChanged();
+    }
+
+    private void sortPrescriptions() {
+        if (prescriptionList == null) return;
+
+        Collections.sort(prescriptionList, new Comparator<PrescriptionDTO>() {
+            @Override
+            public int compare(PrescriptionDTO p1, PrescriptionDTO p2) {
+                // 1. Priorizar válidas sobre inválidas
+                if (p1.isValido() != p2.isValido()) {
+                    return p1.isValido() ? -1 : 1;
+                }
+
+                // 2. Se ambas são válidas, ordenar por número de baixas (menos baixas primeiro)
+                if (p1.isValido() && p2.isValido()) {
+                    int baixasCompare = Integer.compare(p1.getBaixas(), p2.getBaixas());
+                    if (baixasCompare != 0) {
+                        return baixasCompare;
+                    }
+                }
+
+                // 3. Por fim, ordenar por data (mais recente primeiro)
+                if (p1.getDataReceita() != null && p2.getDataReceita() != null) {
+                    return p2.getDataReceita().compareTo(p1.getDataReceita());
+                }
+
+                return 0;
+            }
+        });
     }
 
     static class PrescriptionViewHolder extends RecyclerView.ViewHolder {

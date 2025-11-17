@@ -23,13 +23,29 @@ public class EmergencyMedicationAdapter extends RecyclerView.Adapter<EmergencyMe
     public EmergencyMedicationAdapter(List<PrescriptionDTO> prescriptions) {
         this.prescriptions = new ArrayList<>();
         if (prescriptions != null) {
-            this.prescriptions.addAll(prescriptions);
-            // PRIORIZAR RECEITAS ATIVAS (válidas) PRIMEIRO
+            // FILTRAR APENAS RECEITAS VÁLIDAS
+            for (PrescriptionDTO prescription : prescriptions) {
+                if (prescription.isValido()) {
+                    this.prescriptions.add(prescription);
+                }
+            }
+
+            // ORDENAR com as mesmas prioridades dos outros adapters
             Collections.sort(this.prescriptions, new Comparator<PrescriptionDTO>() {
                 @Override
                 public int compare(PrescriptionDTO p1, PrescriptionDTO p2) {
-                    // Receitas válidas (ativas) vêm primeiro
-                    return Boolean.compare(p2.isValido(), p1.isValido());
+                    // 1. Ordenar por número de baixas (menos baixas primeiro)
+                    int baixasCompare = Integer.compare(p1.getBaixas(), p2.getBaixas());
+                    if (baixasCompare != 0) {
+                        return baixasCompare;
+                    }
+
+                    // 2. Ordenar por data (mais recente primeiro)
+                    if (p1.getDataReceita() != null && p2.getDataReceita() != null) {
+                        return p2.getDataReceita().compareTo(p1.getDataReceita());
+                    }
+
+                    return 0;
                 }
             });
         }
@@ -58,25 +74,15 @@ public class EmergencyMedicationAdapter extends RecyclerView.Adapter<EmergencyMe
             holder.tvMedicationDetails.setVisibility(View.GONE);
         }
 
-        // Status da receita com Material Design
-        if (prescription.isValido()) {
-            // Ativa - Verde
-            holder.tvStatus.setText("Ativa");
-            holder.tvStatus.setTextColor(ContextCompat.getColor(
-                    holder.itemView.getContext(), R.color.success));
-            holder.statusBadge.setCardBackgroundColor(ContextCompat.getColor(
-                    holder.itemView.getContext(), R.color.green_light));
+        // Como todas são válidas, sempre mostrar como Ativa - Verde
+        holder.tvStatus.setText("Ativa");
+        holder.tvStatus.setTextColor(ContextCompat.getColor(
+                holder.itemView.getContext(), R.color.success));
+        holder.statusBadge.setCardBackgroundColor(ContextCompat.getColor(
+                holder.itemView.getContext(), R.color.green_light));
+        if (holder.iconBackground != null) {
             holder.iconBackground.setCardBackgroundColor(ContextCompat.getColor(
                     holder.itemView.getContext(), R.color.success));
-        } else {
-            // Inativa - Cinza
-            holder.tvStatus.setText("Inativa");
-            holder.tvStatus.setTextColor(ContextCompat.getColor(
-                    holder.itemView.getContext(), R.color.gray));
-            holder.statusBadge.setCardBackgroundColor(ContextCompat.getColor(
-                    holder.itemView.getContext(), R.color.gray_light));
-            holder.iconBackground.setCardBackgroundColor(ContextCompat.getColor(
-                    holder.itemView.getContext(), R.color.gray));
         }
     }
 
