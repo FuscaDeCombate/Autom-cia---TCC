@@ -25,7 +25,7 @@
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent">
 
-        <!-- Botão Voltar -->
+        <!-- Conteúdo do header permanece igual -->
         <ImageButton
             android:id="@+id/toolbar"
             android:layout_width="40dp"
@@ -36,14 +36,12 @@
             android:src="@drawable/ic_arrow_back"
             app:tint="@color/white" />
 
-        <!-- Container do Texto -->
         <LinearLayout
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_weight="1"
             android:orientation="vertical">
 
-            <!-- Título -->
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
@@ -64,355 +62,355 @@
         </LinearLayout>
     </LinearLayout>
 
-    <!-- Container Principal -->
-
-    <!-- Container Principal -->
-    <ScrollView
+    <!-- REMOVA O SCROLLVIEW E USE LinearLayout DIRETO -->
+    <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="0dp"
-        android:fillViewport="true"
+        android:orientation="vertical"
         android:background="@color/background"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toBottomOf="@id/headerLayout">
 
-        <LinearLayout
+        <!-- ScrollView SOMENTE para o estado vazio -->
+        <ScrollView
+            android:id="@+id/emptyScrollView"
             android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:orientation="vertical"
-            android:padding="20dp">
+            android:layout_height="match_parent"
+            android:fillViewport="true"
+            android:visibility="visible">
 
-            <!-- Card de Informação Moderno -->
-            <com.google.android.material.card.MaterialCardView
-                android:id="@+id/infoCard"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginBottom="24dp"
-                app:cardBackgroundColor="@color/white"
-                app:cardCornerRadius="16dp"
-                app:cardElevation="0dp"
-                app:strokeColor="@color/blue_light"
-                app:strokeWidth="1dp">
-
-                <LinearLayout
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:orientation="horizontal"
-                    android:padding="20dp">
-
-                    <View
-                        android:layout_width="4dp"
-                        android:layout_height="match_parent"
-                        android:layout_marginEnd="16dp"
-                        android:background="@drawable/info_indicator"
-                        android:backgroundTint="@color/secondary" />
-
-                    <ImageView
-                        android:layout_width="28dp"
-                        android:layout_height="28dp"
-                        android:layout_gravity="center_vertical"
-                        android:layout_marginEnd="16dp"
-                        android:src="@drawable/ic_info"
-                        app:tint="@color/secondary" />
-
-                    <TextView
-                        android:layout_width="0dp"
-                        android:layout_height="wrap_content"
-                        android:layout_weight="1"
-                        android:fontFamily="sans-serif"
-                        android:lineSpacingExtra="2dp"
-                        android:text="Seu histórico médico em formato PDF será exibido abaixo. Você pode adicionar apenas um documento."
-                        android:textColor="@color/text_primary"
-                        android:textSize="14sp" />
-                </LinearLayout>
-            </com.google.android.material.card.MaterialCardView>
-
-            <!-- Estado Vazio - Quando não há PDF -->
-            <com.google.android.material.card.MaterialCardView
-                android:id="@+id/emptyStateLayout"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:visibility="visible"
-                app:cardBackgroundColor="@color/white"
-                app:cardCornerRadius="20dp"
-                app:cardElevation="0dp"
-                app:strokeColor="@color/divider"
-                app:strokeWidth="1dp">
-
-                <LinearLayout
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:gravity="center"
-                    android:orientation="vertical"
-                    android:padding="40dp">
-
-                    <!-- Ícone com background circular -->
-                    <FrameLayout
-                        android:layout_width="140dp"
-                        android:layout_height="140dp"
-                        android:layout_marginBottom="24dp">
-
-                        <View
-                            android:layout_width="match_parent"
-                            android:layout_height="match_parent"
-                            android:background="@drawable/circle_background"
-                            android:backgroundTint="@color/primary_light" />
-
-                        <ImageView
-                            android:layout_width="80dp"
-                            android:layout_height="80dp"
-                            android:layout_gravity="center"
-                            android:src="@drawable/ic_document_empty"
-                            app:tint="@color/primary" />
-                    </FrameLayout>
-
-                    <TextView
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:layout_marginBottom="8dp"
-                        android:fontFamily="sans-serif-medium"
-                        android:text="Nenhum histórico médico"
-                        android:textColor="@color/text_primary"
-                        android:textSize="20sp"
-                        android:letterSpacing="0.01" />
-
-                    <TextView
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:layout_marginBottom="32dp"
-                        android:gravity="center"
-                        android:text="@string/pdf_manual_info"
-                        android:textAlignment="center"
-                        android:textColor="@color/text_secondary"
-                        android:textSize="14sp"
-                        android:lineSpacingExtra="4dp"
-                        android:maxWidth="280dp" />
-
-                    <com.google.android.material.button.MaterialButton
-                        android:id="@+id/btnAddPdf"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:paddingStart="32dp"
-                        android:paddingEnd="32dp"
-                        android:paddingTop="14dp"
-                        android:paddingBottom="14dp"
-                        android:text="@string/adicionar_pdf"
-                        android:textAllCaps="false"
-                        android:textSize="16sp"
-                        android:textColor="@color/white"
-                        android:fontFamily="sans-serif-medium"
-                        android:background="@drawable/button_gradient"
-                        android:elevation="4dp"
-                        android:stateListAnimator="@null"
-                        app:backgroundTint="@null"
-                        app:cornerRadius="18dp"
-                        app:icon="@drawable/ic_add"
-                        app:iconGravity="textStart"
-                        app:iconPadding="8dp"
-                        app:iconTint="@color/white"
-                        app:rippleColor="@color/primary_light" />
-                </LinearLayout>
-            </com.google.android.material.card.MaterialCardView>
-
-            <!-- Container do PDF - Quando há PDF carregado -->
             <LinearLayout
-                android:id="@+id/pdfContainer"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:orientation="vertical"
-                android:visibility="gone">
+                android:padding="20dp">
 
-                <!-- Card com informações do PDF -->
+                <!-- Card de Informação -->
                 <com.google.android.material.card.MaterialCardView
+                    android:id="@+id/infoCard"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:layout_marginBottom="16dp"
-                    app:cardBackgroundColor="@color/surface"
-                    app:cardCornerRadius="12dp"
-                    app:cardElevation="2dp"
+                    android:layout_marginBottom="24dp"
+                    app:cardBackgroundColor="@color/white"
+                    app:cardCornerRadius="16dp"
+                    app:cardElevation="0dp"
+                    app:strokeColor="@color/blue_light"
+                    app:strokeWidth="1dp">
+
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="horizontal"
+                        android:padding="20dp">
+
+                        <View
+                            android:layout_width="4dp"
+                            android:layout_height="match_parent"
+                            android:layout_marginEnd="16dp"
+                            android:background="@drawable/info_indicator"
+                            android:backgroundTint="@color/secondary" />
+
+                        <ImageView
+                            android:layout_width="28dp"
+                            android:layout_height="28dp"
+                            android:layout_gravity="center_vertical"
+                            android:layout_marginEnd="16dp"
+                            android:src="@drawable/ic_info"
+                            app:tint="@color/secondary" />
+
+                        <TextView
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:fontFamily="sans-serif"
+                            android:lineSpacingExtra="2dp"
+                            android:text="Seu histórico médico em formato PDF será exibido abaixo. Você pode adicionar apenas um documento."
+                            android:textColor="@color/text_primary"
+                            android:textSize="14sp" />
+                    </LinearLayout>
+                </com.google.android.material.card.MaterialCardView>
+
+                <!-- Estado Vazio -->
+                <com.google.android.material.card.MaterialCardView
+                    android:id="@+id/emptyStateLayout"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    app:cardBackgroundColor="@color/white"
+                    app:cardCornerRadius="20dp"
+                    app:cardElevation="0dp"
                     app:strokeColor="@color/divider"
                     app:strokeWidth="1dp">
 
                     <LinearLayout
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
+                        android:gravity="center"
                         android:orientation="vertical"
-                        android:padding="16dp">
+                        android:padding="40dp">
 
-                        <!-- Header do Card -->
-                        <LinearLayout
-                            android:layout_width="match_parent"
-                            android:layout_height="wrap_content"
-                            android:layout_marginBottom="12dp"
-                            android:gravity="center_vertical"
-                            android:orientation="horizontal">
+                        <FrameLayout
+                            android:layout_width="140dp"
+                            android:layout_height="140dp"
+                            android:layout_marginBottom="24dp">
+
+                            <View
+                                android:layout_width="match_parent"
+                                android:layout_height="match_parent"
+                                android:background="@drawable/circle_background"
+                                android:backgroundTint="@color/primary_light" />
 
                             <ImageView
-                                android:layout_width="32dp"
-                                android:layout_height="32dp"
-                                android:layout_marginEnd="12dp"
-                                android:src="@drawable/ic_pdf"
-                                app:tint="@color/red" />
+                                android:layout_width="80dp"
+                                android:layout_height="80dp"
+                                android:layout_gravity="center"
+                                android:src="@drawable/ic_document_empty"
+                                app:tint="@color/primary" />
+                        </FrameLayout>
 
-                            <LinearLayout
-                                android:layout_width="0dp"
-                                android:layout_height="wrap_content"
-                                android:layout_weight="1"
-                                android:orientation="vertical">
-
-                                <TextView
-                                    android:id="@+id/tvPdfName"
-                                    android:layout_width="wrap_content"
-                                    android:layout_height="wrap_content"
-                                    android:ellipsize="end"
-                                    android:fontFamily="sans-serif-medium"
-                                    android:maxLines="1"
-                                    android:text="historico_medico.pdf"
-                                    android:textColor="@color/text_primary"
-                                    android:textSize="16sp" />
-
-                                <TextView
-                                    android:id="@+id/tvPdfSize"
-                                    android:layout_width="wrap_content"
-                                    android:layout_height="wrap_content"
-                                    android:text="2.5 MB"
-                                    android:textColor="@color/text_secondary"
-                                    android:textSize="12sp" />
-                            </LinearLayout>
-
-                            <ImageButton
-                                android:id="@+id/btnDeletePdf"
-                                android:layout_width="40dp"
-                                android:layout_height="40dp"
-                                android:background="?attr/selectableItemBackgroundBorderless"
-                                android:contentDescription="Remover PDF"
-                                android:src="@drawable/ic_delete"
-                                app:tint="@color/danger" />
-                        </LinearLayout>
-
-                        <!-- Divider -->
-                        <View
-                            android:layout_width="match_parent"
-                            android:layout_height="1dp"
-                            android:layout_marginBottom="12dp"
-                            android:background="@color/divider" />
-
-                        <!-- Botões de Ação -->
-                        <LinearLayout
-                            android:layout_width="match_parent"
+                        <TextView
+                            android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
+                            android:layout_marginBottom="8dp"
+                            android:fontFamily="sans-serif-medium"
+                            android:text="Nenhum histórico médico"
+                            android:textColor="@color/text_primary"
+                            android:textSize="20sp"
+                            android:letterSpacing="0.01" />
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_marginBottom="32dp"
                             android:gravity="center"
-                            android:orientation="horizontal">
+                            android:text="@string/pdf_manual_info"
+                            android:textAlignment="center"
+                            android:textColor="@color/text_secondary"
+                            android:textSize="14sp"
+                            android:lineSpacingExtra="4dp"
+                            android:maxWidth="280dp" />
 
-                            <com.google.android.material.button.MaterialButton
-                                android:id="@+id/btnDownloadPdf"
-                                style="@style/Widget.Material3.Button.OutlinedButton"
-                                android:layout_width="0dp"
-                                android:layout_height="wrap_content"
-                                android:layout_marginEnd="8dp"
-                                android:layout_weight="1"
-                                android:text="@string/baixar"
-                                android:textSize="16sp"
-                                android:textAllCaps="false"
-                                app:cornerRadius="8dp"
-                                app:icon="@drawable/ic_download"
-                                app:iconGravity="textStart"
-                                app:iconPadding="4dp"
-                                app:strokeColor="@color/secondary" />
-
-                            <com.google.android.material.button.MaterialButton
-                                android:id="@+id/btnSharePdf"
-                                style="@style/Widget.Material3.Button.OutlinedButton"
-                                android:layout_width="0dp"
-                                android:layout_height="wrap_content"
-                                android:layout_marginStart="8dp"
-                                android:layout_weight="1"
-                                android:text="@string/compartilhar"
-                                android:textSize="16sp"
-                                android:textAllCaps="false"
-                                app:cornerRadius="8dp"
-                                app:icon="@drawable/ic_share"
-                                app:iconGravity="textStart"
-                                app:iconPadding="4dp"
-                                app:strokeColor="@color/secondary" />
-                        </LinearLayout>
+                        <com.google.android.material.button.MaterialButton
+                            android:id="@+id/btnAddPdf"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:paddingStart="32dp"
+                            android:paddingEnd="32dp"
+                            android:paddingTop="14dp"
+                            android:paddingBottom="14dp"
+                            android:text="@string/adicionar_pdf"
+                            android:textAllCaps="false"
+                            android:textSize="16sp"
+                            android:textColor="@color/white"
+                            android:fontFamily="sans-serif-medium"
+                            android:background="@drawable/button_gradient"
+                            android:elevation="4dp"
+                            android:stateListAnimator="@null"
+                            app:backgroundTint="@null"
+                            app:cornerRadius="18dp"
+                            app:icon="@drawable/ic_add"
+                            app:iconGravity="textStart"
+                            app:iconPadding="8dp"
+                            app:iconTint="@color/white"
+                            app:rippleColor="@color/primary_light" />
                     </LinearLayout>
                 </com.google.android.material.card.MaterialCardView>
-
-                <!-- Visualizador de PDF -->
-                <com.google.android.material.card.MaterialCardView
-                    android:layout_width="match_parent"
-                    android:layout_height="600dp"
-                    app:cardBackgroundColor="@color/surface"
-                    app:cardCornerRadius="12dp"
-                    app:cardElevation="2dp"
-                    app:strokeColor="@color/divider"
-                    app:strokeWidth="1dp">
-
-                    <FrameLayout
-                        android:layout_width="match_parent"
-                        android:layout_height="match_parent">
-
-                        <!-- PDF Viewer -->
-                        <com.github.barteksc.pdfviewer.PDFView
-                            android:id="@+id/pdfView"
-                            android:layout_width="match_parent"
-                            android:layout_height="match_parent" />
-
-                        <!-- Loading Progress -->
-                        <ProgressBar
-                            android:id="@+id/progressBar"
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:layout_gravity="center"
-                            android:indeterminateTint="@color/secondary"
-                            android:visibility="gone" />
-
-                        <!-- Overlay com número de páginas -->
-                        <LinearLayout
-                            android:id="@+id/pageInfoOverlay"
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:layout_gravity="bottom|center_horizontal"
-                            android:layout_margin="16dp"
-                            android:background="@drawable/bg_page_indicator"
-                            android:orientation="horizontal"
-                            android:paddingStart="16dp"
-                            android:paddingTop="8dp"
-                            android:paddingEnd="16dp"
-                            android:paddingBottom="8dp"
-                            android:visibility="gone">
-
-                            <TextView
-                                android:id="@+id/tvCurrentPage"
-                                android:layout_width="wrap_content"
-                                android:layout_height="wrap_content"
-                                android:fontFamily="sans-serif-medium"
-                                android:text="1"
-                                android:textColor="@color/white"
-                                android:textSize="14sp" />
-
-                            <TextView
-                                android:layout_width="wrap_content"
-                                android:layout_height="wrap_content"
-                                android:text=" / "
-                                android:textColor="@color/white"
-                                android:textSize="14sp" />
-
-                            <TextView
-                                android:id="@+id/tvTotalPages"
-                                android:layout_width="wrap_content"
-                                android:layout_height="wrap_content"
-                                android:fontFamily="sans-serif-medium"
-                                android:text="10"
-                                android:textColor="@color/white"
-                                android:textSize="14sp" />
-                        </LinearLayout>
-                    </FrameLayout>
-                </com.google.android.material.card.MaterialCardView>
             </LinearLayout>
+        </ScrollView>
+
+        <!-- Container do PDF - SEM ScrollView -->
+        <LinearLayout
+            android:id="@+id/pdfContainer"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:orientation="vertical"
+            android:padding="20dp"
+            android:visibility="gone">
+
+            <!-- Card com informações do PDF -->
+            <com.google.android.material.card.MaterialCardView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginBottom="16dp"
+                app:cardBackgroundColor="@color/surface"
+                app:cardCornerRadius="12dp"
+                app:cardElevation="2dp"
+                app:strokeColor="@color/divider"
+                app:strokeWidth="1dp">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical"
+                    android:padding="16dp">
+
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginBottom="12dp"
+                        android:gravity="center_vertical"
+                        android:orientation="horizontal">
+
+                        <ImageView
+                            android:layout_width="32dp"
+                            android:layout_height="32dp"
+                            android:layout_marginEnd="12dp"
+                            android:src="@drawable/ic_pdf"
+                            app:tint="@color/red" />
+
+                        <LinearLayout
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:orientation="vertical">
+
+                            <TextView
+                                android:id="@+id/tvPdfName"
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:ellipsize="end"
+                                android:fontFamily="sans-serif-medium"
+                                android:maxLines="1"
+                                android:text="historico_medico.pdf"
+                                android:textColor="@color/text_primary"
+                                android:textSize="16sp" />
+
+                            <TextView
+                                android:id="@+id/tvPdfSize"
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:text="2.5 MB"
+                                android:textColor="@color/text_secondary"
+                                android:textSize="12sp" />
+                        </LinearLayout>
+
+                        <ImageButton
+                            android:id="@+id/btnDeletePdf"
+                            android:layout_width="40dp"
+                            android:layout_height="40dp"
+                            android:background="?attr/selectableItemBackgroundBorderless"
+                            android:contentDescription="Remover PDF"
+                            android:src="@drawable/ic_delete"
+                            app:tint="@color/danger" />
+                    </LinearLayout>
+
+                    <View
+                        android:layout_width="match_parent"
+                        android:layout_height="1dp"
+                        android:layout_marginBottom="12dp"
+                        android:background="@color/divider" />
+
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:gravity="center"
+                        android:orientation="horizontal">
+
+                        <com.google.android.material.button.MaterialButton
+                            android:id="@+id/btnDownloadPdf"
+                            style="@style/Widget.Material3.Button.OutlinedButton"
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_marginEnd="8dp"
+                            android:layout_weight="1"
+                            android:text="@string/baixar"
+                            android:textSize="16sp"
+                            android:textAllCaps="false"
+                            app:cornerRadius="8dp"
+                            app:icon="@drawable/ic_download"
+                            app:iconGravity="textStart"
+                            app:iconPadding="4dp"
+                            app:strokeColor="@color/secondary" />
+
+                        <com.google.android.material.button.MaterialButton
+                            android:id="@+id/btnSharePdf"
+                            style="@style/Widget.Material3.Button.OutlinedButton"
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_marginStart="8dp"
+                            android:layout_weight="1"
+                            android:text="@string/compartilhar"
+                            android:textSize="16sp"
+                            android:textAllCaps="false"
+                            app:cornerRadius="8dp"
+                            app:icon="@drawable/ic_share"
+                            app:iconGravity="textStart"
+                            app:iconPadding="4dp"
+                            app:strokeColor="@color/secondary" />
+                    </LinearLayout>
+                </LinearLayout>
+            </com.google.android.material.card.MaterialCardView>
+
+            <!-- Visualizador de PDF - AGORA match_parent -->
+            <com.google.android.material.card.MaterialCardView
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                app:cardBackgroundColor="@color/surface"
+                app:cardCornerRadius="12dp"
+                app:cardElevation="2dp"
+                app:strokeColor="@color/divider"
+                app:strokeWidth="1dp">
+
+                <FrameLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent">
+
+                    <com.github.barteksc.pdfviewer.PDFView
+                        android:id="@+id/pdfView"
+                        android:layout_width="match_parent"
+                        android:layout_height="match_parent" />
+
+                    <ProgressBar
+                        android:id="@+id/progressBar"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_gravity="center"
+                        android:indeterminateTint="@color/secondary"
+                        android:visibility="gone" />
+
+                    <LinearLayout
+                        android:id="@+id/pageInfoOverlay"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_gravity="bottom|center_horizontal"
+                        android:layout_margin="16dp"
+                        android:background="@drawable/bg_page_indicator"
+                        android:orientation="horizontal"
+                        android:paddingStart="16dp"
+                        android:paddingTop="8dp"
+                        android:paddingEnd="16dp"
+                        android:paddingBottom="8dp"
+                        android:visibility="gone">
+
+                        <TextView
+                            android:id="@+id/tvCurrentPage"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:fontFamily="sans-serif-medium"
+                            android:text="1"
+                            android:textColor="@color/white"
+                            android:textSize="14sp" />
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text=" / "
+                            android:textColor="@color/white"
+                            android:textSize="14sp" />
+
+                        <TextView
+                            android:id="@+id/tvTotalPages"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:fontFamily="sans-serif-medium"
+                            android:text="10"
+                            android:textColor="@color/white"
+                            android:textSize="14sp" />
+                    </LinearLayout>
+                </FrameLayout>
+            </com.google.android.material.card.MaterialCardView>
         </LinearLayout>
-    </ScrollView>
+    </LinearLayout>
 
 </androidx.constraintlayout.widget.ConstraintLayout>

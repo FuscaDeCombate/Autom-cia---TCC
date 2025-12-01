@@ -1,7 +1,6 @@
 package com.automacia.mobile.quickactions;
 
 import android.Manifest;
-import android.app.AlertDialog;
 import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.graphics.drawable.Drawable;
@@ -14,6 +13,7 @@ import android.view.View;
 import android.widget.ImageButton;
 import android.widget.LinearLayout;
 import android.widget.ProgressBar;
+import android.widget.ScrollView;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -66,6 +66,8 @@ public class MedicalHistoryActivity extends AppCompatActivity {
     private TextView tvCurrentPage;
     private TextView tvTotalPages;
     private LinearLayout pageInfoOverlay;
+
+    private ScrollView emptyScrollView;
 
     // Dados
     private UsuarioDTO usuario;
@@ -130,6 +132,7 @@ public class MedicalHistoryActivity extends AppCompatActivity {
         tvTotalPages = findViewById(R.id.tvTotalPages);
         pageInfoOverlay = findViewById(R.id.pageInfoOverlay);
         toolbar = findViewById(R.id.toolbar);
+        emptyScrollView = findViewById(R.id.emptyScrollView);
     }
 
     private void receberUsuario() {
@@ -221,7 +224,7 @@ public class MedicalHistoryActivity extends AppCompatActivity {
 
     private void exibirEstadoVazio() {
         Log.d(TAG, "Exibindo estado vazio");
-        emptyStateLayout.setVisibility(View.VISIBLE);
+        emptyScrollView.setVisibility(View.VISIBLE);
         pdfContainer.setVisibility(View.GONE);
     }
 
@@ -230,7 +233,7 @@ public class MedicalHistoryActivity extends AppCompatActivity {
         Log.d(TAG, "Nome: " + historico.getNomeArquivo());
         Log.d(TAG, "Tamanho: " + historico.getTamanhoFormatado());
 
-        emptyStateLayout.setVisibility(View.GONE);
+        emptyScrollView.setVisibility(View.GONE);
         pdfContainer.setVisibility(View.VISIBLE);
 
         // Atualiza informações do PDF

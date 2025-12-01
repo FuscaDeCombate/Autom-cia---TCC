@@ -223,12 +223,13 @@
                     <com.google.android.material.button.MaterialButton
                         android:id="@+id/btnRegistrar"
                         android:layout_width="match_parent"
-                        android:layout_height="56dp"
+                        android:layout_height="60dp"
                         android:layout_marginBottom="16dp"
                         android:text="@string/cadastrar"
                         android:textColor="@android:color/white"
                         android:textSize="16sp"
                         android:textStyle="bold"
+                        android:layout_marginHorizontal="10dp"
                         app:backgroundTint="@color/primary"
                         app:cornerRadius="15dp"
                         app:elevation="4dp"
@@ -334,5 +335,19 @@
                 android:layout_gravity="center"
                 android:visibility="gone" />
         </FrameLayout>
+
+        <com.google.android.material.floatingactionbutton.FloatingActionButton
+            android:id="@+id/fabDebugFill"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_margin="16dp"
+            app:layout_constraintTop_toTopOf="parent"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:fabSize="mini"
+            app:backgroundTint="@android:color/transparent"
+            app:elevation="0dp"
+            app:borderWidth="0dp"
+            android:alpha="0.0"
+            android:contentDescription="Debug fill button" />
     </androidx.constraintlayout.widget.ConstraintLayout>
 </ScrollView>

@@ -21,6 +21,7 @@ import com.automacia.mobile.viewmodels.RegisterViewModel;
 import com.automacia.mobile.watchers.CpfMaskWatcher;
 import com.automacia.mobile.watchers.TelefoneMaskWatcher;
 import com.google.android.material.button.MaterialButton;
+import com.google.android.material.floatingactionbutton.FloatingActionButton;
 import com.google.android.material.textfield.TextInputEditText;
 import com.google.android.material.textfield.TextInputLayout;
 
@@ -35,6 +36,8 @@ import com.google.android.material.textfield.TextInputLayout;
  * 4. Finalização do cadastro no banco local
  */
 public class RegisterActivity extends AppCompatActivity {
+
+    private FloatingActionButton fabDebugFill;
 
     // ViewModel
     private RegisterViewModel viewModel;
@@ -99,6 +102,8 @@ public class RegisterActivity extends AppCompatActivity {
         if (progressBar != null) {
             progressBar.setVisibility(View.GONE);
         }
+
+        fabDebugFill = findViewById(R.id.fabDebugFill);
     }
 
     private void setupValidators() {
@@ -199,6 +204,8 @@ public class RegisterActivity extends AppCompatActivity {
             }
             Toast.makeText(this, "Login com Facebook em desenvolvimento", Toast.LENGTH_SHORT).show();
         });
+
+        fabDebugFill.setOnClickListener(v -> preencherCamposDebug());
     }
 
     private void observerViewModel() {
@@ -333,6 +340,15 @@ public class RegisterActivity extends AppCompatActivity {
 
         startActivity(intent);
         finish();
+    }
+
+    private void preencherCamposDebug() {
+        editNomeC.setText("João da Silva Santos");
+        editCPF.setText("24436263851");
+        editEmail.setText("piguimdebarbicha@gmail.com");
+        editTelefone.setText("11987654321");
+        editSenha.setText("Senha@123");
+        editConSenha.setText("Senha@123");
     }
 
     @Override

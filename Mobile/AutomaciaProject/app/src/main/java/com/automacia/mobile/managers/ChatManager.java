@@ -34,7 +34,7 @@ import io.socket.emitter.Emitter;
 public class ChatManager {
 
     private static final String TAG = "ChatManager";
-    private static final String SERVER_URL = "http://192.168.1.13:6969";
+    private static final String SERVER_URL = "http://192.168.30.189:6969";
     private static final int CONNECTION_TIMEOUT = 10000;
     private static final int DATABASE_TIMEOUT = 10000;
 

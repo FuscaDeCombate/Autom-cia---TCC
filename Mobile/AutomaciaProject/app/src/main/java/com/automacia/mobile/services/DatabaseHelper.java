@@ -13,7 +13,7 @@ public class DatabaseHelper {
     private static final String TAG = "DatabaseHelper";
 
     // Configurações do banco
-    public static final String SERVER_IP = "192.168.1.13";
+    public static final String SERVER_IP = "192.168.30.189";
     private static final String DATABASE_NAME = "Automacia";
     private static final String USERNAME = "android_user";
     private static final String PASSWORD = "SenhaForte123!";

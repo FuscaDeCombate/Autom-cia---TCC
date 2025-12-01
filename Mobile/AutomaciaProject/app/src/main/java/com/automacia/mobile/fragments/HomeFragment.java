@@ -25,6 +25,7 @@ import android.widget.Toast;
 
 import com.automacia.mobile.LoginActivity;
 import com.automacia.mobile.managers.SessionManager;
+import com.automacia.mobile.quickactions.EmergencyActivity;
 import com.automacia.mobile.quickactions.FullPrescriptionsActivity;
 import com.automacia.mobile.MyApp;
 import com.automacia.mobile.R;
@@ -37,6 +38,7 @@ import com.automacia.mobile.quickactions.Pharmacys;
 import com.automacia.mobile.services.PrescriptionService;
 import com.automacia.mobile.utils.Utils;
 
+import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -55,7 +57,7 @@ public class HomeFragment extends Fragment {
     private TextView tvViewAllPrescriptions;
     private ProgressBar progressBar;
     private CardView cardMedicalHistory;
-    private LinearLayout quickMedicos, quickFarmacias, quickEmergencias, quickRelatorio;
+    private LinearLayout quickMedicos, quickFarmacias, quickEmergencias;
 
     // Dados do usuário
     private UsuarioDTO currentUser;
@@ -154,8 +156,6 @@ public class HomeFragment extends Fragment {
         quickMedicos = view.findViewById(R.id.quick_action_medicos);
         quickFarmacias = view.findViewById(R.id.quick_action_farmacias);
         quickEmergencias = view.findViewById(R.id.quick_action_emergencias);
-        quickRelatorio = view.findViewById(R.id.quick_action_relatorios);
-
         // Links do rodapé
         view.findViewById(R.id.layout_website).setOnClickListener(v -> openWebsite());
         view.findViewById(R.id.layout_contact).setOnClickListener(v -> openContact());
@@ -204,7 +204,6 @@ public class HomeFragment extends Fragment {
         quickMedicos.setOnClickListener(v -> openChatDoctors());
         quickFarmacias.setOnClickListener(v -> openPharmacys());
         quickEmergencias.setOnClickListener(v -> openEmergnecyTab());
-        quickRelatorio.setOnClickListener(v -> openStatistics());
     }
 
     /**
@@ -261,9 +260,6 @@ public class HomeFragment extends Fragment {
 
                 showLoading(false);
                 showEmptyState(true);
-
-                // Mostrar erro básico para o usuário
-                Log.e("HomeFragment", "Erro ao carregar receitas" + errorMessage);
 
                 // Log detalhado já está no PrescriptionService
                 tvPrescriptionStatus.setText("Erro ao carregar receitas.\nTente novamente mais tarde.");
@@ -483,9 +479,6 @@ public class HomeFragment extends Fragment {
     }
 
     private void openPrescriptionDetails(PrescriptionDTO prescription) {
-        Toast.makeText(getContext(),
-                "Abrindo detalhes: " + prescription.getMedicamento(),
-                Toast.LENGTH_SHORT).show();
         // TODO: Abrir Activity com detalhes completos
         // Você pode usar prescriptionService.fetchPrescriptionById() ou fetchCompletePrescriptions()
     }
@@ -525,11 +518,11 @@ public class HomeFragment extends Fragment {
     }
 
     private void openEmergnecyTab() {
+        Intent intent = new Intent(getActivity().getBaseContext(), EmergencyActivity.class);
+        intent.putExtra("prescriptions_list", (Serializable) prescriptionList);
+        startActivity(intent);
 
-    }
-
-    private void openStatistics() {
-
+        getActivity().overridePendingTransition(R.anim.fade_in, R.anim.fade_out);
     }
 
     private void openWebsite() {

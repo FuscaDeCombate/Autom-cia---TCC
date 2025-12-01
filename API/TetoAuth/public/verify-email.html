@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Verificação de Email - Automácia</title>
+    <link rel="stylesheet" href="CSS/verify-email.css">
+    <link rel="shortcut icon" href="Imagem/file.png">
+</head>
+<body>
+    <!-- Animated Background -->
+    <div class="animated-bg">
+        <div class="floating-shapes">
+            <div class="shape"></div>
+            <div class="shape"></div>
+            <div class="shape"></div>
+            <div class="shape"></div>
+            <div class="shape"></div>
+        </div>
+    </div>
+
+    <!-- Particles Effect -->
+    <canvas id="particles-canvas"></canvas>
+
+    <!-- Main Container -->
+    <div class="verification-container">
+        <!-- Logo -->
+        <div class="logo-section">
+            <img src="Imagem/file.png" alt="Logo Automácia" class="logo">
+            <div class="logo-glow"></div>
+        </div>
+
+        <!-- Loading State -->
+        <div id="loading-state" class="state-card">
+            <div class="icon-container loading">
+                <div class="spinner"></div>
+            </div>
+            <h1 class="title">Verificando seu email...</h1>
+            <p class="description">Por favor, aguarde enquanto confirmamos seu email.</p>
+        </div>
+
+        <!-- Success State -->
+        <div id="success-state" class="state-card hidden">
+            <div class="icon-container success">
+                <svg viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M9,20.42L2.79,14.21L5.62,11.38L9,14.77L18.88,4.88L21.71,7.71L9,20.42Z"/>
+                </svg>
+            </div>
+            <h1 class="title">Email verificado com sucesso!</h1>
+            <p class="description">Sua conta foi ativada. Você já pode acessar todas as funcionalidades.</p>
+            <a href="index.html" class="btn-primary">
+                <span>Ir para o site</span>
+                <div class="btn-ripple"></div>
+            </a>
+        </div>
+
+        <!-- Error State -->
+        <div id="error-state" class="state-card hidden">
+            <div class="icon-container error">
+                <svg viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M19,6.41L17.59,5L12,10.59L6.41,5L5,6.41L10.59,12L5,17.59L6.41,19L12,13.41L17.59,19L19,17.59L13.41,12L19,6.41Z"/>
+                </svg>
+            </div>
+            <h1 class="title">Erro na verificação</h1>
+            <p id="error-message" class="description">Não foi possível verificar seu email. O link pode ter expirado ou já foi usado.</p>
+            <a href="index.html" class="btn-secondary">
+                <span>Voltar para o site</span>
+                <div class="btn-ripple"></div>
+            </a>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="JS/particles.js"></script>
+    <script type="module" src="JS/verify-email.js"></script>
+</body>
+</html>
